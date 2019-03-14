@@ -1,0 +1,148 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <title>RelmonService</title>
+    <style>
+      textarea {
+        width: 85%;
+        height: 150px;
+      }
+    </style>
+    <script type="text/javascript">
+      $( document ).ready(function() {
+        $("#createForm").submit(function(event) {
+          /* stop form from submitting normally */
+          event.preventDefault();
+          var data = {};
+          data['name'] = $("#relmon_name").val();
+          data['categories'] = []
+
+          data_reference = $("#data_reference").val().split('\n').filter(Boolean);
+          data_target = $("#data_target").val().split('\n').filter(Boolean);
+          if (data_reference.length > 0 && data_target.length > 0) {
+            data_category = {name: 'Data'};
+            data_category['lists'] = {reference: data_reference, target: data_target};
+            data['categories'].push(data_category);
+          }
+
+          fullsim_reference = $("#fullsim_reference").val().split('\n').filter(Boolean);
+          fullsim_target = $("#fullsim_target").val().split('\n').filter(Boolean);
+          if (fullsim_reference.length > 0 && fullsim_target.length > 0) {
+            fullsim_category = {name: 'FullSim'};
+            fullsim_category['lists'] = {reference: fullsim_reference, target: fullsim_target};
+            data['categories'].push(fullsim_category);
+          }
+
+          fastsim_reference = $("#fastsim_reference").val().split('\n').filter(Boolean);
+          fastsim_target = $("#fastsim_target").val().split('\n').filter(Boolean);
+          if (fastsim_reference.length > 0 && fastsim_target.length > 0) {
+            fastsim_category = {name: 'FastSim'};
+            fastsim_category['lists'] = {reference: fastsim_reference, target: fastsim_target};
+            data['categories'].push(fastsim_category);
+          }
+
+          generator_reference = $("#generator_reference").val().split('\n').filter(Boolean);
+          generator_target = $("#generator_target").val().split('\n').filter(Boolean);
+          if (generator_reference.length > 0 && generator_target.length > 0) {
+            generator_category = {name: 'Generator'};
+            generator_category['lists'] = {reference: generator_reference, target: generator_target};
+            data['categories'].push(generator_category);
+          }
+
+          fullsim_pu_reference = $("#fullsim_pu_reference").val().split('\n').filter(Boolean);
+          fullsim_pu_target = $("#fullsim_pu_target").val().split('\n').filter(Boolean);
+          if (fullsim_pu_reference.length > 0 && fullsim_pu_target.length > 0) {
+            fullsim_pu_category = {name: 'FullSim_PU'};
+            fullsim_pu_category['lists'] = {reference: fullsim_pu_reference, target: fullsim_pu_target};
+            data['categories'].push(fullsim_pu_category);
+          }
+
+          fastsim_pu_reference = $("#fastsim_pu_reference").val().split('\n').filter(Boolean);
+          fastsim_pu_target = $("#fastsim_pu_target").val().split('\n').filter(Boolean);
+          if (fastsim_pu_reference.length > 0 && fastsim_pu_target.length > 0) {
+            fastsim_pu_category = {name: 'FastSim_PU'};
+            fastsim_pu_category['lists'] = {reference: fastsim_pu_reference, target: fastsim_pu_target};
+            data['categories'].push(fastsim_pu_category);
+          }
+
+          console.log(data);
+          $.ajax({
+            type: "POST",
+            url: "/create",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+          }).done(function (data) {
+            console.log(data)
+            $("#createFormStatus").html(data.message);
+            // window.location = '/simple/chained_requests'
+          }).fail(function(data) {
+            $("#createFormStatus").html(data.message);
+          });
+        });
+      });
+    </script>
+  </head>
+  <body style="padding: 10px;">
+    <h1>New</h1>
+    <form id="createForm">
+      <h5>Name</h5>
+      <input type="text" id="relmon_name">
+      <h3>Data</h3>
+      <h5>Reference</h5>
+      <textarea id="data_reference"></textarea>
+      <h5>Target</h5>
+      <textarea id="data_target"></textarea>
+      <h3>FullSim</h3>
+      <h5>Reference</h5>
+      <textarea id="fullsim_reference"></textarea>
+      <h5>Target</h5>
+      <textarea id="fullsim_target"></textarea>
+      <h3>FastSim</h3>
+      <h5>Reference</h5>
+      <textarea id="fastsim_reference"></textarea>
+      <h5>Target</h5>
+      <textarea id="fastsim_target"></textarea>
+      <h3>Generator</h3>
+      <h5>Reference</h5>
+      <textarea id="generator_reference"></textarea>
+      <h5>Target</h5>
+      <textarea id="generator_target"></textarea>
+      <h3>FullSim PU</h3>
+      <h5>Reference</h5>
+      <textarea id="fullsim_pu_reference"></textarea>
+      <h5>Target</h5>
+      <textarea id="fullsim_pu_target"></textarea>
+      <h3>FastSim PU</h3>
+      <h5>Reference</h5>
+      <textarea id="fastsim_pu_reference"></textarea>
+      <h5>Target</h5>
+      <textarea id="fastsim_pu_target"></textarea>
+
+      <input type="submit" id="createFormSubmitButton" name="createFormSubmitButton" value="Create">
+      <div id="createFormStatus"></div>
+    </form>
+    <hr/>
+    {% for relmon in data %}
+      <h1>{{ relmon.name }} ({{ relmon.status}})</h1>
+      {% for category in relmon.categories %}
+        <h3>{{ category.name }}</h3>
+        HLT: {{ category.HLT }}<br>
+        Automatic pairing: {{ category.automatic_pairing }}
+        <h5>Reference</h5>
+        <ul>
+        {% for wf in category.lists.reference %}
+          <li>Name: {{ wf.name }}<br>File: {{ wf.file_name }}<br>File status: {{ wf.file_status }}<br>File size: {{ wf.file_size / (1024.0 * 1024.0) }}MB</li>
+        {% endfor %}
+        </ul>
+        <h5>Target</h5>
+        <ul>
+        {% for wf in category.lists.target %}
+          <li>Name: {{ wf.name }}<br>File: {{ wf.file_name }}<br>File status: {{ wf.file_status }}<br>File size: {{ wf.file_size / (1024.0 * 1024.0) }}MB</li>
+        {% endfor %}
+        </ul>
+      {% endfor %}
+    {% endfor %}
+  </body>
+</html>
