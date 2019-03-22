@@ -105,7 +105,8 @@ class Controller(threading.Thread):
         with open(script_file, 'w') as file:
             file.write(script_file_content)
 
-        (_, stdout, stderr) = ssh_client.exec_command('mkdir -p %s' % (remote_relmon_directory))
+        (_, stdout, stderr) = ssh_client.exec_command('rm -rf %s; mkdir -p %s' % (remote_relmon_directory,
+                                                                                  remote_relmon_directory))
         ftp_client = ssh_client.open_sftp()
         ftp_client.put(relmon_file, '%s/%s' % (remote_relmon_directory, relmon_file))
         ftp_client.put(condor_file, '%s/%s' % (remote_relmon_directory, condor_file))
