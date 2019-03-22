@@ -6,7 +6,6 @@ import json
 from controller import Controller
 from persistent_storage import PersistentStorage
 import time
-import random
 
 
 app = Flask(__name__,
