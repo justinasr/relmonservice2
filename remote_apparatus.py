@@ -1,3 +1,12 @@
+"""
+Script takes RelMon config and grid certificates
+For RelMons in given config, finds DQMIO datasets, downloads
+root files from cmsweb and runs ValidationMatrix from CMSSW
+for these root files
+During the whole process, it sends callbacks to RelmonService
+website about file and whole RelMon status changes
+Output is stored in Reports directory
+"""
 import json
 import argparse
 import re
@@ -239,9 +248,8 @@ def run_validation_matrix(config):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='ROOT file downloader')
-    parser.add_argument('--config',
-                        help='Config JSON')
+    parser = argparse.ArgumentParser(description='ROOT file downloader and ValidationMatrix runner')
+    parser.add_argument('--config')
     parser.add_argument('--cert')
     parser.add_argument('--key')
     args = vars(parser.parse_args())
@@ -250,7 +258,10 @@ if __name__ == '__main__':
     cert_file = args.get('cert')
     key_file = args.get('key')
     config_filename = args.get('config')
-    cmsweb = CMSWebWrapper(cert_file, key_file)
-    config = read_config(config_filename)
-    config = download_root_files(config, cmsweb)
-    run_validation_matrix(config)
+    if not cert_file or not key_file or not config:
+        logging.error('Missing user certificate or key or config')
+    else:
+        cmsweb = CMSWebWrapper(cert_file, key_file)
+        config = read_config(config_filename)
+        config = download_root_files(config, cmsweb)
+        run_validation_matrix(config)

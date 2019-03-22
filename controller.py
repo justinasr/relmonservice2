@@ -110,7 +110,7 @@ class Controller(threading.Thread):
                                'eval `scramv1 runtime -sh`',
                                'cd $DIR',
                                'mkdir Reports',
-                               'python3 relmonservice2/downloader.py --config %s --cert user.crt.pem --key user.key.pem' % (relmon_file),
+                               'python3 relmonservice2/remote_apparatus.py --config %s --cert user.crt.pem --key user.key.pem' % (relmon_file),
                                'rm *.root',
                                'tar -zcvf %s.tar.gz Reports' % (relmon['id'])]
 
