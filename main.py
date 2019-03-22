@@ -26,7 +26,6 @@ def add_relmon():
     relmon = json.loads(request.data.decode('utf-8'))
     relmon['status'] = 'new'
     relmon['id'] = int(time.time())
-    relmon['secret_hash'] = '%032x' % (random.getrandbits(128))
     for category in relmon['categories']:
             category['lists']['reference'] = [{'name': x, 'file_name': '-', 'file_status': 'initial', 'file_size': 0} for x in category['lists']['reference']]
             category['lists']['target'] = [{'name': x, 'file_name': '-', 'file_status': 'initial', 'file_size': 0} for x in category['lists']['target']]

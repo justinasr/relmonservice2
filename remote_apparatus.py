@@ -258,10 +258,13 @@ if __name__ == '__main__':
     cert_file = args.get('cert')
     key_file = args.get('key')
     config_filename = args.get('config')
-    if not cert_file or not key_file or not config:
+    if not cert_file or not key_file or not config_filename:
         logging.error('Missing user certificate or key or config')
     else:
-        cmsweb = CMSWebWrapper(cert_file, key_file)
-        config = read_config(config_filename)
-        config = download_root_files(config, cmsweb)
-        run_validation_matrix(config)
+        try:
+            cmsweb = CMSWebWrapper(cert_file, key_file)
+            config = read_config(config_filename)
+            config = download_root_files(config, cmsweb)
+            run_validation_matrix(config)
+        except:
+            notify_about_status(relmon['id'], 'failed')
