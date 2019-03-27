@@ -98,7 +98,7 @@ class Controller(threading.Thread):
             logging.info('%s status is %s' % (relmon['name'], relmon['status']))
             if relmon['status'] == 'new':
                 self.submit_to_condor(relmon)
-            elif relmon['status'] == 'submitted':
+            elif relmon['status'] == 'submitted' or relmon['status'] == 'running':
                 self.check_if_running(relmon)
             elif relmon['status'] == 'finished':
                 self.collect_output(relmon)
