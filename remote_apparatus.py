@@ -275,7 +275,11 @@ if __name__ == '__main__':
         try:
             cmsweb = CMSWebWrapper(cert_file, key_file)
             config = read_config(config_filename)
+            config['status'] = 'submitted'
             config = download_root_files(config, cmsweb)
             run_validation_matrix(config)
+            config['status'] = 'finished'
         except:
-            notify(config)
+            config['status'] = 'failed'
+
+        notify(config)
