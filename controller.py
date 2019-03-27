@@ -136,7 +136,7 @@ class Controller(threading.Thread):
                                # 'arguments               = $(ClusterId) $(ProcId)',
                                'output                  = RELMON_%s_$(ClusterId)_$(ProcId).out' % (relmon['id']),
                                'error                   = RELMON_%s_$(ClusterId)_$(ProcId).err' % (relmon['id']),
-                               'log                     = RELMON_%s_$(ClusterId).log',
+                               'log                     = RELMON_%s_$(ClusterId).log' % (relmon['id']),
                                'transfer_input_files    = %s,%s%s,%s%s' % (relmon_file,
                                                                            self.grid_location,
                                                                            self.cert_file_name,
@@ -146,7 +146,7 @@ class Controller(threading.Thread):
                                # 'transfer_output_files = job.$(ClusterId).$(ProcId).out',
                                'when_to_transfer_output = on_exit',
                                'request_cpus            = 2',
-                               '+JobFlavour             = "longlunch"',
+                               '+JobFlavour             = "tomorrow"',
                                'queue']
 
         condor_file_content = '\n'.join(condor_file_content)
@@ -202,6 +202,7 @@ class Controller(threading.Thread):
         stdout, stderr = self.execute_command('condor_q -af:h ClusterId JobStatus | grep %s' % (relmon['condor_id']))
         if not stderr and not stdout:
             relmon['status'] = 'failed'
+            relmon['condor_status'] = ''
         elif not stderr:
             status_number = stdout.split()[-1]
             if status_number == '4':
