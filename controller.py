@@ -53,8 +53,8 @@ class Controller(threading.Thread):
             self.setup_ssh()
 
         (_, stdout, stderr) = self.ssh_client.exec_command(command)
-        stdout = stdout.read().decode('utf-8')
-        stderr = stderr.read().decode('utf-8')
+        stdout = stdout.read().decode('utf-8').strip()
+        stderr = stderr.read().decode('utf-8').strip()
         logging.info("STDOUT (%s): %s" % (command, stdout))
         logging.info("STDERR (%s): %s" % (command, stderr))
         return stdout, stderr
@@ -75,7 +75,7 @@ class Controller(threading.Thread):
             self.ssh_client = None
 
     def run(self):
-        sleep_duration = 30
+        sleep_duration = 120
         while self.running:
             logging.info('Doing main loop')
             loop_start = time.time()
@@ -134,8 +134,8 @@ class Controller(threading.Thread):
         condor_file = 'RELMON_%s.sub' % (relmon['id'])
         condor_file_content = ['executable              = RELMON_%s.sh' % (relmon['id']),
                                # 'arguments               = $(ClusterId) $(ProcId)',
-                               'output                  = RELMON_%s_$(ClusterId)_$(ProcId).out',
-                               'error                   = RELMON_%s_$(ClusterId)_$(ProcId).err',
+                               'output                  = RELMON_%s_$(ClusterId)_$(ProcId).out' % (relmon['id']),
+                               'error                   = RELMON_%s_$(ClusterId)_$(ProcId).err' % (relmon['id']),
                                'log                     = RELMON_%s_$(ClusterId).log',
                                'transfer_input_files    = %s,%s%s,%s%s' % (relmon_file,
                                                                            self.grid_location,
@@ -183,9 +183,9 @@ class Controller(threading.Thread):
         if not stderr and '1 job(s) submitted to cluster' in stdout:
             # output is "1 job(s) submitted to cluster 801341"
             relmon['status'] = 'submitted'
-            condor_id = int(stdout.split()[-1])
+            condor_id = int(float(stdout.split()[-1]))
             relmon['condor_id'] = condor_id
-            relmon['condor_status'] = ''
+            relmon['condor_status'] = 'IDLE'
         else:
             logging.error('Error submitting: %s. Output: %s' % (stderr, stdout))
             relmon['status'] = 'failed'

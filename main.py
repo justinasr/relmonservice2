@@ -60,7 +60,7 @@ def output_text(data, code=200, headers=None):
 def update_info():
     data = json.loads(request.data.decode('utf-8'))
     storage = PersistentStorage()
-    relmon = storage.get_relmon_by_id(data['relmon_id'])
+    relmon = storage.get_relmon_by_id(data['id'])
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
     storage.update_relmon(relmon)

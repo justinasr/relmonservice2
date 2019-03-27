@@ -48,7 +48,10 @@ def get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name):
     hyperlinks = HYPERLINK_REGEX.findall(response)[1:]
     hyperlinks = list(hyperlinks)
     hyperlinks = [x for x in hyperlinks if dataset_part in x]
-    return hyperlinks
+    if len(hyperlinks) > 0:
+        return hyperlinks
+    else:
+        return None
 
 
 def read_config(config_filename):
