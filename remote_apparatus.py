@@ -14,19 +14,30 @@ from cmswebwrapper import CMSWebWrapper
 import logging
 import subprocess
 import os
+import time
 
 
-def get_root_file_path_for_worflow(workflow_name, cmsweb, category):
+def get_workflow(workflow_name, cmsweb):
     workflow = cmsweb.get_workflow(workflow_name)
+    return workflow
+
+
+def get_dqmio_dataset(workflow):
     output_datasets = workflow.get('OutputDatasets', [])
     output_datasets = [x for x in output_datasets if '/DQMIO' in x]
-    output_dataset = output_datasets[0]
-    parts = output_dataset.split('/')[1:]
+    if len(output_datasets) > 0:
+        return output_datasets[0]
+    else:
+        return None
+
+
+def get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name):
+    parts = dqmio_dataset.split('/')[1:]
     dataset = parts[0]
     cmssw = parts[1].split('-')[0]
     PS = '-'.join(parts[1].split('-')[1:])
     dataset_part = dataset + "__" + cmssw + '-' + PS
-    if category == 'Data':
+    if category_name == 'Data':
         cmsweb_dqm_dir_link = '/dqm/relval/data/browse/ROOT/RelValData/'
     else:
         cmsweb_dqm_dir_link = '/dqm/relval/data/browse/ROOT/RelVal/'
@@ -47,25 +58,19 @@ def read_config(config_filename):
     return config
 
 
-def notify_about_files(relmon_id, category, list_type, relval):
+def notify(relmon):
     try:
         command =  ['curl',
                     '-X',
                     'POST',
-                    'http://instance4.cern.ch:8080/update_file',
+                    'http://instance4.cern.ch:8080/update',
                     '-s',
                     '-k',
                     '-L',
                     '-m',
                     '60',
                     '-d',
-                    '\'%s\'' % (json.dumps({'relmon_id': relmon_id,
-                                            'category': category,
-                                            'list_type': list_type,
-                                            'relval_name': relval['name'],
-                                            'file_name': relval['file_name'],
-                                            'file_status': relval['file_status'],
-                                            'file_size': relval['file_size']})),
+                    '\'%s\'' % (json.dumps(relmon)),
                     '-H',
                     '\'Content-Type: application/json\'',
                     '-o',
@@ -77,82 +82,83 @@ def notify_about_files(relmon_id, category, list_type, relval):
     except:
         pass
 
-
-def notify_about_status(relmon_id, relmon_status):
-    try:
-        command =  ['curl',
-                    '-X',
-                    'POST',
-                    'http://instance4.cern.ch:8080/update_status',
-                    '-s',
-                    '-k',
-                    '-L',
-                    '-m',
-                    '60',
-                    '-d',
-                    '\'%s\'' % (json.dumps({'relmon_id': relmon_id,
-                                            'relmon_status': relmon_status})),
-                    '-H',
-                    '\'Content-Type: application/json\'',
-                    '-o',
-                    '/dev/null']
-        command = ' '.join(command)
-        proc = subprocess.Popen(command,
-                                shell=True)
-        proc.wait()
-    except:
-        pass
+    time.sleep(1)
 
 
 def download_root_files(config, cmsweb):
-    notify_about_status(config['id'], 'downloading')
     for category in config.get('categories', []):
         category_name = category['name']
-        reference_list = category.get('lists', {}).get('reference', {})
-        target_list = category.get('lists', {}).get('target', {})
-        for reference in reference_list:
-            links = get_root_file_path_for_worflow(reference['name'], cmsweb, category_name)
-            if len(links) != 0:
-                logging.info('Dataset URL %s for %s (reference)' % (links[0], reference['name']))
-                reference['file_url'] = links[0]
-                reference['file_size'] = 0
-                reference['file_status'] = 'downloading'
-                reference['file_name'] = reference['file_url'].split('/')[-1]
-                notify_about_files(config['id'], category_name, 'reference', reference)
-                try:
-                    reference['file_name'] = cmsweb.get_big_file(reference['file_url'])
-                    reference['file_status'] = 'downloaded'
-                    reference['file_size'] = os.path.getsize(reference['file_name'])
-                except:
-                    logging.error('Error getting %s for %s' % (reference['file_url'], reference['name']))
-                    reference['file_status'] = 'error'
+        reference_list = category.get('reference', {})
+        target_list = category.get('target', {})
+        for item in reference_list:
+            workflow = get_workflow(item['name'], cmsweb)
+            if not workflow:
+                item['status'] = 'no_workflow'
+                notify(config)
+                continue
 
-                notify_about_files(config['id'], category_name, 'reference', reference)
-            else:
-                logging.info('No dataset URL %s (reference)' % (reference['name']))
-                reference['file_name'] = ''
+            dqmio_dataset = get_dqmio_dataset(workflow)
+            if not dqmio_dataset:
+                item['status'] = 'no_dqmio'
+                notify(config)
+                continue
 
-        for target in target_list:
-            links = get_root_file_path_for_worflow(target['name'], cmsweb, category_name)
-            if len(links) != 0:
-                logging.info('Dataset URL %s for %s (target)' % (links[0], target['name']))
-                target['file_url'] = links[0]
-                target['file_size'] = 0
-                target['file_status'] = 'downloading'
-                target['file_name'] = target['file_url'].split('/')[-1]
-                notify_about_files(config['id'], category_name, 'target', target)
-                try:
-                    target['file_name'] = cmsweb.get_big_file(target['file_url'])
-                    target['file_status'] = 'downloaded'
-                    target['file_size'] = os.path.getsize(target['file_name'])
-                except:
-                    logging.error('Error getting %s for %s' % (target['file_url'], target['name']))
-                    target['file_status'] = 'error'
+            file_url = get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name)
+            if not file_url:
+                item['status'] = 'no_root'
+                notify(config)
+                continue
 
-                notify_about_files(config['id'], category_name, 'target', target)
-            else:
-                logging.info('No dataset URL %s (target)' % (target['name']))
-                target['file_name'] = ''
+            logging.info('Dataset URL %s for %s (reference)' % (file_url, item['name']))
+            item['file_url'] = file_url
+            item['file_size'] = 0
+            item['status'] = 'downloading'
+            item['file_name'] = item['file_url'].split('/')[-1]
+            notify(config)
+            try:
+                item['file_name'] = cmsweb.get_big_file(item['file_url'])
+                item['status'] = 'downloaded'
+                item['file_size'] = os.path.getsize(item['file_name'])
+            except:
+                logging.error('Error getting %s for %s' % (item['file_url'], item['name']))
+                item['status'] = 'failed'
+
+            notify(config)
+
+        for item in target_list:
+            workflow = get_workflow(item['name'], cmsweb)
+            if not workflow:
+                item['status'] = 'no_workflow'
+                notify(config)
+                continue
+
+            dqmio_dataset = get_dqmio_dataset(workflow)
+            if not dqmio_dataset:
+                item['status'] = 'no_dqmio'
+                notify(config)
+                continue
+
+            file_url = get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name)
+            if not file_url:
+                item['status'] = 'no_root'
+                notify(config)
+                continue
+
+            logging.info('Dataset URL %s for %s (reference)' % (file_url, item['name']))
+            item['file_url'] = file_url
+            item['file_size'] = 0
+            item['status'] = 'downloading'
+            item['file_name'] = item['file_url'].split('/')[-1]
+            notify(config)
+            try:
+                item['file_name'] = cmsweb.get_big_file(item['file_url'])
+                item['status'] = 'downloaded'
+                item['file_size'] = os.path.getsize(item['file_name'])
+            except:
+                logging.error('Error getting %s for %s' % (item['file_url'], item['name']))
+                item['status'] = 'failed'
+
+            notify(config)
 
     logging.info(json.dumps(config, indent=2))
     return config
@@ -172,8 +178,8 @@ def get_local_subreport_path(category_name, hlt):
 
 
 def get_dataset_lists(category):
-    reference_list = category.get('lists', {}).get('reference', {})
-    target_list = category.get('lists', {}).get('target', {})
+    reference_list = category.get('reference', {})
+    target_list = category.get('target', {})
     reference_dataset_list = []
     target_dataset_list = []
 
@@ -192,7 +198,6 @@ def get_dataset_lists(category):
 
 
 def run_validation_matrix(config):
-    notify_about_status(config['id'], 'comparing')
     validation_matrix_log_file = open("validation_matrix.log", "w")
     for category in config.get('categories', []):
         category_name = category['name']
@@ -200,6 +205,8 @@ def run_validation_matrix(config):
         logging.info('Category: %s' % (category_name))
         logging.info('HLT: %s' % (hlt))
         reference_list, target_list = get_dataset_lists(category)
+        category['status'] = 'comparing'
+        notify(config)
         if hlt == 'only' or hlt == 'both':
             # Run with HLT
             command = ["ValidationMatrix.py",
@@ -244,7 +251,8 @@ def run_validation_matrix(config):
                                     shell=True)
             proc.wait()
 
-    notify_about_status(config['id'], 'done')
+        category['status'] = 'done'
+        notify(config)
 
 
 if __name__ == '__main__':
@@ -267,4 +275,4 @@ if __name__ == '__main__':
             config = download_root_files(config, cmsweb)
             run_validation_matrix(config)
         except:
-            notify_about_status(relmon['id'], 'failed')
+            notify(config)

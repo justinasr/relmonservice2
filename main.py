@@ -24,10 +24,21 @@ def index():
 def add_relmon():
     relmon = json.loads(request.data.decode('utf-8'))
     relmon['status'] = 'new'
-    relmon['id'] = int(time.time())
+    if 'id' not in  relmon:
+        relmon['id'] = int(time.time())
+
     for category in relmon['categories']:
-            category['lists']['reference'] = [{'name': x, 'file_name': '-', 'file_status': 'initial', 'file_size': 0} for x in category['lists']['reference']]
-            category['lists']['target'] = [{'name': x, 'file_name': '-', 'file_status': 'initial', 'file_size': 0} for x in category['lists']['target']]
+        category['status'] = 'initial'
+        category['reference'] = [{'name': x,
+                                  'file_name': '',
+                                  'file_url': '',
+                                  'file_size': 0,
+                                  'status': 'initial'} for x in category['reference']]
+        category['target'] = [{'name': x,
+                               'file_name': '',
+                               'file_url': '',
+                               'file_size': 0,
+                               'status': 'initial'} for x in category['target']]
 
     storage = PersistentStorage()
     storage.create_relmon(relmon)
@@ -45,34 +56,15 @@ def output_text(data, code=200, headers=None):
     return resp
 
 
-@app.route('/update_file', methods=['POST'])
-def update_file():
+@app.route('/update', methods=['POST'])
+def update_info():
     data = json.loads(request.data.decode('utf-8'))
     storage = PersistentStorage()
     relmon = storage.get_relmon_by_id(data['relmon_id'])
-    for category in relmon['categories']:
-        if category['name'] == data['category']:
-            for relval in category['lists'][data['list_type']]:
-                if relval['name'] == data['relval_name']:
-                    relval['file_name'] = data['file_name']
-                    relval['file_status'] = data['file_status']
-                    relval['file_size'] = data['file_size']
-                    storage.update_relmon(relmon)
-                    break
-
-            break
-    return output_text({'message': 'OK'})
-
-
-@app.route('/update_status', methods=['POST'])
-def update_status():
-    data = json.loads(request.data.decode('utf-8'))
-    storage = PersistentStorage()
-    relmon = storage.get_relmon_by_id(data['relmon_id'])
-    relmon['status'] = data['relmon_status']
+    relmon['categories'] = data['categories']
+    relmon['status'] = data['status']
     storage.update_relmon(relmon)
     return output_text({'message': 'OK'})
-
 
 def run_flask():
 
