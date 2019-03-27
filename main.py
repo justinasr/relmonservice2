@@ -53,12 +53,12 @@ def reset_relmon():
         relmon = storage.get_relmon_by_id(data['id'])
         for category in relmon['categories']:
             category['status'] = 'initial'
-            category['reference'] = [{'name': x,
+            category['reference'] = [{'name': x['name'],
                                       'file_name': '',
                                       'file_url': '',
                                       'file_size': 0,
                                       'status': 'initial'} for x in category['reference']]
-            category['target'] = [{'name': x,
+            category['target'] = [{'name': x['name'],
                                    'file_name': '',
                                    'file_url': '',
                                    'file_size': 0,
