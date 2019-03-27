@@ -49,7 +49,7 @@ def get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name):
     hyperlinks = list(hyperlinks)
     hyperlinks = [x for x in hyperlinks if dataset_part in x]
     if len(hyperlinks) > 0:
-        return hyperlinks
+        return hyperlinks[0]
     else:
         return None
 
@@ -275,7 +275,8 @@ if __name__ == '__main__':
         try:
             cmsweb = CMSWebWrapper(cert_file, key_file)
             config = read_config(config_filename)
-            config['status'] = 'submitted'
+            config['status'] = 'running'
+            notify(config)
             config = download_root_files(config, cmsweb)
             run_validation_matrix(config)
             config['status'] = 'finished'

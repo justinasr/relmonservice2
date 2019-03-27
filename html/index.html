@@ -76,6 +76,21 @@
           });
         });
       });
+
+      function resetRelmon(relmonID) {
+        $.ajax({
+          type: "POST",
+          url: "/reset",
+          contentType: "application/json",
+          data: JSON.stringify({id: relmonID}),
+        }).done(function (data) {
+          console.log(data)
+          $("#createFormStatus").html(data.message);
+          // window.location = '/simple/chained_requests'
+        }).fail(function(data) {
+          $("#createFormStatus").html(data.message);
+        });
+      }
     </script>
   </head>
   <body style="padding: 10px;">
@@ -120,6 +135,7 @@
     <hr/>
     {% for relmon in data %}
       <h1>{{ relmon.name }} ({{ relmon.status}})</h1>
+      <input id="clickMe" type="button" value="Reset {{ relmon.id }}" onclick="resetRelmon({{ relmon.id }});" /><br>
       Condor status: {{ relmon.condor_status}}<br>
       Condor id: {{ relmon.condor_id}}<br>
       {% for category in relmon.categories %}

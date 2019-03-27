@@ -45,6 +45,31 @@ def add_relmon():
     return output_text({'message': 'OK'})
 
 
+@app.route('/reset', methods=['POST'])
+def reset_relmon():
+    data = json.loads(request.data.decode('utf-8'))
+    if 'id' in data:
+        storage = PersistentStorage()
+        relmon = storage.get_relmon_by_id(data['id'])
+        for category in relmon['categories']:
+            category['status'] = 'initial'
+            category['reference'] = [{'name': x,
+                                      'file_name': '',
+                                      'file_url': '',
+                                      'file_size': 0,
+                                      'status': 'initial'} for x in category['reference']]
+            category['target'] = [{'name': x,
+                                   'file_name': '',
+                                   'file_url': '',
+                                   'file_size': 0,
+                                   'status': 'initial'} for x in category['target']]
+        relmon['status'] = 'new'
+        storage.update_relmon(relmon)
+        return output_text({'message': 'OK'})
+
+    return output_text({'message': 'No ID'})
+
+
 def output_text(data, code=200, headers=None):
     """
     Makes a Flask response with a plain text encoded body
