@@ -1,99 +1,13 @@
-<html>
+<!-- <html>
   <head>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400">
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <title>RelmonService</title>
-    <style>
-      textarea {
-        width: 85%;
-        height: 150px;
-      }
-    </style>
-    <script type="text/javascript">
-      $( document ).ready(function() {
-        $("#createForm").submit(function(event) {
-          /* stop form from submitting normally */
-          event.preventDefault();
-          var data = {};
-          data['name'] = $("#relmon_name").val();
-          data['categories'] = []
-
-          data_reference = $("#data_reference").val().split('\n').filter(Boolean);
-          data_target = $("#data_target").val().split('\n').filter(Boolean);
-          if (data_reference.length > 0 && data_target.length > 0) {
-            data_category = {name: 'Data', reference: data_reference, target: data_target, HLT: 'both'};
-            data['categories'].push(data_category);
-          }
-
-          fullsim_reference = $("#fullsim_reference").val().split('\n').filter(Boolean);
-          fullsim_target = $("#fullsim_target").val().split('\n').filter(Boolean);
-          if (fullsim_reference.length > 0 && fullsim_target.length > 0) {
-            fullsim_category = {name: 'FullSim', reference: fullsim_reference, target: fullsim_target, HLT: 'both'};
-            data['categories'].push(fullsim_category);
-          }
-
-          fastsim_reference = $("#fastsim_reference").val().split('\n').filter(Boolean);
-          fastsim_target = $("#fastsim_target").val().split('\n').filter(Boolean);
-          if (fastsim_reference.length > 0 && fastsim_target.length > 0) {
-            fastsim_category = {name: 'FastSim', reference: fastsim_reference, target: fastsim_target, HLT: 'both'};
-            data['categories'].push(fastsim_category);
-          }
-
-          generator_reference = $("#generator_reference").val().split('\n').filter(Boolean);
-          generator_target = $("#generator_target").val().split('\n').filter(Boolean);
-          if (generator_reference.length > 0 && generator_target.length > 0) {
-            generator_category = {name: 'Generator', reference: generator_reference, target: generator_target, HLT: 'both'};
-            data['categories'].push(generator_category);
-          }
-
-          fullsim_pu_reference = $("#fullsim_pu_reference").val().split('\n').filter(Boolean);
-          fullsim_pu_target = $("#fullsim_pu_target").val().split('\n').filter(Boolean);
-          if (fullsim_pu_reference.length > 0 && fullsim_pu_target.length > 0) {
-            fullsim_pu_category = {name: 'FullSim_PU', reference: fullsim_pu_reference, target: fullsim_pu_target, HLT: 'both'};
-            data['categories'].push(fullsim_pu_category);
-          }
-
-          fastsim_pu_reference = $("#fastsim_pu_reference").val().split('\n').filter(Boolean);
-          fastsim_pu_target = $("#fastsim_pu_target").val().split('\n').filter(Boolean);
-          if (fastsim_pu_reference.length > 0 && fastsim_pu_target.length > 0) {
-            fastsim_pu_category = {name: 'FastSim_PU', reference: fastsim_pu_reference, target: fastsim_pu_target, HLT: 'both'};
-            data['categories'].push(fastsim_pu_category);
-          }
-
-          console.log(data);
-          $.ajax({
-            type: "POST",
-            url: "/create",
-            contentType: "application/json",
-            data: JSON.stringify(data),
-          }).done(function (data) {
-            console.log(data)
-            $("#createFormStatus").html(data.message);
-            // window.location = '/simple/chained_requests'
-          }).fail(function(data) {
-            $("#createFormStatus").html(data.message);
-          });
-        });
-      });
-
-      function resetRelmon(relmonID) {
-        $.ajax({
-          type: "POST",
-          url: "/reset",
-          contentType: "application/json",
-          data: JSON.stringify({id: relmonID}),
-        }).done(function (data) {
-          console.log(data)
-          $("#createFormStatus").html(data.message);
-          // window.location = '/simple/chained_requests'
-        }).fail(function(data) {
-          $("#createFormStatus").html(data.message);
-        });
-      }
-    </script>
+    <script src="static/script.js" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" href="static/style.css">
   </head>
-  <body style="padding: 10px;">
+  <body>
     <h1>New</h1>
     <form id="createForm">
       <h5>Name</h5>
@@ -167,5 +81,234 @@
         </ul>
       {% endfor %}
     {% endfor %}
+  </body>
+</html>
+ -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="static/style.css">
+
+    <title>Relmon Service</title>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="mt-3"> RelMon service</h1>
+      <a class="btn btn-primary mt-1" data-toggle="collapse" href="#new_relmon" role="button" aria-expanded="false" aria-controls="new_relmon">
+        Create new RelMon
+      </a>
+      <div class="collapse row card mt-2" id="new_relmon">
+        <div>
+          <h5 class="card-header">Create new RelMon</h5>
+          <div class="card-body">
+            <form id="createForm">
+              <h5>Name</h5>
+              <input type="text" id="relmon_name" class="w-100">
+
+              <ul class="nav nav-tabs mt-2" style="margin-left: -1.25rem; margin-right: -1.25rem; padding-left: 1.25rem; padding-right: 1.25rem;">
+                <li class="nav-item">
+                  <a class="nav-link active" id="new_relmon_data_tab" data-toggle="tab" href="#new_relmon_data" role="tab" aria-controls="new_relmon_data" aria-selected="true">Data</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" id="new_relmon_fullsim_tab" data-toggle="tab" href="#new_relmon_fullsim" role="tab" aria-controls="new_relmon_fullsim" aria-selected="false">FullSim</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" id="new_relmon_fastsim_tab" data-toggle="tab" href="#new_relmon_fastsim" role="tab" aria-controls="new_relmon_fastsim" aria-selected="false">FastSim</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" id="new_relmon_generator_tab" data-toggle="tab" href="#new_relmon_generator" role="tab" aria-controls="new_relmon_generator" aria-selected="false">Generator</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" id="new_relmon_fullsim_pu_tab" data-toggle="tab" href="#new_relmon_fullsim_pu" role="tab" aria-controls="new_relmon_fullsim_pu" aria-selected="false">FullSim PU</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" id="new_relmon_fastsim_pu_tab" data-toggle="tab" href="#new_relmon_fastsim_pu" role="tab" aria-controls="new_relmon_fastsim_pu" aria-selected="false">FastSim PU</a>
+                </li>
+              </ul>
+
+              <div class="tab-content">
+                <div class="tab-pane fade show active" id="new_relmon_data" role="tabpanel" aria-labelledby="new_relmon_data_tab">
+                  <h3>Data</h3>
+                  <h5>Reference</h5>
+                  <textarea id="data_reference" class="w-100" style="min-height: 150px"></textarea>
+                  <h5>Target</h5>
+                  <textarea id="data_target" class="w-100" style="min-height: 150px"></textarea>
+                  <br>
+                  <h5>HLT</h5>
+                  <select id="data_hlt">
+                    <option value="both">Both</option>
+                    <option value="only">Only HLT</option>
+                    <option value="no">No HLT</option>
+                  </select>
+                  <h5>Pairing</h5>
+                  <select id="data_pairing">
+                    <option value="automatic">Automatic</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+                <div class="tab-pane fade" id="new_relmon_fullsim" role="tabpanel" aria-labelledby="new_relmon_fullsim_tab">
+                  <h3>FullSim</h3>
+                  <h5>Reference</h5>
+                  <textarea id="fullsim_reference" class="w-100" style="min-height: 150px"></textarea>
+                  <h5>Target</h5>
+                  <textarea id="fullsim_target" class="w-100" style="min-height: 150px"></textarea>
+                  <br>
+                  <h5>HLT</h5>
+                  <select id="fullsim_hlt">
+                    <option value="both">Both</option>
+                    <option value="only">Only HLT</option>
+                    <option value="no">No HLT</option>
+                  </select>
+                  <h5>Pairing</h5>
+                  <select id="fullsim_pairing">
+                    <option value="automatic">Automatic</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+                <div class="tab-pane fade" id="new_relmon_fastsim" role="tabpanel" aria-labelledby="new_relmon_fastsim_tab">
+                  <h3>FastSim</h3>
+                  <h5>Reference</h5>
+                  <textarea id="fastsim_reference" class="w-100" style="min-height: 150px"></textarea>
+                  <h5>Target</h5>
+                  <textarea id="fastsim_target" class="w-100" style="min-height: 150px"></textarea>
+                  <br>
+                  <h5>HLT</h5>
+                  <select id="fastsim_hlt">
+                    <option value="both">Both</option>
+                    <option value="only">Only HLT</option>
+                    <option value="no">No HLT</option>
+                  </select>
+                  <h5>Pairing</h5>
+                  <select id="fastsim_pairing">
+                    <option value="automatic">Automatic</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+                <div class="tab-pane fade" id="new_relmon_generator" role="tabpanel" aria-labelledby="new_relmon_generator_tab">
+                  <h3>Generator</h3>
+                  <h5>Reference</h5>
+                  <textarea id="generator_reference" class="w-100" style="min-height: 150px"></textarea>
+                  <h5>Target</h5>
+                  <textarea id="generator_target" class="w-100" style="min-height: 150px"></textarea>
+                  <br>
+                  <h5>Pairing</h5>
+                  <select id="generator_pairing">
+                    <option value="automatic">Automatic</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+                <div class="tab-pane fade" id="new_relmon_fullsim_pu" role="tabpanel" aria-labelledby="new_relmon_fullsim_pu_tab">
+                  <h3>FullSim PU</h3>
+                  <h5>Reference</h5>
+                  <textarea id="fullsim_pu_reference" class="w-100" style="min-height: 150px"></textarea>
+                  <h5>Target</h5>
+                  <textarea id="fullsim_pu_target" class="w-100" style="min-height: 150px"></textarea>
+                  <br>
+                  <h5>HLT</h5>
+                  <select id="fullsim_pu_hlt">
+                    <option value="both">Both</option>
+                    <option value="only">Only HLT</option>
+                    <option value="no">No HLT</option>
+                  </select>
+                  <h5>Pairing</h5>
+                  <select id="fullsim_pu_pairing">
+                    <option value="automatic">Automatic</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+                <div class="tab-pane fade" id="new_relmon_fastsim_pu" role="tabpanel" aria-labelledby="new_relmon_fastsim_pu_tab">
+                  <h3>FastSim PU</h3>
+                  <h5>Reference</h5>
+                  <textarea id="fastsim_pu_reference" class="w-100" style="min-height: 150px"></textarea>
+                  <h5>Target</h5>
+                  <textarea id="fastsim_pu_target" class="w-100" style="min-height: 150px"></textarea>
+                  <br>
+                  <h5>HLT</h5>
+                  <select id="fastsim_pu_hlt">
+                    <option value="both">Both</option>
+                    <option value="only">Only HLT</option>
+                    <option value="no">No HLT</option>
+                  </select>
+                  <h5>Pairing</h5>
+                  <select id="fastsim_pu_pairing">
+                    <option value="automatic">Automatic</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+              </div>
+
+              <hr style="margin-left: -1.25rem; margin-right: -1.25rem;">
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="createRelmon();">Create relmon</button>
+              <div id="createFormStatus"></div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {% for relmon in data %}
+        <div class="row card mt-2">
+          <h5 class="card-header">RelMon: {{ relmon.name }}</h5>
+          <div class="card-body">
+            Name: {{ relmon.name }}<br>
+            ID: {{ relmon.id }}<br>
+            Status: {{ relmon.status}}<br>
+            Last update: {{ relmon.last_update }}<br>
+            Condor status: {{ relmon.condor_status}}<br>
+            Condor job ID: {{ relmon.condor_id}}<br>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="resetRelmon({{ relmon.id }});">Reset relmon</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="terminateRelmon({{ relmon.id }});">Terminate relmon</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="deleteRelmon({{ relmon.id }});">Delete relmon</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="editRelmon({{ relmon.id }});">Edit relmon</button>
+
+            <h3>Categories</h3>
+            {% for category in relmon.categories %}
+              <a class="btn btn-primary mt-1" data-toggle="collapse" href="#category_{{relmon.id}}_{{category.name}}" role="button" aria-expanded="false" aria-controls="category_{{relmon.id}}_{{category.name}}">
+                {{ category.name }}
+              </a>
+              <div class="collapse" id="category_{{relmon.id}}_{{category.name}}">
+                <h3>{{ category.name }}</h3>
+                Status: {{ category.status }}<br>
+                HLT: {{ category.HLT }}<br>
+                Automatic pairing: {{ category.automatic_pairing }}
+                <h5>Reference</h5>
+                <ul>
+                {% for wf in category.reference %}
+                  <li>Name: {{ wf.name }} ({{ wf.status }})<br>
+                      <small>File: {{ wf.file_name }}</small><br>
+                      <small>File location: {{ wf.file_url }}</small><br>
+                      <small>File size: {{ wf.file_size / (1024.0 * 1024.0) }}MB</small>
+                  </li>
+                {% endfor %}
+                </ul>
+                <h5>Target</h5>
+                <ul>
+                {% for wf in category.target %}
+                  <li>Name: {{ wf.name }} ({{ wf.status }})<br>
+                      <small>File: {{ wf.file_name }}</small><br>
+                      <small>File location: {{ wf.file_url }}</small><br>
+                      <small>File size: {{ wf.file_size / (1024.0 * 1024.0) }}MB</small>
+                  </li>
+                {% endfor %}
+              </div><br>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <!-- Relmon JavaScript -->
+    <script src="static/script.js" type="text/javascript"></script>
   </body>
 </html>

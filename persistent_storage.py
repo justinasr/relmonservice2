@@ -2,6 +2,7 @@ from threading import Lock
 import json
 import time
 
+
 class PersistentStorage:
 
     __locks = {}
@@ -14,7 +15,7 @@ class PersistentStorage:
         self.lock = self.__locks[file_name]
 
     def get_all_data(self):
-        with open(self.file_name) as json_file:  
+        with open(self.file_name) as json_file:
             data = json.load(json_file)
 
         return data
@@ -46,8 +47,8 @@ class PersistentStorage:
         data = self.get_all_data()
         relmon['last_update'] = int(time.time())
         data.append(relmon)
-        with open('data.json', 'w') as json_file:  
-            json.dump(data, json_file, indent=4, sort_keys=True)
+        with open('data.json', 'w') as json_file:
+            json.dump(data, json_file, indent=2, sort_keys=True)
 
         self.lock.release()
 
@@ -59,7 +60,7 @@ class PersistentStorage:
         self.lock.acquire()
         data = self.get_all_data()
         data = [x for x in data if x['id'] != relmon_id]
-        with open('data.json', 'w') as json_file:  
-            json.dump(data, json_file, indent=4, sort_keys=True)
+        with open('data.json', 'w') as json_file:
+            json.dump(data, json_file, indent=2, sort_keys=True)
 
         self.lock.release()

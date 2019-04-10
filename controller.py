@@ -14,6 +14,9 @@ import random
 
 class Controller(threading.Thread):
 
+    __credentials_file_path = '/home/jrumsevi/auth.txt'
+    __remote_host = 'lxplus.cern.ch'
+
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = True
@@ -29,12 +32,12 @@ class Controller(threading.Thread):
         if self.ssh_client:
             self.close_connections()
 
-        with open('/home/jrumsevi/auth.txt') as json_file:  
+        with open(self.__credentials_file_path) as json_file:
             credentials = json.load(json_file)
 
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.ssh_client.connect('lxplus.cern.ch',
+        self.ssh_client.connect(self.__remote_host,
                                 username=credentials["username"],
                                 password=credentials["password"],
                                 timeout=30)
@@ -75,6 +78,7 @@ class Controller(threading.Thread):
             self.ssh_client = None
 
     def run(self):
+        return
         sleep_duration = 120
         while self.running:
             logging.info('Doing main loop')
@@ -109,7 +113,7 @@ class Controller(threading.Thread):
         logging.info('Will submit %s to HTCondor' % (relmon['name']))
         relmon['status'] = 'submitting'
         relmon['condor_id'] = -1
-        relmon['condor_status'] = ''
+        relmon['condor_status'] = '<unknown>'
         relmon['secret_hash'] = '%032x' % (random.getrandbits(128))
         for category in relmon['categories']:
             category['status'] = 'initial'
@@ -128,12 +132,11 @@ class Controller(threading.Thread):
         logging.info('%s status is %s' % (relmon['name'], relmon['status']))
         relmon_file = '%s.json' % (relmon['id'])
         remote_relmon_directory = 'relmon_test/%s' % (relmon['id'])
-        with open(relmon_file, 'w') as json_file:  
+        with open(relmon_file, 'w') as json_file:
             json.dump(relmon, json_file, indent=4, sort_keys=True)
 
         condor_file = 'RELMON_%s.sub' % (relmon['id'])
         condor_file_content = ['executable              = RELMON_%s.sh' % (relmon['id']),
-                               # 'arguments               = $(ClusterId) $(ProcId)',
                                'output                  = RELMON_%s_$(ClusterId)_$(ProcId).out' % (relmon['id']),
                                'error                   = RELMON_%s_$(ClusterId)_$(ProcId).err' % (relmon['id']),
                                'log                     = RELMON_%s_$(ClusterId).log' % (relmon['id']),
@@ -142,8 +145,6 @@ class Controller(threading.Thread):
                                                                            self.cert_file_name,
                                                                            self.grid_location,
                                                                            self.key_file_name,),
-                               # By default all files will be trasferred
-                               # 'transfer_output_files = job.$(ClusterId).$(ProcId).out',
                                'when_to_transfer_output = on_exit',
                                'request_cpus            = 2',
                                '+JobFlavour             = "tomorrow"',
@@ -162,7 +163,7 @@ class Controller(threading.Thread):
                                'eval `scramv1 runtime -sh`',
                                'cd $DIR',
                                'mkdir -p Reports',
-                               'python3 relmonservice2/remote_apparatus.py --config %s --cert %s --key %s' % (relmon_file,
+                               'python3 relmonservice2/remote_apparatus.py --relmon %s --cert %s --key %s' % (relmon_file,
                                                                                                               self.cert_file_name,
                                                                                                               self.key_file_name),
                                'rm *.root',
@@ -174,10 +175,14 @@ class Controller(threading.Thread):
 
         stdout, stderr = self.execute_command('rm -rf %s; mkdir -p %s' % (remote_relmon_directory,
                                                                           remote_relmon_directory))
-        
+
         self.copy_file(relmon_file, '%s/%s' % (remote_relmon_directory, relmon_file))
         self.copy_file(condor_file, '%s/%s' % (remote_relmon_directory, condor_file))
         self.copy_file(script_file, '%s/%s' % (remote_relmon_directory, script_file))
+
+        os.remove(relmon_file)
+        os.remove(condor_file)
+        os.remove(script_file)
 
         stdout, stderr = self.execute_command('cd %s; condor_submit %s' % (remote_relmon_directory, condor_file))
         if not stderr and '1 job(s) submitted to cluster' in stdout:
@@ -185,17 +190,13 @@ class Controller(threading.Thread):
             relmon['status'] = 'submitted'
             condor_id = int(float(stdout.split()[-1]))
             relmon['condor_id'] = condor_id
-            relmon['condor_status'] = 'IDLE'
+            relmon['condor_status'] = '<unknown>'
         else:
             logging.error('Error submitting: %s. Output: %s' % (stderr, stdout))
             relmon['status'] = 'failed'
 
         logging.info('%s status is %s' % (relmon['name'], relmon['status']))
         self.persistent_storage.update_relmon(relmon)
-
-        os.remove(relmon_file)
-        os.remove(condor_file)
-        os.remove(script_file)
 
     def check_if_running(self, relmon):
         logging.info('Will check if %s is running in HTCondor' % (relmon['name']))
@@ -212,6 +213,7 @@ class Controller(threading.Thread):
             elif status_number == '1':
                 relmon['condor_status'] = 'IDLE'
             else:
+                relmon['condor_status'] = '<unknown>'
                 logging.info('Unknown status %s?' % (status_number))
         else:
             logging.error('Error with HTCondor?')

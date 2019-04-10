@@ -49,7 +49,7 @@ class CMSWebWrapper():
         connection = self.get_connection()
         connection.request('GET', path)
         response = connection.getresponse()
-        chunk_size = 1024 * 1024 * 4 # 4 megabytes
+        chunk_size = 1024 * 1024 * 4  # 4 megabytes
         with open(filename, "wb") as file:
             while True:
                 chunk = response.read(chunk_size)
@@ -71,6 +71,6 @@ class CMSWebWrapper():
             workflow = json.loads(workflow_string)
             # 'result' is a list of elements and each of them is dictionary that has workflow name as key
             return workflow.get('result', [{}])[0].get(workflow_name)
-        except:
-            logging.error('Failed to parse workflow %s JSON %s' % (workflow_name, workflow_string))
+        except Exception as ex:
+            logging.error('Failed to parse workflow %s JSON %s. %s' % (workflow_name, workflow_string, ex))
             return None

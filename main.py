@@ -13,6 +13,7 @@ app = Flask(__name__,
             template_folder="./html")
 api = Api(app)
 
+
 @app.route('/')
 def index():
     storage = PersistentStorage()
@@ -24,7 +25,7 @@ def index():
 def add_relmon():
     relmon = json.loads(request.data.decode('utf-8'))
     relmon['status'] = 'new'
-    if 'id' not in  relmon:
+    if 'id' not in relmon:
         relmon['id'] = int(time.time())
 
     for category in relmon['categories']:
@@ -64,10 +65,24 @@ def reset_relmon():
                                    'file_size': 0,
                                    'status': 'initial'} for x in category['target']]
         relmon['status'] = 'new'
+        if 'condor_status' in relmon:
+            del relmon['condor_status']
+
+        if 'condor_id' in relmon:
+            del relmon['condor_id']
+
         storage.update_relmon(relmon)
         return output_text({'message': 'OK'})
 
     return output_text({'message': 'No ID'})
+
+
+@app.route('/delete', methods=['DELETE'])
+def delete_relmon():
+    relmon = json.loads(request.data.decode('utf-8'))
+    storage = PersistentStorage()
+    storage.delete_relmon(relmon['id'])
+    return output_text({'message': 'OK'})
 
 
 def output_text(data, code=200, headers=None):
@@ -91,8 +106,8 @@ def update_info():
     storage.update_relmon(relmon)
     return output_text({'message': 'OK'})
 
-def run_flask():
 
+def run_flask():
     parser = argparse.ArgumentParser(description='Stats2')
     parser.add_argument('--port',
                         help='Port, default is 8001')
@@ -119,6 +134,6 @@ def run_flask():
 
 if __name__ == '__main__':
     logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
-    controller = Controller()
+    #  controller = Controller()
     run_flask()
-    controller.stop()
+    # controller.stop()
