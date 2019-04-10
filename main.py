@@ -6,6 +6,7 @@ import json
 from controller import Controller
 from persistent_storage import PersistentStorage
 import time
+from apscheduler.schedulers.background import BackgroundScheduler
 
 
 app = Flask(__name__,
@@ -132,8 +133,18 @@ def run_flask():
             threaded=True)
 
 
+def tick():
+    controller = Controller()
+    logging.info('Controller will tick')
+    controller.tick()
+    logging.info('Controller ticked')
+
+
 if __name__ == '__main__':
     logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
-    #  controller = Controller()
+    scheduler = BackgroundScheduler()
+    scheduler.add_executor('processpool')
+    scheduler.add_job(tick, 'interval', seconds=60)
+    scheduler.start()
     run_flask()
-    # controller.stop()
+    scheduler.shutdown()

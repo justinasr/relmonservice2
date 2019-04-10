@@ -282,7 +282,7 @@
                   <li>Name: {{ wf.name }} ({{ wf.status }})<br>
                       <small>File: {{ wf.file_name }}</small><br>
                       <small>File location: {{ wf.file_url }}</small><br>
-                      <small>File size: {{ wf.file_size / (1024.0 * 1024.0) }}MB</small>
+                      <small>File size: {{ (wf.file_size / (1024.0 * 1024.0)) | round }}MB</small>
                   </li>
                 {% endfor %}
                 </ul>
@@ -292,7 +292,7 @@
                   <li>Name: {{ wf.name }} ({{ wf.status }})<br>
                       <small>File: {{ wf.file_name }}</small><br>
                       <small>File location: {{ wf.file_url }}</small><br>
-                      <small>File size: {{ wf.file_size / (1024.0 * 1024.0) }}MB</small>
+                      <small>File size: {{ (wf.file_size / (1024.0 * 1024.0)) | round }}MB</small>
                   </li>
                 {% endfor %}
               </div><br>

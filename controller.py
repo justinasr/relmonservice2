@@ -3,8 +3,6 @@ completed report
 """
 
 import logging
-import time
-import threading
 from persistent_storage import PersistentStorage
 import paramiko
 import json
@@ -12,21 +10,18 @@ import os
 import random
 
 
-class Controller(threading.Thread):
+class Controller():
 
     __credentials_file_path = '/home/jrumsevi/auth.txt'
     __remote_host = 'lxplus.cern.ch'
 
     def __init__(self):
-        threading.Thread.__init__(self)
-        self.running = True
         self.persistent_storage = PersistentStorage()
         self.ssh_client = None
         self.ftp_client = None
         self.grid_location = '/afs/cern.ch/user/j/jrumsevi/private/'
         self.cert_file_name = 'user.crt.pem'
         self.key_file_name = 'user.key.pem'
-        self.start()
 
     def setup_ssh(self):
         if self.ssh_client:
@@ -77,26 +72,8 @@ class Controller(threading.Thread):
             self.ssh_client.close()
             self.ssh_client = None
 
-    def run(self):
-        return
-        sleep_duration = 120
-        while self.running:
-            logging.info('Doing main loop')
-            loop_start = time.time()
-            try:
-                self.tick()
-            except Exception as e:
-                logging.error(e)
-
-            loop_end = time.time()
-            logging.info('Finishing main loop')
-            time.sleep(max(3, sleep_duration - (loop_end - loop_start)))
-
-    def stop(self):
-        self.running = False
-        self.join()
-
     def tick(self):
+        logging.info('Controller tick')
         data = self.persistent_storage.get_all_data()
         for relmon in data:
             logging.info('%s status is %s' % (relmon['name'], relmon['status']))
@@ -148,6 +125,7 @@ class Controller(threading.Thread):
                                'when_to_transfer_output = on_exit',
                                'request_cpus            = 2',
                                '+JobFlavour             = "tomorrow"',
+                               'requirements = (OpSysAndVer =?= "SLCern6")',
                                'queue']
 
         condor_file_content = '\n'.join(condor_file_content)
@@ -206,12 +184,20 @@ class Controller(threading.Thread):
             relmon['condor_status'] = ''
         elif not stderr:
             status_number = stdout.split()[-1]
-            if status_number == '4':
-                relmon['condor_status'] = 'DONE'
-            elif status_number == '2':
-                relmon['condor_status'] = 'RUN'
+            if status_number == '0':
+                relmon['condor_status'] = 'UNEXPLAINED'
             elif status_number == '1':
                 relmon['condor_status'] = 'IDLE'
+            elif status_number == '2':
+                relmon['condor_status'] = 'RUN'
+            elif status_number == '3':
+                relmon['condor_status'] = 'REMOVED'
+            elif status_number == '4':
+                relmon['condor_status'] = 'DONE'
+            elif status_number == '5':
+                relmon['condor_status'] = 'HOLD'
+            elif status_number == '6':
+                relmon['condor_status'] = 'SUBMISSION ERROR'
             else:
                 relmon['condor_status'] = '<unknown>'
                 logging.info('Unknown status %s?' % (status_number))
