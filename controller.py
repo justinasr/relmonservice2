@@ -22,6 +22,7 @@ class Controller():
         self.grid_location = '/afs/cern.ch/user/j/jrumsevi/private/'
         self.cert_file_name = 'user.crt.pem'
         self.key_file_name = 'user.key.pem'
+        self.is_tick_running = False
 
     def setup_ssh(self):
         if self.ssh_client:
@@ -74,6 +75,11 @@ class Controller():
 
     def tick(self):
         logging.info('Controller tick')
+        if self.is_tick_running:
+            logging.info('Tick is already running')
+            return
+
+        self.is_tick_running = True
         data = self.persistent_storage.get_all_data()
         for relmon in data:
             logging.info('%s status is %s' % (relmon['name'], relmon['status']))
@@ -82,9 +88,12 @@ class Controller():
             elif relmon['status'] == 'submitted' or relmon['status'] == 'running':
                 self.check_if_running(relmon)
             elif relmon['status'] == 'finished':
+                self.check_if_running(relmon)
                 self.collect_output(relmon)
 
             self.close_connections()
+
+        self.is_tick_running = False
 
     def submit_to_condor(self, relmon):
         logging.info('Will submit %s to HTCondor' % (relmon['name']))
@@ -126,7 +135,8 @@ class Controller():
                                'request_cpus            = 2',
                                '+JobFlavour             = "tomorrow"',
                                'requirements            = (OpSysAndVer =?= "SLCern6")',
-                               'leave_in_queue          = True',
+                               # Leave in queue when status is DONE for an hour
+                               'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED || CompletionDate == 0 || ((CurrentTime - CompletionDate) < 3600))',
                                'queue']
 
         condor_file_content = '\n'.join(condor_file_content)

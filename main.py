@@ -19,6 +19,8 @@ api = Api(app)
 def index():
     storage = PersistentStorage()
     data = storage.get_all_data()
+    for relmon in data:
+        relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(relmon['last_update']))
     return render_template('index.html', data=data)
 
 
