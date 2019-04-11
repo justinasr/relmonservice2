@@ -104,6 +104,9 @@ def update_info():
     data = json.loads(request.data.decode('utf-8'))
     storage = PersistentStorage()
     relmon = storage.get_relmon_by_id(data['id'])
+    if relmon.get('secret_hash', 'NO_HASH1') != data.get('secret_hash', 'NO_HASH2'):
+        return output_text({'message': 'Wrong secret hash'})
+
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
     storage.update_relmon(relmon)
