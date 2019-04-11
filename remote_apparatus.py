@@ -184,7 +184,7 @@ def compare_compress_move(category_name, HLT, reference_list, target_list, log_f
                                    '--hash_name',
                                    '--HLT' if HLT else ''])
 
-    compression_command = ' '.join(['dir2webdir.py', subreport_path, 'Reports/'])
+    compression_command = ' '.join(['dir2webdir.py', subreport_path])
     move_command = ' '.join(['mv', subreport_path, 'Reports/'])
 
     logging.info('ValidationMatrix command: %s' % (comparison_command))
