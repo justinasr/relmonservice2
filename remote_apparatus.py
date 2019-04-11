@@ -18,6 +18,7 @@ import time
 
 
 __callback_url = 'http://instance4.cern.ch:8080/update'
+__number_of_threads = 4
 
 
 def get_workflow(workflow_name, cmsweb):
@@ -170,8 +171,46 @@ def get_dataset_lists(category):
     return reference_dataset_list, target_dataset_list
 
 
+def compare_compress_move(category_name, HLT, reference_list, target_list, log_file):
+    subreport_path = get_local_subreport_path(category_name, HLT)
+    comparison_command = ' '.join(['ValidationMatrix.py',
+                                   '-R',
+                                   ','.join(reference_list),
+                                   '-T',
+                                   ','.join(target_list),
+                                   '-o',
+                                   subreport_path,
+                                   '-N %s' % (__number_of_threads),
+                                   '--hash_name',
+                                   '--HLT' if HLT else ''])
+
+    compression_command = ' '.join(['dir2webdir.py', subreport_path, 'Reports/'])
+    move_command = ' '.join(['mv', subreport_path, 'Reports/'])
+
+    logging.info('ValidationMatrix command: %s' % (comparison_command))
+    proc = subprocess.Popen(comparison_command,
+                            stdout=log_file,
+                            stderr=log_file,
+                            shell=True)
+    proc.wait()
+
+    logging.info('Compression command: %s' % (compression_command))
+    proc = subprocess.Popen(compression_command,
+                            stdout=log_file,
+                            stderr=log_file,
+                            shell=True)
+    proc.wait()
+
+    logging.info('Move command: %s' % (move_command))
+    proc = subprocess.Popen(move_command,
+                            stdout=log_file,
+                            stderr=log_file,
+                            shell=True)
+    proc.wait()
+
+
 def run_validation_matrix(config):
-    validation_matrix_log_file = open("validation_matrix.log", "w")
+    log_file = open("validation_matrix.log", "w")
     for category in config.get('categories', []):
         category_name = category['name']
         hlt = category['HLT']
@@ -182,46 +221,11 @@ def run_validation_matrix(config):
         notify(config)
         if hlt == 'only' or hlt == 'both':
             # Run with HLT
-            command = ["ValidationMatrix.py",
-                       "-R", ','.join(reference_list),
-                       "-T", ','.join(target_list),
-                       "-o", get_local_subreport_path(category_name, True),
-                       "-N 4",
-                       "--hash_name",
-                       "--HLT",
-                       ";",
-                       "mv",
-                       get_local_subreport_path(category_name, True),
-                       "Reports/"]
-
-            command = ' '.join(command)
-            logging.info('ValidationMatrix command: %s' % (command))
-            proc = subprocess.Popen(command,
-                                    stdout=validation_matrix_log_file,
-                                    stderr=validation_matrix_log_file,
-                                    shell=True)
-            proc.wait()
+            compare_compress_move(category_name, True, reference_list, target_list, log_file)
 
         if hlt == 'no' or hlt == 'both' and category_name.lower() != 'generator':
             # Run without HLT for everything, except generator
-            command = ["ValidationMatrix.py",
-                       "-R", ','.join(reference_list),
-                       "-T", ','.join(target_list),
-                       "-o", get_local_subreport_path(category_name, False),
-                       "-N 4",
-                       "--hash_name",
-                       ";",
-                       "mv",
-                       get_local_subreport_path(category_name, False),
-                       "Reports/"]
-
-            command = ' '.join(command)
-            logging.info('ValidationMatrix command: %s' % (command))
-            proc = subprocess.Popen(command,
-                                    stdout=validation_matrix_log_file,
-                                    stderr=validation_matrix_log_file,
-                                    shell=True)
-            proc.wait()
+            compare_compress_move(category_name, False, reference_list, target_list, log_file)
 
         category['status'] = 'done'
         notify(config)

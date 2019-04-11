@@ -14,7 +14,7 @@ class Controller():
 
     __credentials_file_path = '/home/jrumsevi/auth.txt'
     __remote_host = 'lxplus.cern.ch'
-    __web_path = '/eos/user/j/jrumsevi/www/relmon'
+    __web_path = '/eos/user/j/jrumsevi/www/relmon/'
 
     def __init__(self):
         self.persistent_storage = PersistentStorage()
@@ -137,11 +137,11 @@ class Controller():
                                                                            self.grid_location,
                                                                            self.key_file_name,),
                                'when_to_transfer_output = on_exit',
-                               'request_cpus            = 2',
+                               'request_cpus            = 4',
                                '+JobFlavour             = "tomorrow"',
                                'requirements            = (OpSysAndVer =?= "SLCern6")',
                                # Leave in queue when status is DONE for an hour
-                               'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED || CompletionDate == 0 || ((CurrentTime - CompletionDate) < 3600))',
+                               'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED || CompletionDate == 0 || ((CurrentTime - CompletionDate) < 7200))',
                                'queue']
 
         condor_file_content = '\n'.join(condor_file_content)
@@ -224,11 +224,11 @@ class Controller():
 
     def collect_output(self, relmon):
         remote_relmon_directory = 'relmon_test/%s' % (relmon['id'])
-        stdout, stderr = self.execute_command('cd %s; tar -xzf %s.tar.gz; mv Reports %s; mv %s %s; cd ..; rm -r %s' % (remote_relmon_directory,
-                                                                                                                       relmon['id'],
-                                                                                                                       relmon['name'],
-                                                                                                                       relmon['name'],
-                                                                                                                       self.__web_path,
-                                                                                                                       relmon['id']))
+        stdout, stderr = self.execute_command('; '.join(['cd %s' % (remote_relmon_directory),
+                                                         'tar -xzf %s.tar.gz' % (relmon['id']),
+                                                         'mv Reports %s' % (relmon['name']),
+                                                         'mv %s %s' (relmon['name'], self.__web_path),
+                                                         'cd ..',
+                                                         'rm -r %s' % (relmon['id'])]))
         relmon['status'] = 'done'
         self.persistent_storage.update_relmon(relmon)
