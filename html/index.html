@@ -265,7 +265,10 @@
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="terminateRelmon({{ relmon.id }});">Terminate relmon</button>
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="deleteRelmon({{ relmon.id }});">Delete relmon</button>
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="editRelmon({{ relmon.id }});">Edit relmon</button>
-
+            <h3>Category summary</h3>
+            {% for category in relmon.categories %}
+              {{ category.name }} - {{ category.status }}<br>
+            {% endfor %}
             <h3>Categories</h3>
             {% for category in relmon.categories %}
               <a class="btn btn-primary mt-1" data-toggle="collapse" href="#category_{{relmon.id}}_{{category.name}}" role="button" aria-expanded="false" aria-controls="category_{{relmon.id}}_{{category.name}}">

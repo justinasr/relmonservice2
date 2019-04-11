@@ -125,7 +125,8 @@ class Controller():
                                'when_to_transfer_output = on_exit',
                                'request_cpus            = 2',
                                '+JobFlavour             = "tomorrow"',
-                               'requirements = (OpSysAndVer =?= "SLCern6")',
+                               'requirements            = (OpSysAndVer =?= "SLCern6")',
+                               'leave_in_queue          = True',
                                'queue']
 
         condor_file_content = '\n'.join(condor_file_content)
