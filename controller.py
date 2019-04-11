@@ -88,7 +88,7 @@ class Controller():
                 self.submit_to_condor(relmon)
             elif relmon['status'] == 'submitted' or relmon['status'] == 'running':
                 self.check_if_running(relmon)
-            elif relmon['status'] == 'finished':
+            elif relmon['status'] == 'finishing':
                 self.check_if_running(relmon)
                 self.collect_output(relmon)
 
@@ -227,8 +227,8 @@ class Controller():
         stdout, stderr = self.execute_command('; '.join(['cd %s' % (remote_relmon_directory),
                                                          'tar -xzf %s.tar.gz' % (relmon['id']),
                                                          'mv Reports %s' % (relmon['name']),
-                                                         'mv %s %s' (relmon['name'], self.__web_path),
-                                                         'cd ..',
-                                                         'rm -r %s' % (relmon['id'])]))
+                                                         'mv %s %s' % (relmon['name'], self.__web_path),
+                                                         'cd ..']))  # ,
+                                                         # 'rm -r %s' % (relmon['id'])]))
         relmon['status'] = 'done'
         self.persistent_storage.update_relmon(relmon)

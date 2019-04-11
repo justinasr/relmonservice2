@@ -252,7 +252,7 @@ if __name__ == '__main__':
             notify(relmon)
             relmon = download_root_files(relmon, cmsweb)
             run_validation_matrix(relmon)
-            relmon['status'] = 'finished'
+            relmon['status'] = 'finishing'
         except Exception as ex:
             logging.error(ex)
             relmon['status'] = 'failed'

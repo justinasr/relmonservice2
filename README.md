@@ -8,7 +8,7 @@ Each RelMon is a dictionary (JSON) file. Structure:
 {
     "id": <integer>,
     "name": <string>,
-    "status": <string ["new", "submitting", "submitted", "running", "finished", "done", "failed"]>
+    "status": <string ["new", "submitting", "submitted", "running", "finishing", "done", "failed"]>
     "last_update": <integer>,
     "condor_status": <string ["IDLE", "RUN", "DONE", "<unknown>"]>,
     "condor_id": <integer>,
