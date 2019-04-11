@@ -7,12 +7,15 @@ from controller import Controller
 from persistent_storage import PersistentStorage
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime
 
 
 app = Flask(__name__,
             static_folder="./html/static",
             template_folder="./html")
 api = Api(app)
+scheduler = BackgroundScheduler()
+controller = Controller()
 
 
 @app.route('/')
@@ -113,6 +116,14 @@ def update_info():
     return output_text({'message': 'OK'})
 
 
+@app.route('/tick')
+def controller_tick():
+    for job in scheduler.get_jobs():
+        job.modify(next_run_time=datetime.now())
+
+    return output_text({'message': 'OK'})
+
+
 def run_flask():
     parser = argparse.ArgumentParser(description='Stats2')
     parser.add_argument('--port',
@@ -139,7 +150,6 @@ def run_flask():
 
 
 def tick():
-    controller = Controller()
     logging.info('Controller will tick')
     controller.tick()
     logging.info('Controller ticked')
@@ -147,9 +157,8 @@ def tick():
 
 if __name__ == '__main__':
     logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
-    scheduler = BackgroundScheduler()
     scheduler.add_executor('processpool')
-    scheduler.add_job(tick, 'interval', seconds=60)
+    scheduler.add_job(tick, 'interval', seconds=5 * 60)
     scheduler.start()
     run_flask()
     scheduler.shutdown()

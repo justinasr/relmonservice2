@@ -71,6 +71,18 @@ function createRelmon() {
   });
 }
 
+function tick() {
+  console.log('Tick')
+  $.ajax({
+    type: "GET",
+    url: "/tick",
+  }).done(function (data) {
+    console.log(data)
+  }).fail(function(data) {
+    console.log(data)
+  });
+}
+
 function resetRelmon(relmonID) {
   console.log('Reset ' + relmonID)
   $.ajax({

@@ -14,6 +14,7 @@ class Controller():
 
     __credentials_file_path = '/home/jrumsevi/auth.txt'
     __remote_host = 'lxplus.cern.ch'
+    __web_path = '/eos/user/j/jrumsevi/www/relmon'
 
     def __init__(self):
         self.persistent_storage = PersistentStorage()
@@ -98,8 +99,12 @@ class Controller():
     def submit_to_condor(self, relmon):
         logging.info('Will submit %s to HTCondor' % (relmon['name']))
         relmon['status'] = 'submitting'
-        relmon['condor_id'] = -1
-        relmon['condor_status'] = '<unknown>'
+        if 'condor_id' in relmon:
+            del relmon['condor_id']
+
+        if 'condor_status' in relmon:
+            del relmon['condor_status']
+
         relmon['secret_hash'] = '%032x' % (random.getrandbits(128))
         for category in relmon['categories']:
             category['status'] = 'initial'
@@ -179,7 +184,6 @@ class Controller():
             relmon['status'] = 'submitted'
             condor_id = int(float(stdout.split()[-1]))
             relmon['condor_id'] = condor_id
-            relmon['condor_status'] = '<unknown>'
         else:
             logging.error('Error submitting: %s. Output: %s' % (stderr, stdout))
             relmon['status'] = 'failed'
@@ -219,5 +223,12 @@ class Controller():
         self.persistent_storage.update_relmon(relmon)
 
     def collect_output(self, relmon):
+        remote_relmon_directory = 'relmon_test/%s' % (relmon['id'])
+        stdout, stderr = self.execute_command('cd %s; tar -xzf %s.tar.gz; mv Reports %s; mv %s %s; cd ..; rm -r %s' % (remote_relmon_directory,
+                                                                                                                       relmon['id'],
+                                                                                                                       relmon['name'],
+                                                                                                                       relmon['name'],
+                                                                                                                       self.__web_path,
+                                                                                                                       relmon['id']))
         relmon['status'] = 'done'
         self.persistent_storage.update_relmon(relmon)
