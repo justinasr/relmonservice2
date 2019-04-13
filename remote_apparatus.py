@@ -156,7 +156,7 @@ def get_important_part(filne_name):
     return filne_name.split('__')[1] + '_' + filne_name.split("__")[2].split("-")[1]
 
 
-def automatic_pairing(references, targets):
+def pair_references_with_targets(references, targets):
     if len(references) != len(targets):
         logging.error('Cannot do automatic pairing for different length lists')
         return references, targets
@@ -211,7 +211,7 @@ def get_dataset_lists(category):
 
     automatic_pairing = category['automatic_pairing']
     if automatic_pairing:
-        reference_dataset_list, target_dataset_list = automatic_pairing(reference_dataset_list, target_dataset_list)
+        reference_dataset_list, target_dataset_list = pair_references_with_targets(reference_dataset_list, target_dataset_list)
 
     return reference_dataset_list, target_dataset_list
 

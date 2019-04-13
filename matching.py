@@ -163,7 +163,7 @@ def match(references, targets):
             ratio = SequenceMatcher(a=reference_string, b=target_string).ratio()
             reference_target_ratio = (reference, target, ratio)
             all_ratios.append(reference_target_ratio)
-            logging.info('%s %s -> %s' % (reference_string, target_string, ratio))
+            print('%s %s -> %s' % (reference_string, target_string, ratio))
 
     used_references = set()
     used_targets = set()
