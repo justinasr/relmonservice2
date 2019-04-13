@@ -15,6 +15,7 @@ import logging
 import subprocess
 import os
 import time
+from difflib import SequenceMatcher
 
 
 __callback_url = 'http://instance4.cern.ch:8080/update'
@@ -151,6 +152,46 @@ def get_local_subreport_path(category_name, hlt):
     return name
 
 
+def get_important_part(filne_name):
+    return filne_name.split('__')[1] + '_' + filne_name.split("__")[2].split("-")[1]
+
+
+def automatic_pairing(references, targets):
+    if len(references) != len(targets):
+        logging.error('Cannot do automatic pairing for different length lists')
+        return references, targets
+
+    all_ratios = []
+    for reference in references:
+        for target in targets:
+            reference_string = get_important_part(reference)
+            target_string = get_important_part(target)
+            ratio = SequenceMatcher(a=reference_string, b=target_string).ratio()
+            reference_target_ratio = (reference, target, ratio)
+            all_ratios.append(reference_target_ratio)
+            logging.info('%s %s -> %s' % (reference_string, target_string, ratio))
+
+    used_references = set()
+    used_targets = set()
+    all_ratios.sort(key=lambda x: x[2], reverse=True)
+    selected_pairs = []
+    for reference_target_ratio in all_ratios:
+        reference_name = reference_target_ratio[0]
+        target_name = reference_target_ratio[1]
+        if reference_name not in used_references and target_name not in used_targets:
+            selected_pairs.append(reference_target_ratio)
+            used_references.add(reference_name)
+            used_targets.add(target_name)
+
+    sorted_references = [x[0] for x in selected_pairs]
+    sorted_targets = [x[1] for x in selected_pairs]
+    if len(sorted_references) != len(references) or len(sorted_targets) != len(targets):
+        logging.error('Mismatch of number of references or targets after matching')
+        return references, targets
+
+    return sorted_references, sorted_targets
+
+
 def get_dataset_lists(category):
     reference_list = category.get('reference', {})
     target_list = category.get('target', {})
@@ -167,6 +208,10 @@ def get_dataset_lists(category):
 
         if not target_list[i]['file_name']:
             logging.error('Downloaded file name is missing for %s, will not compare this workflow' % (reference_list[i]['name']))
+
+    automatic_pairing = category['automatic_pairing']
+    if automatic_pairing:
+        reference_dataset_list, target_dataset_list = automatic_pairing(reference_dataset_list, target_dataset_list)
 
     return reference_dataset_list, target_dataset_list
 
