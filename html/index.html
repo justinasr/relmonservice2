@@ -180,9 +180,28 @@
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="deleteRelmon({{ relmon.id }});">Delete relmon</button>
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="editRelmon({{ relmon.id }});">Edit relmon</button>
             <h3>Category summary</h3>
-            {% for category in relmon.categories %}
-              {{ category.name }} - {{ category.status }}<br>
-            {% endfor %}
+            <ul>
+              {% for category in relmon.categories %}
+                <li>{{ category.name }} - {{ category.status }}</li>
+                  <ul>
+                    <li>References ({{ category.reference | length }}):
+                      <ul>
+                        {% for ref_status in category.reference_status %}
+                          <li>{{ref_status}}: {{category.reference_status[ref_status]}}</li>
+                        {% endfor %}
+                      </ul>
+                    </li>
+                    <li>Targets ({{ category.target | length }}):
+                      <ul>
+                        {% for tar_status in category.target_status %}
+                          <li>{{tar_status}}: {{category.target_status[tar_status]}}</li>
+                        {% endfor %}
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+              {% endfor %}
+            </ul>
             <h3>Categories</h3>
             {% for category in relmon.categories %}
               <a class="btn btn-outline-primary btn-sm mt-1" data-toggle="collapse" href="#category_{{relmon.id}}_{{category.name}}" role="button" aria-expanded="false" aria-controls="category_{{relmon.id}}_{{category.name}}">

@@ -81,7 +81,7 @@ class Controller():
         script_file = self.create_job_script_file(relmon, relmon_file)
 
         relmon_id = relmon['id']
-        remote_relmon_directory = '%s/%s' % (self.__remote_directory, relmon_id)
+        remote_relmon_directory = '%s%s' % (self.__remote_directory, relmon_id)
         self.ssh_executor.execute_command(['rm -rf %s' % (remote_relmon_directory),
                                            'mkdir -p %s' % (remote_relmon_directory)])
 
@@ -146,13 +146,14 @@ class Controller():
         self.persistent_storage.update_relmon(relmon)
 
     def collect_output(self, relmon):
-        remote_relmon_directory = '%s/%s' % (self.__remote_directory, relmon['id'])
-        relmon_logs = 'logs/%s' % (relmon['id'])
+        remote_relmon_directory = '%s%s/' % (self.__remote_directory, relmon['id'])
+        relmon_logs = 'logs/%s/' % (relmon['id'])
+        shutil.rmtree(relmon_logs, ignore_errors=True)
         os.mkdir(relmon_logs)
         # self.download_file('%s/validation_matrix.log' % (self.__remote_directory), './%s' % (relmon['id']))
         # self.download_file('%s/RELMON_%s.out' % (self.__remote_directory, relmon['id']), './%s' % (relmon['id']))
         # self.download_file('%s/RELMON_%s.log' % (self.__remote_directory, relmon['id']), './%s' % (relmon['id']))
-        self.ssh_executor.download_file('%s/RELMON_%s.err' % (self.__remote_directory, relmon['id']), relmon_logs)
+        self.ssh_executor.download_file('%sRELMON_%s.err' % (remote_relmon_directory, relmon['id']), '%sRELMON_%s.err' % (relmon_logs, relmon['id']))
         stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
                                                             'tar -xzf %s.tar.gz' % (relmon['id']),
                                                             'mv Reports %s' % (relmon['name']),
@@ -243,7 +244,7 @@ class Controller():
 
     def terminate_relmon(self, relmon_id):
         relmon = self.persistent_storage.get_relmon_by_id(relmon_id)
-        remote_relmon_directory = '%s/%s' % (self.__remote_directory, relmon['id'])
+        remote_relmon_directory = '%s%s' % (self.__remote_directory, relmon['id'])
         if 'condor_id' in relmon and relmon.get('condor_id', -1) > 0:
             self.ssh_executor.execute_command('condor_rm %s' % (relmon['condor_id']))
 

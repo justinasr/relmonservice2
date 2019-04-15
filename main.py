@@ -31,12 +31,30 @@ def index():
                                       'file_url': x.get('file_url', ''),
                                       'file_size': x.get('file_size', 0),
                                       'status': x.get('status', '')} for x in category['reference']]
+
+            category['reference_status'] = {}
+            for relmon in category['reference']:
+                relmon_status = relmon.get('status', '<unknown>')
+                if relmon_status not in category['reference_status']:
+                    category['reference_status'][relmon_status] = 0
+
+                category['reference_status'][relmon_status] = category['reference_status'][relmon_status] + 1
+
             category['target'] = [{'name': (x.get('name', '')),
                                       'file_name': x.get('file_name', ''),
                                       'file_url': x.get('file_url', ''),
                                       'file_size': x.get('file_size', 0),
                                       'status': x.get('status', '')} for x in category['target']]
 
+            category['target_status'] = {}
+            for relmon in category['target']:
+                relmon_status = relmon.get('status', '<unknown>')
+                if relmon_status not in category['target_status']:
+                    category['target_status'][relmon_status] = 0
+
+                category['target_status'][relmon_status] = category['target_status'][relmon_status] + 1
+
+    data.sort(key=lambda x: x.get('id', -1))
     return render_template('index.html', data=data)
 
 
@@ -92,11 +110,16 @@ def update_info():
     if relmon.get('secret_hash', 'NO_HASH1') != data.get('secret_hash', 'NO_HASH2'):
         return output_text({'message': 'Wrong secret hash'})
 
+    old_status = relmon.get('status')
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
-    if relmon['status'] == 'running':
+    if relmon['status'] == 'running' and relmon['status'] != old_status:
         tick()
 
+    logger = logging.getLogger('logger')
+    logger.info('Update for %s (%s). Status is %s' % (relmon['name'],
+                                                      relmon['id'],
+                                                      relmon['status']))
     storage.update_relmon(relmon)
     return output_text({'message': 'OK'})
 
