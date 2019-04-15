@@ -218,6 +218,7 @@ class Controller():
                 logging.info('Unknown status %s?' % (status_number))
         else:
             logging.error('Error with HTCondor?')
+            relmon['condor_status'] = '<unknown>'
             return
 
         self.persistent_storage.update_relmon(relmon)
