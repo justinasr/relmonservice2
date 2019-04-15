@@ -18,7 +18,8 @@ class CMSWebWrapper():
         return http.client.HTTPSConnection('cmsweb.cern.ch',
                                            port=443,
                                            cert_file=self.cert_file,
-                                           key_file=self.key_file)
+                                           key_file=self.key_file,
+                                           timeout=120)
 
     def get(self, path, cache=True):
         logging.info('Will try to GET %s' % (path))
