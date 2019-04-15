@@ -8,6 +8,7 @@ from persistent_storage import PersistentStorage
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
+from logging import handlers
 
 
 app = Flask(__name__,
@@ -23,30 +24,29 @@ def index():
     storage = PersistentStorage()
     data = storage.get_all_data()
     for relmon in data:
-        relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(relmon['last_update']))
+        relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(relmon.get('last_update', 0)))
+        for category in relmon.get('categories'):
+            category['reference'] = [{'name': (x.get('name', '')),
+                                      'file_name': x.get('file_name', ''),
+                                      'file_url': x.get('file_url', ''),
+                                      'file_size': x.get('file_size', 0),
+                                      'status': x.get('status', '')} for x in category['reference']]
+            category['target'] = [{'name': (x.get('name', '')),
+                                      'file_name': x.get('file_name', ''),
+                                      'file_url': x.get('file_url', ''),
+                                      'file_size': x.get('file_size', 0),
+                                      'status': x.get('status', '')} for x in category['target']]
+
     return render_template('index.html', data=data)
 
 
 @app.route('/create', methods=['POST'])
 def add_relmon():
     relmon = json.loads(request.data.decode('utf-8'))
-    relmon['status'] = 'new'
     if 'id' not in relmon:
         relmon['id'] = int(time.time())
 
-    for category in relmon['categories']:
-        category['status'] = 'initial'
-        category['reference'] = [{'name': x,
-                                  'file_name': '',
-                                  'file_url': '',
-                                  'file_size': 0,
-                                  'status': 'initial'} for x in category['reference']]
-        category['target'] = [{'name': x,
-                               'file_name': '',
-                               'file_url': '',
-                               'file_size': 0,
-                               'status': 'initial'} for x in category['target']]
-
+    controller.reset_relmon(relmon)
     storage = PersistentStorage()
     storage.create_relmon(relmon)
     return output_text({'message': 'OK'})
@@ -58,25 +58,7 @@ def reset_relmon():
     if 'id' in data:
         storage = PersistentStorage()
         relmon = storage.get_relmon_by_id(data['id'])
-        for category in relmon['categories']:
-            category['status'] = 'initial'
-            category['reference'] = [{'name': x['name'],
-                                      'file_name': '',
-                                      'file_url': '',
-                                      'file_size': 0,
-                                      'status': 'initial'} for x in category['reference']]
-            category['target'] = [{'name': x['name'],
-                                   'file_name': '',
-                                   'file_url': '',
-                                   'file_size': 0,
-                                   'status': 'initial'} for x in category['target']]
-        relmon['status'] = 'new'
-        if 'condor_status' in relmon:
-            del relmon['condor_status']
-
-        if 'condor_id' in relmon:
-            del relmon['condor_id']
-
+        controller.reset_relmon(relmon)
         storage.update_relmon(relmon)
         return output_text({'message': 'OK'})
 
@@ -112,6 +94,9 @@ def update_info():
 
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
+    if relmon['status'] == 'running':
+        tick()
+
     storage.update_relmon(relmon)
     return output_text({'message': 'OK'})
 
@@ -150,15 +135,30 @@ def run_flask():
 
 
 def tick():
-    logging.info('Controller will tick')
     controller.tick()
-    logging.info('Controller ticked')
+
+
+def setup_logging():
+    # Max log file size - 5Mb
+    max_log_file_size = 1024 * 1024 * 5
+    max_log_file_count = 10
+    log_file_name = 'logs/log.log'
+    logger = logging.getLogger('logger')
+    logger.setLevel(logging.INFO)
+    handler = handlers.RotatingFileHandler(log_file_name,
+                                           'a',
+                                           max_log_file_size,
+                                           max_log_file_count)
+    formatter = logging.Formatter(fmt='[%(asctime)s][%(levelname)s] %(message)s',
+                                  datefmt='%d/%b/%Y:%H:%M:%S')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
+    setup_logging()
     scheduler.add_executor('processpool')
-    scheduler.add_job(tick, 'interval', seconds=5 * 60)
+    scheduler.add_job(tick, 'interval', seconds=600)
     scheduler.start()
     run_flask()
     scheduler.shutdown()

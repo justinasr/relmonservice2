@@ -4,86 +4,51 @@ completed report
 
 import logging
 from persistent_storage import PersistentStorage
-import paramiko
 import json
 import os
 import random
+from ssh_executor import SSHExecutor
+import shutil
 
 
 class Controller():
 
-    __credentials_file_path = '/home/jrumsevi/auth.txt'
-    __remote_host = 'lxplus.cern.ch'
+    # Directory in remote host to keep files for submission and collect output
+    __remote_directory = 'relmon_test/'
+    # Directory where to move done comparisons
     __web_path = '/eos/user/j/jrumsevi/www/relmon/'
+    # Directory where user certificate and key for GRID authentication is located
+    __grid_location = '/afs/cern.ch/user/j/jrumsevi/private/'
+    # GRID certificate file
+    __cert_file_name = 'user.crt.pem'
+    # GRID key file
+    __key_file_name = 'user.key.pem'
+    # Number of CPUs to use for comparison
+    __cpus = 4
 
     def __init__(self):
-        self.persistent_storage = PersistentStorage()
-        self.ssh_client = None
-        self.ftp_client = None
-        self.grid_location = '/afs/cern.ch/user/j/jrumsevi/private/'
-        self.cert_file_name = 'user.crt.pem'
-        self.key_file_name = 'user.key.pem'
         self.is_tick_running = False
-
-    def setup_ssh(self):
-        if self.ssh_client:
-            self.close_connections()
-
-        with open(self.__credentials_file_path) as json_file:
-            credentials = json.load(json_file)
-
-        self.ssh_client = paramiko.SSHClient()
-        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.ssh_client.connect(self.__remote_host,
-                                username=credentials["username"],
-                                password=credentials["password"],
-                                timeout=30)
-
-    def setup_ftp(self):
-        if self.ftp_client:
-            self.close_connections()
-
-        if not self.ssh_client:
-            self.setup_ssh()
-
-        self.ftp_client = self.ssh_client.open_sftp()
-
-    def execute_command(self, command):
-        if not self.ssh_client:
-            self.setup_ssh()
-
-        (_, stdout, stderr) = self.ssh_client.exec_command(command)
-        stdout = stdout.read().decode('utf-8').strip()
-        stderr = stderr.read().decode('utf-8').strip()
-        logging.info("STDOUT (%s): %s" % (command, stdout))
-        logging.info("STDERR (%s): %s" % (command, stderr))
-        return stdout, stderr
-
-    def copy_file(self, copy_from, copy_to):
-        if not self.ftp_client:
-            self.setup_ftp()
-
-        self.ftp_client.put(copy_from, copy_to)
-
-    def close_connections(self):
-        if self.ftp_client:
-            self.ftp_client.close()
-            self.ftp_client = None
-
-        if self.ssh_client:
-            self.ssh_client.close()
-            self.ssh_client = None
+        self.persistent_storage = PersistentStorage()
+        self.ssh_executor = SSHExecutor()
+        self.logger = logging.getLogger('logger')
 
     def tick(self):
-        logging.info('Controller tick')
+        """
+        Controller works by doing "ticks" every once in a while
+        During a tick it shoud check all existing relmon's and
+        their status and, if necessary, perform actions like
+        submission or output collection
+        """
+        self.logger.info('Controller tick')
         if self.is_tick_running:
-            logging.info('Tick is already running')
+            self.logger.warning('Tick is already running')
             return
 
         self.is_tick_running = True
         data = self.persistent_storage.get_all_data()
+        self.logger.info('Found %s relmons' % (len(data)))
         for relmon in data:
-            logging.info('%s status is %s' % (relmon['name'], relmon['status']))
+            self.logger.info('%s status is %s' % (relmon['name'], relmon.get('status')))
             if relmon['status'] == 'new':
                 self.submit_to_condor(relmon)
             elif relmon['status'] == 'submitted' or relmon['status'] == 'running':
@@ -92,12 +57,13 @@ class Controller():
                 self.check_if_running(relmon)
                 self.collect_output(relmon)
 
-            self.close_connections()
-
+        self.ssh_executor.close_connections()
         self.is_tick_running = False
+        self.logger.info('Controller tick finished')
 
     def submit_to_condor(self, relmon):
-        logging.info('Will submit %s to HTCondor' % (relmon['name']))
+        self.logger.info('Will submit %s to HTCondor' % (relmon['name']))
+        relmon = self.reset_relmon(relmon)
         relmon['status'] = 'submitting'
         if 'condor_id' in relmon:
             del relmon['condor_id']
@@ -106,94 +72,48 @@ class Controller():
             del relmon['condor_status']
 
         relmon['secret_hash'] = '%032x' % (random.getrandbits(128))
-        for category in relmon['categories']:
-            category['status'] = 'initial'
-            category['reference'] = [{'name': x['name'],
-                                      'file_name': '',
-                                      'file_url': '',
-                                      'file_size': 0,
-                                      'status': 'initial'} for x in category['reference']]
-            category['target'] = [{'name': x['name'],
-                                   'file_name': '',
-                                   'file_url': '',
-                                   'file_size': 0,
-                                   'status': 'initial'} for x in category['target']]
 
         self.persistent_storage.update_relmon(relmon)
-        logging.info('%s status is %s' % (relmon['name'], relmon['status']))
-        relmon_file = '%s.json' % (relmon['id'])
-        remote_relmon_directory = 'relmon_test/%s' % (relmon['id'])
-        with open(relmon_file, 'w') as json_file:
-            json.dump(relmon, json_file, indent=4, sort_keys=True)
+        self.logger.info('%s status is %s' % (relmon['name'], relmon['status']))
 
-        condor_file = 'RELMON_%s.sub' % (relmon['id'])
-        condor_file_content = ['executable              = RELMON_%s.sh' % (relmon['id']),
-                               'output                  = RELMON_%s_$(ClusterId)_$(ProcId).out' % (relmon['id']),
-                               'error                   = RELMON_%s_$(ClusterId)_$(ProcId).err' % (relmon['id']),
-                               'log                     = RELMON_%s_$(ClusterId).log' % (relmon['id']),
-                               'transfer_input_files    = %s,%s%s,%s%s' % (relmon_file,
-                                                                           self.grid_location,
-                                                                           self.cert_file_name,
-                                                                           self.grid_location,
-                                                                           self.key_file_name,),
-                               'when_to_transfer_output = on_exit',
-                               'request_cpus            = 4',
-                               '+JobFlavour             = "tomorrow"',
-                               'requirements            = (OpSysAndVer =?= "SLCern6")',
-                               # Leave in queue when status is DONE for an hour
-                               'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED || CompletionDate == 0 || ((CurrentTime - CompletionDate) < 7200))',
-                               'queue']
+        relmon_file = self.create_relmon_file(relmon)
+        condor_file = self.create_condor_job_file(relmon, relmon_file)
+        script_file = self.create_job_script_file(relmon, relmon_file)
 
-        condor_file_content = '\n'.join(condor_file_content)
-        with open(condor_file, 'w') as file:
-            file.write(condor_file_content)
+        relmon_id = relmon['id']
+        remote_relmon_directory = '%s/%s' % (self.__remote_directory, relmon_id)
+        self.ssh_executor.execute_command(['rm -rf %s' % (remote_relmon_directory),
+                                           'mkdir -p %s' % (remote_relmon_directory)])
 
-        script_file = 'RELMON_%s.sh' % (relmon['id'])
-        script_file_content = ['#!/bin/bash',
-                               'DIR=$(pwd)',
-                               'git clone https://github.com/justinasr/relmonservice2.git',
-                               'scramv1 project CMSSW CMSSW_10_4_0',
-                               'cd CMSSW_10_4_0/src',
-                               'eval `scramv1 runtime -sh`',
-                               'cd $DIR',
-                               'mkdir -p Reports',
-                               'python3 relmonservice2/remote_apparatus.py --relmon %s --cert %s --key %s' % (relmon_file,
-                                                                                                              self.cert_file_name,
-                                                                                                              self.key_file_name),
-                               'rm *.root',
-                               'tar -zcvf %s.tar.gz Reports' % (relmon['id'])]
-
-        script_file_content = '\n'.join(script_file_content)
-        with open(script_file, 'w') as file:
-            file.write(script_file_content)
-
-        stdout, stderr = self.execute_command('rm -rf %s; mkdir -p %s' % (remote_relmon_directory,
-                                                                          remote_relmon_directory))
-
-        self.copy_file(relmon_file, '%s/%s' % (remote_relmon_directory, relmon_file))
-        self.copy_file(condor_file, '%s/%s' % (remote_relmon_directory, condor_file))
-        self.copy_file(script_file, '%s/%s' % (remote_relmon_directory, script_file))
+        self.ssh_executor.upload_file(relmon_file, '%s/%s' % (remote_relmon_directory, relmon_file))
+        self.ssh_executor.upload_file(condor_file, '%s/%s' % (remote_relmon_directory, condor_file))
+        self.ssh_executor.upload_file(script_file, '%s/%s' % (remote_relmon_directory, script_file))
 
         os.remove(relmon_file)
         os.remove(condor_file)
         os.remove(script_file)
+        shutil.rmtree('logs/%s' % (relmon_id), ignore_errors=True)
 
-        stdout, stderr = self.execute_command('cd %s; condor_submit %s' % (remote_relmon_directory, condor_file))
+        stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
+                                                            'condor_submit %s' % (condor_file)])
+        relmon = self.persistent_storage.get_relmon_by_id(relmon_id)
         if not stderr and '1 job(s) submitted to cluster' in stdout:
             # output is "1 job(s) submitted to cluster 801341"
             relmon['status'] = 'submitted'
             condor_id = int(float(stdout.split()[-1]))
             relmon['condor_id'] = condor_id
+            self.logger.info('Submitted %s (%s)' % (relmon['name'], relmon_id))
         else:
-            logging.error('Error submitting: %s. Output: %s' % (stderr, stdout))
+            self.logger.error('Error submitting %s (%s)' % (relmon['name'], relmon_id))
             relmon['status'] = 'failed'
 
-        logging.info('%s status is %s' % (relmon['name'], relmon['status']))
+        self.logger.info('%s status is %s' % (relmon['name'], relmon['status']))
         self.persistent_storage.update_relmon(relmon)
 
     def check_if_running(self, relmon):
-        logging.info('Will check if %s is running in HTCondor' % (relmon['name']))
-        stdout, stderr = self.execute_command('condor_q -af:h ClusterId JobStatus | grep %s' % (relmon['condor_id']))
+        condor_id = relmon['condor_id']
+        self.logger.info('Will check if %s is running in HTCondor, id: %s' % (relmon['name'], condor_id))
+        stdout, stderr = self.ssh_executor.execute_command('condor_q -af:h ClusterId JobStatus | grep %s' % (condor_id))
         if not stderr and not stdout:
             relmon['status'] = 'failed'
             relmon['condor_status'] = ''
@@ -215,21 +135,118 @@ class Controller():
                 relmon['condor_status'] = 'SUBMISSION ERROR'
             else:
                 relmon['condor_status'] = '<unknown>'
-                logging.info('Unknown status %s?' % (status_number))
+                self.logger.info('Unknown status %s of %s (%s)?' % (status_number,
+                                                                    relmon['name'],
+                                                                    relmon['id']))
         else:
-            logging.error('Error with HTCondor?')
+            self.logger.error('Error with HTCondor?')
             relmon['condor_status'] = '<unknown>'
             return
 
         self.persistent_storage.update_relmon(relmon)
 
     def collect_output(self, relmon):
-        remote_relmon_directory = 'relmon_test/%s' % (relmon['id'])
-        stdout, stderr = self.execute_command('; '.join(['cd %s' % (remote_relmon_directory),
-                                                         'tar -xzf %s.tar.gz' % (relmon['id']),
-                                                         'mv Reports %s' % (relmon['name']),
-                                                         'mv %s %s' % (relmon['name'], self.__web_path),
-                                                         'cd ..']))  # ,
-                                                         # 'rm -r %s' % (relmon['id'])]))
+        remote_relmon_directory = '%s/%s' % (self.__remote_directory, relmon['id'])
+        relmon_logs = 'logs/%s' % (relmon['id'])
+        os.mkdir(relmon_logs)
+        # self.download_file('%s/validation_matrix.log' % (self.__remote_directory), './%s' % (relmon['id']))
+        # self.download_file('%s/RELMON_%s.out' % (self.__remote_directory, relmon['id']), './%s' % (relmon['id']))
+        # self.download_file('%s/RELMON_%s.log' % (self.__remote_directory, relmon['id']), './%s' % (relmon['id']))
+        self.ssh_executor.download_file('%s/RELMON_%s.err' % (self.__remote_directory, relmon['id']), relmon_logs)
+        stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
+                                                            'tar -xzf %s.tar.gz' % (relmon['id']),
+                                                            'mv Reports %s' % (relmon['name']),
+                                                            'mv %s %s' % (relmon['name'], self.__web_path),
+                                                            'cd ..',
+                                                            'rm -r %s' % (relmon['id'])])
         relmon['status'] = 'done'
+        self.persistent_storage.update_relmon(relmon)
+
+    def create_relmon_file(self, relmon):
+        relmon_file_name = '%s.json' % (relmon['id'])
+        with open(relmon_file_name, 'w') as json_file:
+            json.dump(relmon, json_file, indent=4, sort_keys=True)
+
+        return relmon_file_name
+
+    def create_condor_job_file(self, relmon, relmon_file_name):
+        relmon_id = relmon['id']
+        condor_file_name = 'RELMON_%s.sub' % (relmon_id)
+        condor_file_content = ['executable              = RELMON_%s.sh' % (relmon_id),
+                               'output                  = RELMON_%s.out' % (relmon_id),
+                               'error                   = RELMON_%s.err' % (relmon_id),
+                               'log                     = RELMON_%s.log' % (relmon_id),
+                               'transfer_input_files    = %s,%s%s,%s%s' % (relmon_file_name,
+                                                                           self.__grid_location,
+                                                                           self.__cert_file_name,
+                                                                           self.__grid_location,
+                                                                           self.__key_file_name,),
+                               'when_to_transfer_output = on_exit',
+                               'request_cpus            = %s' % (self.__cpus),
+                               '+JobFlavour             = "tomorrow"',
+                               'requirements            = (OpSysAndVer =?= "SLCern6")',
+                               # Leave in queue when status is DONE for an hour
+                               'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED || ((CurrentTime - CompletionDate) < 7200))',
+                               'queue']
+
+        condor_file_content = '\n'.join(condor_file_content)
+        with open(condor_file_name, 'w') as file:
+            file.write(condor_file_content)
+
+        return condor_file_name
+
+    def create_job_script_file(self, relmon, relmon_file_name):
+        script_file_name = 'RELMON_%s.sh' % (relmon['id'])
+        script_file_content = ['#!/bin/bash',
+                               'DIR=$(pwd)',
+                               'git clone https://github.com/justinasr/relmonservice2.git',
+                               'scramv1 project CMSSW CMSSW_10_4_0',
+                               'cd CMSSW_10_4_0/src',
+                               'eval `scramv1 runtime -sh`',
+                               'cd $DIR',
+                               'mkdir -p Reports',
+                               'python3 relmonservice2/remote_apparatus.py '  # No newline here
+                               '--relmon %s --cert %s --key %s' % (relmon_file_name,
+                                                                   self.__cert_file_name,
+                                                                   self.__key_file_name),
+                               'rm *.root',
+                               'tar -zcvf %s.tar.gz Reports' % (relmon['id'])]
+
+        script_file_content = '\n'.join(script_file_content)
+        with open(script_file_name, 'w') as file:
+            file.write(script_file_content)
+
+        return script_file_name
+
+    def reset_relmon(self, relmon):
+        relmon['status'] = 'new'
+        if 'condor_status' in relmon:
+            del relmon['condor_status']
+
+        if 'condor_id' in relmon:
+            del relmon['condor_id']
+
+        for category in relmon['categories']:
+            category['status'] = 'initial'
+            category['reference'] = [{'name': (x['name'] if isinstance(x, dict) else x),
+                                      'file_name': '',
+                                      'file_url': '',
+                                      'file_size': 0,
+                                      'status': 'initial'} for x in category['reference']]
+            category['target'] = [{'name': (x['name'] if isinstance(x, dict) else x),
+                                   'file_name': '',
+                                   'file_url': '',
+                                   'file_size': 0,
+                                   'status': 'initial'} for x in category['target']]
+
+        return relmon
+
+    def terminate_relmon(self, relmon_id):
+        relmon = self.persistent_storage.get_relmon_by_id(relmon_id)
+        remote_relmon_directory = '%s/%s' % (self.__remote_directory, relmon['id'])
+        if 'condor_id' in relmon and relmon.get('condor_id', -1) > 0:
+            self.ssh_executor.execute_command('condor_rm %s' % (relmon['condor_id']))
+
+        self.ssh_executor.execute_command('rm -r %s' % (remote_relmon_directory))
+        self.reset_relmon(relmon)
         self.persistent_storage.update_relmon(relmon)

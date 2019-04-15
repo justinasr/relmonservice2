@@ -12,6 +12,7 @@ Each RelMon is a dictionary (JSON) file. Structure:
     "last_update": <integer>,
     "condor_status": <string ["IDLE", "RUN", "DONE", "<unknown>"]>,
     "condor_id": <integer>,
+    "secret_hash": <string>,
     "categories": [
         {
             "name": <string ["Data", "Generator", "FullSim", "FullSim_PU", "FastSim", "FastSim_PU"]>,
