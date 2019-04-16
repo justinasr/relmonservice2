@@ -25,6 +25,10 @@ class Controller():
     __key_file_name = 'user.key.pem'
     # Number of CPUs to use for comparison
     __cpus = 4
+    # Amount of disk required for job
+    __disk = '10G'
+    # Amount of memory required for job
+    __memory = '16G'
 
     def __init__(self):
         self.is_tick_running = False
@@ -184,6 +188,8 @@ class Controller():
                                                                            self.__key_file_name,),
                                'when_to_transfer_output = on_exit',
                                'request_cpus            = %s' % (self.__cpus),
+                               'request_disk            = %s' % (self.__disk),
+                               'request_memory          = %s' % (self.__memory),
                                '+JobFlavour             = "tomorrow"',
                                'requirements            = (OpSysAndVer =?= "SLCern6")',
                                # Leave in queue when status is DONE for an hour
