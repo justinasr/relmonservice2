@@ -170,39 +170,46 @@
         <div class="row card mt-2">
           <h5 class="card-header">RelMon: {{ relmon.name }}</h5>
           <div class="card-body">
-            Name: {{ relmon.name }}<br>
-            ID: {{ relmon.id }}<br>
-            Status: {{ relmon.status}}<br>
-            Last update: {{ relmon.last_update }}<br>
-            Condor status: {{ relmon.condor_status}}<br>
-            Condor job ID: {{ relmon.condor_id}}<br>
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="resetRelmon({{ relmon.id }});">Reset relmon</button>
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="deleteRelmon({{ relmon.id }});">Delete relmon</button>
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="editRelmon({{ relmon.id }});">Edit relmon</button>
-            <h3>Category summary</h3>
-            <ul>
-              {% for category in relmon.categories %}
-                <li>{{ category.name }} - {{ category.status }}</li>
-                  <ul>
-                    <li>References ({{ category.reference | length }}):
+            <div class="row">
+              <div class="col-sm-12 col-md-6">
+                <h3>RelMon info:</h3>
+                Name: {{ relmon.name }}<br>
+                ID: {{ relmon.id }}<br>
+                Status: {{ relmon.status}}<br>
+                Last update: {{ relmon.last_update }}<br>
+                Condor status: {{ relmon.condor_status}}<br>
+                Condor job ID: {{ relmon.condor_id}}<br>
+                <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="resetRelmon({{ relmon.id }});">Reset relmon</button>
+                <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="deleteRelmon({{ relmon.id }});">Delete relmon</button>
+                <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="editRelmon({{ relmon.id }});">Edit relmon</button>
+              </div>
+              <div class="col-sm-12 col-md-6">
+                <h3>Category summary:</h3>
+                <ul>
+                  {% for category in relmon.categories %}
+                    <li>{{ category.name }} - {{ category.status }}</li>
                       <ul>
-                        {% for ref_status in category.reference_status %}
-                          <li>{{ref_status}}: {{category.reference_status[ref_status]}}</li>
-                        {% endfor %}
+                        <li>References ({{ category.reference | length }}) ({{ (category.reference_total_size / (1024.0 * 1024.0)) | round }}MB):
+                          <ul>
+                            {% for ref_status in category.reference_status %}
+                              <li>{{ref_status}}: {{category.reference_status[ref_status]}}</li>
+                            {% endfor %}
+                          </ul>
+                        </li>
+                        <li>Targets ({{ category.target | length }}) ({{ (category.target_total_size / (1024.0 * 1024.0)) | round }}MB):
+                          <ul>
+                            {% for tar_status in category.target_status %}
+                              <li>{{tar_status}}: {{category.target_status[tar_status]}}</li>
+                            {% endfor %}
+                          </ul>
+                        </li>
                       </ul>
                     </li>
-                    <li>Targets ({{ category.target | length }}):
-                      <ul>
-                        {% for tar_status in category.target_status %}
-                          <li>{{tar_status}}: {{category.target_status[tar_status]}}</li>
-                        {% endfor %}
-                      </ul>
-                    </li>
-                  </ul>
-                </li>
-              {% endfor %}
-            </ul>
-            <h3>Categories</h3>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+            <h3>Categories:</h3>
             {% for category in relmon.categories %}
               <a class="btn btn-outline-primary btn-sm mt-1" data-toggle="collapse" href="#category_{{relmon.id}}_{{category.name}}" role="button" aria-expanded="false" aria-controls="category_{{relmon.id}}_{{category.name}}">
                 {{ category.name }}

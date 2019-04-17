@@ -33,7 +33,9 @@ def index():
                                       'status': x.get('status', '')} for x in category['reference']]
 
             category['reference_status'] = {}
+            category['reference_total_size'] = 0
             for relmon in category['reference']:
+                category['reference_total_size'] += relmon.get('file_size', 0)
                 relmon_status = relmon.get('status', '<unknown>')
                 if relmon_status not in category['reference_status']:
                     category['reference_status'][relmon_status] = 0
@@ -41,13 +43,15 @@ def index():
                 category['reference_status'][relmon_status] = category['reference_status'][relmon_status] + 1
 
             category['target'] = [{'name': (x.get('name', '')),
-                                      'file_name': x.get('file_name', ''),
-                                      'file_url': x.get('file_url', ''),
-                                      'file_size': x.get('file_size', 0),
-                                      'status': x.get('status', '')} for x in category['target']]
+                                   'file_name': x.get('file_name', ''),
+                                   'file_url': x.get('file_url', ''),
+                                   'file_size': x.get('file_size', 0),
+                                   'status': x.get('status', '')} for x in category['target']]
 
             category['target_status'] = {}
+            category['target_total_size'] = 0
             for relmon in category['target']:
+                category['target_total_size'] += relmon.get('file_size', 0)
                 relmon_status = relmon.get('status', '<unknown>')
                 if relmon_status not in category['target_status']:
                     category['target_status'][relmon_status] = 0

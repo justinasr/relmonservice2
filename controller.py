@@ -25,8 +25,6 @@ class Controller():
     __key_file_name = 'user.key.pem'
     # Number of CPUs to use for comparison
     __cpus = 4
-    # Amount of disk required for job
-    __disk = '10G'
     # Amount of memory required for job
     __memory = '16G'
 
@@ -188,9 +186,9 @@ class Controller():
                                                                            self.__key_file_name,),
                                'when_to_transfer_output = on_exit',
                                'request_cpus            = %s' % (self.__cpus),
-                               'request_disk            = %s' % (self.__disk),
+                               'request_disk            = %s' % (self.get_disk_for_relmon(relmon)),
                                'request_memory          = %s' % (self.__memory),
-                               '+JobFlavour             = "tomorrow"',
+                               '+JobFlavour             = "microcentury"',
                                'requirements            = (OpSysAndVer =?= "SLCern6")',
                                # Leave in queue when status is DONE for an hour
                                'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED || ((CurrentTime - CompletionDate) < 7200))',
@@ -257,3 +255,13 @@ class Controller():
         self.ssh_executor.execute_command('rm -r %s' % (remote_relmon_directory))
         self.reset_relmon(relmon)
         self.persistent_storage.update_relmon(relmon)
+
+    def get_disk_for_relmon(self, relmon):
+        number_of_relvals = 0
+        for category in relmon['categories']:
+            number_of_relvals += len(category['reference'])
+            number_of_relvals += len(category['target'])
+
+        size = '%sM' % (number_of_relvals * 200)
+        self.logger.info('Size for %s is %s. Number of relvals %s' % (size, relmon['id'], number_of_relvals))
+        return size
