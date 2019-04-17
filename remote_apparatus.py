@@ -19,7 +19,7 @@ from difflib import SequenceMatcher
 
 
 __callback_url = 'http://instance4.cern.ch:8080/update'
-__number_of_threads = 4
+__number_of_threads = 8
 
 
 def get_workflow(workflow_name, cmsweb):

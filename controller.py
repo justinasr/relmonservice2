@@ -24,7 +24,7 @@ class Controller():
     # GRID key file
     __key_file_name = 'user.key.pem'
     # Number of CPUs to use for comparison
-    __cpus = 4
+    __cpus = 8
     # Amount of memory required for job
     __memory = '16G'
 
@@ -188,7 +188,7 @@ class Controller():
                                'request_cpus            = %s' % (self.__cpus),
                                'request_disk            = %s' % (self.get_disk_for_relmon(relmon)),
                                'request_memory          = %s' % (self.__memory),
-                               '+JobFlavour             = "microcentury"',
+                               '+JobFlavour             = "tomorrow"',
                                'requirements            = (OpSysAndVer =?= "SLCern6")',
                                # Leave in queue when status is DONE for an hour
                                'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED || ((CurrentTime - CompletionDate) < 7200))',
