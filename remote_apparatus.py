@@ -68,6 +68,9 @@ def read_relmon(relmon_filename):
 
 def notify(relmon):
     try:
+        with open('notify_data.json', 'w') as json_file:
+            json.dump(relmon, json_file, indent=2, sort_keys=True)
+
         command = ['curl',
                    '-X',
                    'POST',
@@ -78,20 +81,23 @@ def notify(relmon):
                    '-m',
                    '60',
                    '-d',
-                   '\'%s\'' % (json.dumps(relmon)),
+                   '@notify_data.json',
                    '-H',
                    '\'Content-Type: application/json\'',
                    '-o',
                    '/dev/null']
         command = ' '.join(command)
+        logging.info('Notify command: %s' % (command))
+        logging.info('curl callback length %s' % (len(command)))
         proc = subprocess.Popen(command,
                                 shell=True)
         proc.wait()
+        os.remove('notify_data.json')
     except Exception as ex:
-        logging.error(ex)
+        logging.error('Error while doing notifying: %s' % (ex))
         pass
 
-    time.sleep(1)
+    time.sleep(0.1)
 
 
 def download_root_files(relmon, cmsweb):
@@ -128,6 +134,7 @@ def download_root_files(relmon, cmsweb):
                 item['file_name'] = cmsweb.get_big_file(item['file_url'])
                 item['status'] = 'downloaded'
                 item['file_size'] = os.path.getsize(item['file_name'])
+                logging.info('Downloaded %s. Size %s MB' % (item['file_name'], item.get('file_size', 0) / 1024.0 / 1024.0))
             except Exception as ex:
                 logging.error(ex)
                 logging.error('Error getting %s for %s' % (item['file_url'], item['name']))
