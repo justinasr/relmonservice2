@@ -19,7 +19,6 @@ from difflib import SequenceMatcher
 
 
 __callback_url = 'http://instance4.cern.ch:8080/update'
-__number_of_threads = 8
 
 
 def get_workflow(workflow_name, cmsweb):
@@ -223,7 +222,7 @@ def get_dataset_lists(category):
     return reference_dataset_list, target_dataset_list
 
 
-def compare_compress_move(category_name, HLT, reference_list, target_list, log_file):
+def compare_compress_move(category_name, HLT, reference_list, target_list, log_file, cpus):
     subreport_path = get_local_subreport_path(category_name, HLT)
     comparison_command = ' '.join(['ValidationMatrix.py',
                                    '-R',
@@ -232,7 +231,7 @@ def compare_compress_move(category_name, HLT, reference_list, target_list, log_f
                                    ','.join(target_list),
                                    '-o',
                                    subreport_path,
-                                   '-N %s' % (__number_of_threads),
+                                   '-N %s' % (cpus),
                                    '--hash_name',
                                    '--HLT' if HLT else ''])
 
@@ -261,7 +260,7 @@ def compare_compress_move(category_name, HLT, reference_list, target_list, log_f
     proc.wait()
 
 
-def run_validation_matrix(config):
+def run_validation_matrix(config, cpus):
     log_file = open("validation_matrix.log", "w")
     for category in config.get('categories', []):
         category_name = category['name']
@@ -273,11 +272,11 @@ def run_validation_matrix(config):
         notify(config)
         if hlt == 'only' or hlt == 'both':
             # Run with HLT
-            compare_compress_move(category_name, True, reference_list, target_list, log_file)
+            compare_compress_move(category_name, True, reference_list, target_list, log_file, cpus)
 
         if hlt == 'no' or hlt == 'both' and category_name.lower() != 'generator':
             # Run without HLT for everything, except generator
-            compare_compress_move(category_name, False, reference_list, target_list, log_file)
+            compare_compress_move(category_name, False, reference_list, target_list, log_file, cpus)
 
         category['status'] = 'done'
         notify(config)
@@ -288,12 +287,14 @@ if __name__ == '__main__':
     parser.add_argument('--relmon')
     parser.add_argument('--cert')
     parser.add_argument('--key')
+    parser.add_argument('--cpus')
     args = vars(parser.parse_args())
     logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
 
     cert_file = args.get('cert')
     key_file = args.get('key')
     relmon_filename = args.get('relmon')
+    cpus = int(args.get('cpus', 1))
     if not cert_file or not key_file or not relmon_filename:
         logging.error('Missing user certificate or key or relmon file')
     else:
@@ -303,7 +304,7 @@ if __name__ == '__main__':
             relmon['status'] = 'running'
             notify(relmon)
             relmon = download_root_files(relmon, cmsweb)
-            run_validation_matrix(relmon)
+            run_validation_matrix(relmon, cpus)
             relmon['status'] = 'finishing'
         except Exception as ex:
             logging.error(ex)

@@ -23,10 +23,6 @@ class Controller():
     __cert_file_name = 'user.crt.pem'
     # GRID key file
     __key_file_name = 'user.key.pem'
-    # Number of CPUs to use for comparison
-    __cpus = 8
-    # Amount of memory required for job
-    __memory = '16G'
 
     def __init__(self):
         self.is_tick_running = False
@@ -174,6 +170,7 @@ class Controller():
 
     def create_condor_job_file(self, relmon, relmon_file_name):
         relmon_id = relmon['id']
+        cpus, memory, disk = self.get_cpus_memory_disk_for_relmon(relmon)
         condor_file_name = 'RELMON_%s.sub' % (relmon_id)
         condor_file_content = ['executable              = RELMON_%s.sh' % (relmon_id),
                                'output                  = RELMON_%s.out' % (relmon_id),
@@ -185,9 +182,9 @@ class Controller():
                                                                            self.__grid_location,
                                                                            self.__key_file_name,),
                                'when_to_transfer_output = on_exit',
-                               'request_cpus            = %s' % (self.__cpus),
-                               'request_disk            = %s' % (self.get_disk_for_relmon(relmon)),
-                               'request_memory          = %s' % (self.__memory),
+                               'request_cpus            = %s' % (cpus),
+                               'request_memory          = %s' % (memory),
+                               'request_disk            = %s' % (disk),
                                '+JobFlavour             = "tomorrow"',
                                'requirements            = (OpSysAndVer =?= "SLCern6")',
                                # Leave in queue when status is DONE for an hour
@@ -201,6 +198,7 @@ class Controller():
         return condor_file_name
 
     def create_job_script_file(self, relmon, relmon_file_name):
+        cpus, _, _ = self.get_cpus_memory_disk_for_relmon(relmon)
         script_file_name = 'RELMON_%s.sh' % (relmon['id'])
         script_file_content = ['#!/bin/bash',
                                'DIR=$(pwd)',
@@ -211,9 +209,10 @@ class Controller():
                                'cd $DIR',
                                'mkdir -p Reports',
                                'python3 relmonservice2/remote_apparatus.py '  # No newline here
-                               '--relmon %s --cert %s --key %s' % (relmon_file_name,
-                                                                   self.__cert_file_name,
-                                                                   self.__key_file_name),
+                               '--relmon %s --cert %s --key %s --cpus %s' % (relmon_file_name,
+                                                                             self.__cert_file_name,
+                                                                             self.__key_file_name,
+                                                                             cpus),
                                'rm *.root',
                                'tar -zcvf %s.tar.gz Reports' % (relmon['id'])]
 
@@ -256,12 +255,30 @@ class Controller():
         self.reset_relmon(relmon)
         self.persistent_storage.update_relmon(relmon)
 
-    def get_disk_for_relmon(self, relmon):
+    def get_cpus_memory_disk_for_relmon(self, relmon):
         number_of_relvals = 0
         for category in relmon['categories']:
             number_of_relvals += len(category['reference'])
             number_of_relvals += len(category['target'])
 
-        size = '%sM' % (number_of_relvals * 200)
-        self.logger.info('Size for %s is %s. Number of relvals %s' % (size, relmon['id'], number_of_relvals))
-        return size
+        disk = '%sM' % (number_of_relvals * 200)
+        cpus = 1
+        if number_of_relvals < 10:
+            cpus = 1
+        elif number_of_relvals < 40:
+            cpus = 2
+        elif number_of_relvals < 100:
+            cpus = 4
+        elif number_of_relvals < 200:
+            cpus = 8
+        else:
+            cpus = 16
+
+        memory = str(cpus * 2) + 'G'
+        self.logger.info('Resources for %s (%s) are %s CPUs, %s memory, %s disk space. Number of relvals %s' % (relmon['name'],
+                                                                                                                relmon['id'],
+                                                                                                                cpus,
+                                                                                                                memory,
+                                                                                                                disk,
+                                                                                                                number_of_relvals))
+        return cpus, memory, disk

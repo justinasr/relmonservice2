@@ -69,6 +69,8 @@ def index():
             relmon['total_size'] += category['reference_total_size'] + category['target_total_size']
 
         relmon['total_size'] = max(relmon['total_size'], 0.001)
+        if 'secret_hash' in relmon:
+            del relmon['secret_hash']
 
     data.sort(key=lambda x: x.get('id', -1))
     return render_template('index.html', data=data)
