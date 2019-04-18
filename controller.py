@@ -273,15 +273,20 @@ class Controller():
 
         disk = '%sM' % (number_of_relvals * 200)
         cpus = 1
-        if number_of_relvals < 10:
+        if number_of_relvals <= 20:
+            # Max 10 vs 10
             cpus = 1
-        elif number_of_relvals < 40:
+        elif number_of_relvals <= 50:
+            # Max 20 vs 20
             cpus = 2
-        elif number_of_relvals < 100:
+        elif number_of_relvals <= 100:
+            # Max 50 vs 50
             cpus = 4
-        elif number_of_relvals < 200:
+        elif number_of_relvals <= 200:
+            # Max 100 vs 100
             cpus = 8
         else:
+            # > 100 vs 100
             cpus = 16
 
         memory = str(cpus * 2) + 'G'
