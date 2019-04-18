@@ -144,6 +144,10 @@ class Controller():
         self.persistent_storage.update_relmon(relmon)
 
     def collect_output(self, relmon):
+        if relmon['condor_status'] == 'RUN':
+            self.logger.info('%s (%s) is still running, will not try to collect')
+            return
+
         remote_relmon_directory = '%s%s/' % (self.__remote_directory, relmon['id'])
         relmon_logs = 'logs/%s/' % (relmon['id'])
         shutil.rmtree(relmon_logs, ignore_errors=True)
@@ -151,15 +155,21 @@ class Controller():
         # self.download_file('%s/validation_matrix.log' % (self.__remote_directory), './%s' % (relmon['id']))
         # self.download_file('%s/RELMON_%s.out' % (self.__remote_directory, relmon['id']), './%s' % (relmon['id']))
         # self.download_file('%s/RELMON_%s.log' % (self.__remote_directory, relmon['id']), './%s' % (relmon['id']))
-        self.ssh_executor.download_file('%sRELMON_%s.err' % (remote_relmon_directory, relmon['id']), '%sRELMON_%s.err' % (relmon_logs, relmon['id']))
+        self.ssh_executor.download_file('%sRELMON_%s.err' % (remote_relmon_directory, relmon['id']),
+                                        '%sRELMON_%s.err' % (relmon_logs, relmon['id']))
         stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
                                                             'tar -xzf %s.tar.gz' % (relmon['id']),
                                                             'mv Reports %s' % (relmon['name']),
                                                             'mv %s %s' % (relmon['name'], self.__web_path),
-                                                            'cd ..',
-                                                            'rm -r %s' % (relmon['id'])])
-        relmon['status'] = 'done'
-        self.persistent_storage.update_relmon(relmon)
+                                                            ''])
+        if not stderr:
+            stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
+                                                                'cd ..',
+                                                                'rm -r %s' % (relmon['id'])])
+            relmon['status'] = 'done'
+            self.persistent_storage.update_relmon(relmon)
+        else:
+            self.logger.error('Error finding relmon output for %s (%s)' % (relmon['name'], relmon['id']))
 
     def create_relmon_file(self, relmon):
         relmon_file_name = '%s.json' % (relmon['id'])
