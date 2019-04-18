@@ -25,6 +25,8 @@ def index():
     data = storage.get_all_data()
     for relmon in data:
         relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(relmon.get('last_update', 0)))
+        relmon['done_size'] = 0
+        relmon['total_size'] = 0
         for category in relmon.get('categories'):
             category['reference'] = [{'name': (x.get('name', '')),
                                       'file_name': x.get('file_name', ''),
@@ -34,11 +36,14 @@ def index():
 
             category['reference_status'] = {}
             category['reference_total_size'] = 0
-            for relmon in category['reference']:
-                category['reference_total_size'] += relmon.get('file_size', 0)
-                relmon_status = relmon.get('status', '<unknown>')
+            for relval in category['reference']:
+                category['reference_total_size'] += relval.get('file_size', 0)
+                relmon_status = relval.get('status', '<unknown>')
                 if relmon_status not in category['reference_status']:
                     category['reference_status'][relmon_status] = 0
+
+                if category['status'] == 'done':
+                    relmon['done_size'] += relval.get('file_size', 0)
 
                 category['reference_status'][relmon_status] = category['reference_status'][relmon_status] + 1
 
@@ -50,13 +55,20 @@ def index():
 
             category['target_status'] = {}
             category['target_total_size'] = 0
-            for relmon in category['target']:
-                category['target_total_size'] += relmon.get('file_size', 0)
-                relmon_status = relmon.get('status', '<unknown>')
+            for relval in category['target']:
+                category['target_total_size'] += relval.get('file_size', 0)
+                relmon_status = relval.get('status', '<unknown>')
                 if relmon_status not in category['target_status']:
                     category['target_status'][relmon_status] = 0
 
+                if category['status'] == 'done':
+                    relmon['done_size'] += relval.get('file_size', 0)
+
                 category['target_status'][relmon_status] = category['target_status'][relmon_status] + 1
+
+            relmon['total_size'] += category['reference_total_size'] + category['target_total_size']
+
+        relmon['total_size'] = max(relmon['total_size'], 0.001)
 
     data.sort(key=lambda x: x.get('id', -1))
     return render_template('index.html', data=data)
