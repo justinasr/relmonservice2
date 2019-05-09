@@ -22,11 +22,19 @@ controller = Controller()
 @app.route('/')
 def index():
     storage = PersistentStorage()
-    data = storage.get_all_data()
+    data = None
+    while not data:
+        try:
+            data = storage.get_all_data()
+        except:
+            time.sleep(1)
+
     for relmon in data:
         relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(relmon.get('last_update', 0)))
         relmon['done_size'] = 0
         relmon['total_size'] = 0
+        relmon['downloaded_relvals'] = 0
+        relmon['total_relvals'] = 0
         for category in relmon.get('categories'):
             category['reference'] = [{'name': (x.get('name', '')),
                                       'file_name': x.get('file_name', ''),
@@ -36,11 +44,15 @@ def index():
 
             category['reference_status'] = {}
             category['reference_total_size'] = 0
+            relmon['total_relvals'] = relmon['total_relvals'] + len(category['reference']) + len(category['target'])
             for relval in category['reference']:
                 category['reference_total_size'] += relval.get('file_size', 0)
-                relmon_status = relval.get('status', '<unknown>')
+                relmon_status = relval['status']
                 if relmon_status not in category['reference_status']:
                     category['reference_status'][relmon_status] = 0
+
+                if relmon_status == 'downloaded':
+                    relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
 
                 if category['status'] == 'done':
                     relmon['done_size'] += relval.get('file_size', 0)
@@ -57,9 +69,12 @@ def index():
             category['target_total_size'] = 0
             for relval in category['target']:
                 category['target_total_size'] += relval.get('file_size', 0)
-                relmon_status = relval.get('status', '<unknown>')
+                relmon_status = relval['status']
                 if relmon_status not in category['target_status']:
                     category['target_status'][relmon_status] = 0
+
+                if relmon_status == 'downloaded':
+                    relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
 
                 if category['status'] == 'done':
                     relmon['done_size'] += relval.get('file_size', 0)

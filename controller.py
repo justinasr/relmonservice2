@@ -51,7 +51,7 @@ class Controller():
                 self.submit_to_condor(relmon)
             elif relmon['status'] == 'submitted' or relmon['status'] == 'running':
                 self.check_if_running(relmon)
-            elif relmon['status'] == 'finishing':
+            elif relmon['status'] == 'finishing' or relmon['status'] == 'DONE':
                 self.check_if_running(relmon)
                 self.collect_output(relmon)
 
@@ -113,8 +113,8 @@ class Controller():
         self.logger.info('Will check if %s is running in HTCondor, id: %s' % (relmon['name'], condor_id))
         stdout, stderr = self.ssh_executor.execute_command('condor_q -af:h ClusterId JobStatus | grep %s' % (condor_id))
         if not stderr and not stdout:
-            relmon['status'] = 'failed'
-            relmon['condor_status'] = ''
+            self.logger.warning('Could not find %s (%s) in condor queue' % (relmon['name'], relmon['id']))
+            return
         elif not stderr:
             status_number = stdout.split()[-1]
             if status_number == '0':
@@ -145,7 +145,7 @@ class Controller():
 
     def collect_output(self, relmon):
         if relmon['condor_status'] == 'RUN':
-            self.logger.info('%s (%s) is still running, will not try to collect')
+            self.logger.info('%s (%s) is still running, will not try to collect' % (relmon['name'], relmon['id']))
             return
 
         remote_relmon_directory = '%s%s/' % (self.__remote_directory, relmon['id'])
@@ -157,19 +157,21 @@ class Controller():
         # self.download_file('%s/RELMON_%s.log' % (self.__remote_directory, relmon['id']), './%s' % (relmon['id']))
         self.ssh_executor.download_file('%sRELMON_%s.err' % (remote_relmon_directory, relmon['id']),
                                         '%sRELMON_%s.err' % (relmon_logs, relmon['id']))
-        stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
-                                                            'tar -xzf %s.tar.gz' % (relmon['id']),
-                                                            'mv Reports %s' % (relmon['name']),
-                                                            'mv %s %s' % (relmon['name'], self.__web_path),
-                                                            ''])
-        if not stderr:
-            stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
-                                                                'cd ..',
-                                                                'rm -r %s' % (relmon['id'])])
-            relmon['status'] = 'done'
-            self.persistent_storage.update_relmon(relmon)
-        else:
-            self.logger.error('Error finding relmon output for %s (%s)' % (relmon['name'], relmon['id']))
+        relmon['status'] = 'done'
+        self.persistent_storage.update_relmon(relmon)
+        # stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
+        #                                                     'tar -xzf %s.tar.gz' % (relmon['id']),
+        #                                                     'mv Reports %s' % (relmon['name']),
+        #                                                     'mv %s %s' % (relmon['name'], self.__web_path),
+        #                                                     ''])
+        # if not stderr:
+        #     stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
+        #                                                         'cd ..',
+        #                                                         'rm -r %s' % (relmon['id'])])
+        #     relmon['status'] = 'done'
+        #     self.persistent_storage.update_relmon(relmon)
+        # else:
+        #     self.logger.error('Error finding relmon output for %s (%s)' % (relmon['name'], relmon['id']))
 
     def create_relmon_file(self, relmon):
         relmon_file_name = '%s.json' % (relmon['id'])
@@ -224,7 +226,9 @@ class Controller():
                                                                              self.__key_file_name,
                                                                              cpus),
                                'rm *.root',
-                               'tar -zcvf %s.tar.gz Reports' % (relmon['id'])]
+                               # 'tar -zcvf %s.tar.gz Reports' % (relmon['id'])]
+                               'rm -rf %s%s' % (self.__web_path, relmon['name']),
+                               'mv Reports %s%s' % (self.__web_path, relmon['name'])]
 
         script_file_content = '\n'.join(script_file_content)
         with open(script_file_name, 'w') as file:
@@ -237,17 +241,21 @@ class Controller():
         if 'condor_status' in relmon:
             del relmon['condor_status']
 
+        if 'condor_id' in relmon and relmon.get('condor_id', -1) > 0:
+            self.ssh_executor.execute_command('condor_rm %s' % (relmon['condor_id']))
+            self.ssh_executor.close_connections()
+
         if 'condor_id' in relmon:
             del relmon['condor_id']
 
         for category in relmon['categories']:
             category['status'] = 'initial'
-            category['reference'] = [{'name': (x['name'] if isinstance(x, dict) else x),
+            category['reference'] = [{'name': (x['name'].strip() if isinstance(x, dict) else x.strip()),
                                       'file_name': '',
                                       'file_url': '',
                                       'file_size': 0,
                                       'status': 'initial'} for x in category['reference']]
-            category['target'] = [{'name': (x['name'] if isinstance(x, dict) else x),
+            category['target'] = [{'name': (x['name'].strip() if isinstance(x, dict) else x.strip()),
                                    'file_name': '',
                                    'file_url': '',
                                    'file_size': 0,
@@ -271,22 +279,23 @@ class Controller():
             number_of_relvals += len(category['reference'])
             number_of_relvals += len(category['target'])
 
-        disk = '%sM' % (number_of_relvals * 200)
+        # 300MB per relval - to fit root files and generated report
+        disk = '%sM' % (number_of_relvals * 300)
         cpus = 1
-        if number_of_relvals <= 20:
-            # Max 10 vs 10
+        if number_of_relvals <= 10:
+            # Max 5 vs 5
             cpus = 1
-        elif number_of_relvals <= 50:
-            # Max 20 vs 20
+        elif number_of_relvals <= 30:
+            # Max 15 vs 15
             cpus = 2
-        elif number_of_relvals <= 100:
-            # Max 50 vs 50
+        elif number_of_relvals <= 50:
+            # Max 25 vs 25
             cpus = 4
-        elif number_of_relvals <= 200:
-            # Max 100 vs 100
+        elif number_of_relvals <= 150:
+            # Max 75 vs 75
             cpus = 8
         else:
-            # > 100 vs 100
+            # > 75 vs 75
             cpus = 16
 
         memory = str(cpus * 2) + 'G'

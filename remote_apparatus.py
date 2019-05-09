@@ -158,8 +158,8 @@ def get_local_subreport_path(category_name, hlt):
     return name
 
 
-def get_important_part(filne_name):
-    return filne_name.split('__')[1] + '_' + filne_name.split("__")[2].split("-")[1]
+def get_important_part(file_name):
+    return file_name.split('__')[1] + '_' + file_name.split("__")[2].split("-")[1]
 
 
 def pair_references_with_targets(references, targets):

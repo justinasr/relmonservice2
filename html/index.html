@@ -179,8 +179,13 @@
                 Last update: {{ relmon.last_update }}<br>
                 Condor status: {{ relmon.condor_status}}<br>
                 Condor job ID: {{ relmon.condor_id}}<br>
+                Download progress:
                 <div class="progress">
-                  <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ relmon.done_size / relmon.total_size * 100 }}%;" aria-valuemin="0" aria-valuemax="100">{{ (relmon.done_size / relmon.total_size * 100) | round}}%</div>
+                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ 1.0 * relmon.downloaded_relvals / relmon.total_relvals * 100 }}%;" aria-valuemin="0" aria-valuemax="100">{{ (1.0 * relmon.downloaded_relvals / relmon.total_relvals * 100) | round}}%</div>
+                </div>
+                Comparison progress:
+                <div class="progress">
+                  <div class="progress-bar" role="progressbar" style="width: {{ 1.0 * relmon.done_size / relmon.total_size * 100 }}%;" aria-valuemin="0" aria-valuemax="100">{{ (relmon.done_size / relmon.total_size * 100) | round}}%</div>
                 </div>
 
                 <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="resetRelmon({{ relmon.id }});">Reset relmon</button>
@@ -191,9 +196,9 @@
                 <h3>Category summary:</h3>
                 <ul>
                   {% for category in relmon.categories %}
-                    <li>{{ category.name }} - {{ category.status }}</li>
+                    <li>{{ category.name }} - {{ category.status }} ({{ ((category.reference_total_size + category.target_total_size) / (1024.0 * 1024.0)) | round }}MB)</li>
                       <ul>
-                        <li>References ({{ category.reference | length }}) ({{ (category.reference_total_size / (1024.0 * 1024.0)) | round }}MB):
+                        <li>References ({{ category.reference | length }} - {{ (category.reference_total_size / (1024.0 * 1024.0)) | round }}MB):
                           <ul>
                             {% for ref_status in category.reference_status %}
                               <li>{{ref_status}}: {{category.reference_status[ref_status]}}</li>
