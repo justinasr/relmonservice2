@@ -109,7 +109,10 @@ def reset_relmon():
     if 'id' in data:
         storage = PersistentStorage()
         relmon = storage.get_relmon_by_id(data['id'])
-        relmon['status'] = 'resetting'
+        if relmon['status'] not in ['terminated']:
+            return output_text({'message': 'Cannot reset relmon in status %s' % (relmon['status'])})
+
+        relmon['status'] = 'new'
         storage.update_relmon(relmon)
         tick()
         return output_text({'message': 'OK'})
@@ -123,6 +126,9 @@ def terminate_relmon():
     if 'id' in data:
         storage = PersistentStorage()
         relmon = storage.get_relmon_by_id(data['id'])
+        if relmon['status'] not in ['submitted', 'running', 'moving']:
+            return output_text({'message': 'Cannot terminate relmon in status %s' % (relmon['status'])})
+
         relmon['status'] = 'terminating'
         storage.update_relmon(relmon)
         tick()
@@ -137,6 +143,9 @@ def delete_relmon():
     if 'id' in data:
         storage = PersistentStorage()
         relmon = storage.get_relmon_by_id(data['id'])
+        if relmon['status'] not in ['terminated', 'done']:
+            return output_text({'message': 'Cannot delete relmon in status %s' % (relmon['status'])})
+
         relmon['status'] = 'deleting'
         storage.update_relmon(relmon)
         tick()
@@ -161,11 +170,14 @@ def update_info():
     data = json.loads(request.data.decode('utf-8'))
     storage = PersistentStorage()
     relmon = storage.get_relmon_by_id(data['id'])
+    logger = logging.getLogger('logger')
     if relmon.get('secret_hash', 'NO_HASH1') != data.get('secret_hash', 'NO_HASH2'):
+        logger.error('Wrong secret hash')
         return output_text({'message': 'Wrong secret hash'})
 
     old_status = relmon.get('status')
-    if old_status != 'submitted' or old_status != 'running':
+    if old_status != 'submitted' and old_status != 'running':
+        logger.error('Bad status %s' % (old_status))
         return output_text({'message': 'Bad status %s' % (old_status)})
 
     relmon['categories'] = data['categories']
@@ -173,7 +185,6 @@ def update_info():
     if relmon['status'] != old_status:
         tick()
 
-    logger = logging.getLogger('logger')
     logger.info('Update for %s (%s). Status is %s' % (relmon['name'],
                                                       relmon['id'],
                                                       relmon['status']))
@@ -241,7 +252,7 @@ def setup_logging():
 if __name__ == '__main__':
     setup_console_logging()
     scheduler.add_executor('processpool')
-    scheduler.add_job(tick, 'interval', seconds=600)
+    scheduler.add_job(tick, 'interval', seconds=600, max_instances=1)
     scheduler.start()
     run_flask()
     scheduler.shutdown()
