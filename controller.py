@@ -58,7 +58,7 @@ class Controller():
                 self.__delete_relmon(relmon)
             elif status == 'submitted' or status == 'running':
                 self.__check_if_running(relmon)
-            elif status == 'moving' or relmon.get('condor_status') == 'DONE':
+            elif status == 'moving' or (status != 'done' and relmon.get('condor_status') == 'DONE'):
                 self.__check_if_running(relmon)
                 self.__collect_output(relmon)
 
@@ -155,7 +155,7 @@ class Controller():
         os.mkdir(relmon_logs)
 
         self.ssh_executor.download_file('%svalidation_matrix.log' % (remote_relmon_directory),
-                                        '%svalidation_matrix.log' % (relmon_logs, relmon['id']))
+                                        '%svalidation_matrix.log' % (relmon_logs))
         self.ssh_executor.download_file('%sRELMON_%s.out' % (remote_relmon_directory, relmon['id']),
                                         '%sRELMON_%s.out' % (relmon_logs, relmon['id']))
         self.ssh_executor.download_file('%sRELMON_%s.log' % (remote_relmon_directory, relmon['id']),
