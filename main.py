@@ -109,7 +109,7 @@ def reset_relmon():
     if 'id' in data:
         storage = PersistentStorage()
         relmon = storage.get_relmon_by_id(data['id'])
-        if relmon['status'] not in ['terminated']:
+        if relmon['status'] not in ['terminated', 'failed']:
             return output_text({'message': 'Cannot reset relmon in status %s' % (relmon['status'])})
 
         relmon['status'] = 'new'
@@ -143,7 +143,7 @@ def delete_relmon():
     if 'id' in data:
         storage = PersistentStorage()
         relmon = storage.get_relmon_by_id(data['id'])
-        if relmon['status'] not in ['terminated', 'done']:
+        if relmon['status'] not in ['terminated', 'done', 'failed']:
             return output_text({'message': 'Cannot delete relmon in status %s' % (relmon['status'])})
 
         relmon['status'] = 'deleting'
