@@ -16,6 +16,7 @@ import subprocess
 import os
 import time
 from difflib import SequenceMatcher
+import sys
 
 
 __callback_url = 'http://instance4.cern.ch:8080/update'
@@ -141,7 +142,6 @@ def download_root_files(relmon, cmsweb):
 
             notify(relmon)
 
-    logging.info(json.dumps(relmon, indent=2))
     return relmon
 
 
@@ -289,7 +289,7 @@ if __name__ == '__main__':
     parser.add_argument('--key')
     parser.add_argument('--cpus')
     args = vars(parser.parse_args())
-    logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
+    logging.basicConfig(stream=sys.stdout, format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
 
     cert_file = args.get('cert')
     key_file = args.get('key')
@@ -305,7 +305,7 @@ if __name__ == '__main__':
             notify(relmon)
             relmon = download_root_files(relmon, cmsweb)
             run_validation_matrix(relmon, cpus)
-            relmon['status'] = 'finishing'
+            relmon['status'] = 'moving'
         except Exception as ex:
             logging.error(ex)
             relmon['status'] = 'failed'

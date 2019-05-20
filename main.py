@@ -109,8 +109,23 @@ def reset_relmon():
     if 'id' in data:
         storage = PersistentStorage()
         relmon = storage.get_relmon_by_id(data['id'])
-        controller.reset_relmon(relmon)
+        relmon['status'] = 'resetting'
         storage.update_relmon(relmon)
+        tick()
+        return output_text({'message': 'OK'})
+
+    return output_text({'message': 'No ID'})
+
+
+@app.route('/terminate', methods=['POST'])
+def terminate_relmon():
+    data = json.loads(request.data.decode('utf-8'))
+    if 'id' in data:
+        storage = PersistentStorage()
+        relmon = storage.get_relmon_by_id(data['id'])
+        relmon['status'] = 'terminating'
+        storage.update_relmon(relmon)
+        tick()
         return output_text({'message': 'OK'})
 
     return output_text({'message': 'No ID'})
@@ -118,10 +133,16 @@ def reset_relmon():
 
 @app.route('/delete', methods=['DELETE'])
 def delete_relmon():
-    relmon = json.loads(request.data.decode('utf-8'))
-    storage = PersistentStorage()
-    storage.delete_relmon(relmon['id'])
-    return output_text({'message': 'OK'})
+    data = json.loads(request.data.decode('utf-8'))
+    if 'id' in data:
+        storage = PersistentStorage()
+        relmon = storage.get_relmon_by_id(data['id'])
+        relmon['status'] = 'deleting'
+        storage.update_relmon(relmon)
+        tick()
+        return output_text({'message': 'OK'})
+
+    return output_text({'message': 'No ID'})
 
 
 def output_text(data, code=200, headers=None):
@@ -144,9 +165,12 @@ def update_info():
         return output_text({'message': 'Wrong secret hash'})
 
     old_status = relmon.get('status')
+    if old_status != 'submitted' or old_status != 'running':
+        return output_text({'message': 'Bad status %s' % (old_status)})
+
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
-    if relmon['status'] == 'running' and relmon['status'] != old_status:
+    if relmon['status'] != old_status:
         tick()
 
     logger = logging.getLogger('logger')
@@ -194,6 +218,9 @@ def tick():
     controller.tick()
 
 
+def setup_console_logging():
+    logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
+
 def setup_logging():
     # Max log file size - 5Mb
     max_log_file_size = 1024 * 1024 * 5
@@ -212,7 +239,7 @@ def setup_logging():
 
 
 if __name__ == '__main__':
-    setup_logging()
+    setup_console_logging()
     scheduler.add_executor('processpool')
     scheduler.add_job(tick, 'interval', seconds=600)
     scheduler.start()

@@ -97,6 +97,20 @@ function resetRelmon(relmonID) {
   });
 }
 
+function terminateRelmon(relmonID) {
+  console.log('Terminate ' + relmonID)
+  $.ajax({
+    type: "POST",
+    url: "/terminate",
+    contentType: "application/json",
+    data: JSON.stringify({id: relmonID}),
+  }).done(function (data) {
+    console.log(data)
+  }).fail(function(data) {
+    console.log(data)
+  });
+}
+
 function deleteRelmon(relmonID) {
   console.log('Delete ' + relmonID)
   $.ajax({
