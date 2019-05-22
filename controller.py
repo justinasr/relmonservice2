@@ -74,39 +74,45 @@ class Controller():
         relmon['secret_hash'] = '%032x' % (random.getrandbits(128))
 
         self.persistent_storage.update_relmon(relmon)
-        self.logger.info('%s status is %s' % (relmon['name'], relmon['status']))
+        try:
+            self.logger.info('%s status is %s' % (relmon['name'], relmon['status']))
 
-        relmon_file = self.__create_relmon_file(relmon)
-        condor_file = self.__create_condor_job_file(relmon, relmon_file)
-        script_file = self.__create_job_script_file(relmon, relmon_file)
+            relmon_file = self.__create_relmon_file(relmon)
+            condor_file = self.__create_condor_job_file(relmon, relmon_file)
+            script_file = self.__create_job_script_file(relmon, relmon_file)
 
-        relmon_id = relmon['id']
-        remote_relmon_directory = '%s%s' % (self.__remote_directory, relmon_id)
-        self.ssh_executor.execute_command(['rm -rf %s' % (remote_relmon_directory),
-                                           'mkdir -p %s' % (remote_relmon_directory)])
+            relmon_id = relmon['id']
+            remote_relmon_directory = '%s%s' % (self.__remote_directory, relmon_id)
+            self.ssh_executor.execute_command(['rm -rf %s' % (remote_relmon_directory),
+                                               'mkdir -p %s' % (remote_relmon_directory)])
 
-        self.ssh_executor.upload_file(relmon_file, '%s/%s' % (remote_relmon_directory, relmon_file))
-        self.ssh_executor.upload_file(condor_file, '%s/%s' % (remote_relmon_directory, condor_file))
-        self.ssh_executor.upload_file(script_file, '%s/%s' % (remote_relmon_directory, script_file))
+            self.ssh_executor.upload_file(relmon_file, '%s/%s' % (remote_relmon_directory, relmon_file))
+            self.ssh_executor.upload_file(condor_file, '%s/%s' % (remote_relmon_directory, condor_file))
+            self.ssh_executor.upload_file(script_file, '%s/%s' % (remote_relmon_directory, script_file))
 
-        os.remove(relmon_file)
-        os.remove(condor_file)
-        os.remove(script_file)
-        shutil.rmtree('logs/%s' % (relmon_id), ignore_errors=True)
+            os.remove(relmon_file)
+            os.remove(condor_file)
+            os.remove(script_file)
+            shutil.rmtree('logs/%s' % (relmon_id), ignore_errors=True)
 
-        stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
-                                                            'condor_submit %s' % (condor_file)])
-        relmon = self.persistent_storage.get_relmon_by_id(relmon_id)
-        if not stderr and '1 job(s) submitted to cluster' in stdout:
-            # output is "1 job(s) submitted to cluster 801341"
-            relmon['status'] = 'submitted'
-            condor_id = int(float(stdout.split()[-1]))
-            relmon['condor_id'] = condor_id
-            relmon['condor_status'] = 'IDLE'
-            self.logger.info('Submitted %s (%s)' % (relmon['name'], relmon_id))
-        else:
-            self.logger.error('Error submitting %s (%s)' % (relmon['name'], relmon_id))
+            stdout, stderr = self.ssh_executor.execute_command(['cd %s' % (remote_relmon_directory),
+                                                                'condor_submit %s' % (condor_file)])
+            relmon = self.persistent_storage.get_relmon_by_id(relmon_id)
+            if not stderr and '1 job(s) submitted to cluster' in stdout:
+                # output is "1 job(s) submitted to cluster 801341"
+                relmon['status'] = 'submitted'
+                condor_id = int(float(stdout.split()[-1]))
+                relmon['condor_id'] = condor_id
+                relmon['condor_status'] = 'IDLE'
+                self.logger.info('Submitted %s (%s)' % (relmon['name'], relmon_id))
+            else:
+                self.logger.error('Error submitting %s (%s)' % (relmon['name'], relmon_id))
+                relmon['status'] = 'failed'
+        except Exception as ex:
             relmon['status'] = 'failed'
+            self.logger.error('Exception while trying to submit %s (%s): %s' % (relmon.get('name', 'NoName'),
+                                                                                relmon.get('id', 'NoId'),
+                                                                                str(ex)))
 
         self.logger.info('%s status is %s' % (relmon['name'], relmon['status']))
         self.persistent_storage.update_relmon(relmon)
@@ -143,6 +149,9 @@ class Controller():
             self.logger.error('Error with HTCondor?')
             relmon['condor_status'] = '<unknown>'
 
+        self.logger.info('Saving %s (%s) condor status as %s' % (relmon['name'],
+                                                                 relmon['id'],
+                                                                 relmon.get('condor_status')))
         self.persistent_storage.update_relmon(relmon)
 
     def __collect_output(self, relmon):
@@ -222,10 +231,24 @@ class Controller():
                                                                              self.__cert_file_name,
                                                                              self.__key_file_name,
                                                                              cpus),
+                               # Remove all root files
                                'rm *.root',
-                               # 'tar -zcvf %s.tar.gz Reports' % (relmon['id'])]
+                               # Rename Reports to relmon name
+                               'mv Reports %s' % (relmon['name']),
+                               # Put RelmonName directory to tar with RelmonId name
+                               'tar -cf %s.tar %s' % (relmon['id'], relmon['name']),
+                               # Remove directory from web path
                                'rm -rf %s%s' % (self.__web_path, relmon['name']),
-                               'mv Reports %s%s' % (self.__web_path, relmon['name'])]
+                               # Remove tar from web path
+                               'rm -rf %s%s.tar' % (self.__web_path, relmon['id']),
+                               # Move tar to web path
+                               'mv %s.tar %s' % (relmon['id'], self.__web_path),
+                               # Delete tar from condor workspace
+                               'rm %s.tar' % (relmon['id']),
+                               # Go to web path
+                               'cd %s' % (self.__web_path),
+                               # Untar tar with RelmonId name
+                               'tar -xf %s.tar' % (relmon['id'])]
 
         script_file_content = '\n'.join(script_file_content)
         with open(script_file_name, 'w') as file:

@@ -66,8 +66,10 @@ function createRelmon() {
     data: JSON.stringify(data),
   }).done(function (data) {
     console.log(data)
+    alert(data.message)
   }).fail(function(data) {
     console.log(data)
+    alert(data.message)
   });
 }
 
@@ -78,8 +80,10 @@ function tick() {
     url: "/tick",
   }).done(function (data) {
     console.log(data)
+    alert(data.message)
   }).fail(function(data) {
     console.log(data)
+    alert(data.message)
   });
 }
 
@@ -92,8 +96,10 @@ function resetRelmon(relmonID) {
     data: JSON.stringify({id: relmonID}),
   }).done(function (data) {
     console.log(data)
+    alert(data.message)
   }).fail(function(data) {
     console.log(data)
+    alert(data.message)
   });
 }
 
@@ -106,8 +112,10 @@ function terminateRelmon(relmonID) {
     data: JSON.stringify({id: relmonID}),
   }).done(function (data) {
     console.log(data)
+    alert(data.message)
   }).fail(function(data) {
     console.log(data)
+    alert(data.message)
   });
 }
 
@@ -120,7 +128,9 @@ function deleteRelmon(relmonID) {
     data: JSON.stringify({id: relmonID}),
   }).done(function (data) {
     console.log(data)
+    alert(data.message)
   }).fail(function(data) {
     console.log(data)
+    alert(data.message)
   });
 }
