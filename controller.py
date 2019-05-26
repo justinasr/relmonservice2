@@ -233,22 +233,16 @@ class Controller():
                                                                              cpus),
                                # Remove all root files
                                'rm *.root',
-                               # Rename Reports to relmon name
-                               'mv Reports %s' % (relmon['name']),
-                               # Put RelmonName directory to tar with RelmonId name
-                               'tar -cf %s.tar %s' % (relmon['id'], relmon['name']),
-                               # Remove directory from web path
+                               # Go to reports direcotry
+                               'cd Reports',
+                               # Zip all category directories in their separate zip archives
+                               'for i in */; do zip -r "${i%%/}.zip" "$i"; done',
+                               # Remove direcotry from web path
                                'rm -rf %s%s' % (self.__web_path, relmon['name']),
-                               # Remove tar from web path
-                               'rm -rf %s%s.tar' % (self.__web_path, relmon['id']),
-                               # Move tar to web path
-                               'mv %s.tar %s' % (relmon['id'], self.__web_path),
-                               # Delete tar from condor workspace
-                               'rm %s.tar' % (relmon['id']),
-                               # Go to web path
-                               'cd %s' % (self.__web_path),
-                               # Untar tar with RelmonId name
-                               'tar -xf %s.tar' % (relmon['id'])]
+                               # Make directory with relmon name in web path
+                               'mkdir -p %s%s' % (self.__web_path, relmon['name']),
+                               # Move zips to web path
+                               'time rsync *.zip %s%s' % (self.__web_path, relmon['name'])]
 
         script_file_content = '\n'.join(script_file_content)
         with open(script_file_name, 'w') as file:

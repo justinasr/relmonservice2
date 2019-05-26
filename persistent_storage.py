@@ -15,10 +15,17 @@ class PersistentStorage:
         self.lock = self.__locks[file_name]
 
     def get_all_data(self):
-        with open(self.file_name) as json_file:
-            data = json.load(json_file)
+        for i in range(3):
+            try:
+                with open(self.file_name) as json_file:
+                    data = json.load(json_file)
 
-        return data
+                if data is not None:
+                    return data
+            except:
+                time.sleep(0.5)
+
+        return None
 
     def get_relmon_by_name(self, name):
         data = self.get_all_data()
