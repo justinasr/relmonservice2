@@ -1,6 +1,7 @@
 from threading import Lock
 import json
 import time
+import logging
 
 
 class PersistentStorage:
@@ -13,6 +14,7 @@ class PersistentStorage:
             self.__locks[file_name] = Lock()
 
         self.lock = self.__locks[file_name]
+        self.logger = logging.getLogger('logger')
 
     def get_all_data(self):
         for i in range(3):
@@ -23,6 +25,7 @@ class PersistentStorage:
                 if data is not None:
                     return data
             except:
+                self.logger.info('Could not read %s. Retrying again %s.' % (self.file_name, i + 1))
                 time.sleep(0.5)
 
         return None

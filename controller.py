@@ -205,7 +205,7 @@ class Controller():
                                'request_disk            = %s' % (disk),
                                '+JobFlavour             = "tomorrow"',
                                'requirements            = (OpSysAndVer =?= "SLCern6")',
-                               # Leave in queue when status is DONE for an hour
+                               # Leave in queue when status is DONE for two hours
                                'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED || ((CurrentTime - CompletionDate) < 7200))',
                                'queue']
 
