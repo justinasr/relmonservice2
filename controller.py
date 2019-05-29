@@ -17,7 +17,7 @@ class Controller():
     # Directory in remote host to keep files for submission and collect output
     __remote_directory = 'relmon_test/'
     # Directory where to move done comparisons
-    __web_path = '/eos/user/j/jrumsevi/www/relmon/'
+    __web_path = '/eos/project/c/cmsweb/www/pdmv-web-test/relmon_test/'
     # Directory where user certificate and key for GRID authentication is located
     __grid_location = '/afs/cern.ch/user/j/jrumsevi/private/'
     # GRID certificate file
@@ -233,16 +233,16 @@ class Controller():
                                                                              cpus),
                                # Remove all root files
                                'rm *.root',
-                               # Go to reports direcotry
+                               # Copy sqlitify to Reports directory
+                               'cp relmonservice2/sqltify.py Reports/sqltify.py',
+                               # Go to reports directory
                                'cd Reports',
-                               # Zip all category directories in their separate zip archives
-                               'for i in */; do zip -r "${i%%/}.zip" "$i"; done',
-                               # Remove direcotry from web path
-                               'rm -rf %s%s' % (self.__web_path, relmon['name']),
-                               # Make directory with relmon name in web path
-                               'mkdir -p %s%s' % (self.__web_path, relmon['name']),
-                               # Move zips to web path
-                               'time rsync *.zip %s%s' % (self.__web_path, relmon['name'])]
+                               # Run sqltify
+                               'python3 sqltify.py',
+                               # Remove sql file from web path
+                               'rm -rf %s%s.sqlite' % (self.__web_path, relmon['name']),
+                               # Copy reports sqlite to web path
+                               'time cp -v reports.sqlite %s%s.sqlite' % (self.__web_path, relmon['name'])]
 
         script_file_content = '\n'.join(script_file_content)
         with open(script_file_name, 'w') as file:
