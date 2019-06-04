@@ -244,6 +244,10 @@ class Controller():
                                # Checksum for created sqlite
                                'echo "MD5 Sum"',
                                'md5sum reports.sqlite',
+                               # List sizes
+                               'ls -l',
+                               # Do integrity check
+                               'echo "PRAGMA integrity_check" | sqlite3 reports.sqlite',
                                # Copy reports sqlite to web path
                                'time cp -v reports.sqlite %s%s.sqlite' % (self.__web_path, relmon['name'])]
 
