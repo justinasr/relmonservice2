@@ -7,7 +7,7 @@ if os.path.exists('reports.sqlite'):
 categories = [entry for entry in os.listdir('.') if os.path.isdir(os.path.join('.', entry))]
 conn = sqlite3.connect('reports.sqlite')
 c = conn.cursor()
-# Create table
+# Create tables
 for category in categories:
     print('Creating table for %s' % (category))
     c.execute('CREATE TABLE %s (path text, htmlgz blob);' % (category))
@@ -26,6 +26,11 @@ for category in categories:
                 conn.commit()
 
         conn.commit()
+
+# Create index
+for category in categories:
+    print('Creating index for %s' % (category))
+    c.execute('CREATE INDEX %sIndex ON %s(path)' % (category, category))
 
 conn.commit()
 conn.close()
