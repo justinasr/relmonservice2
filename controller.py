@@ -142,7 +142,7 @@ class Controller():
             elif status_number == '6':
                 relmon['condor_status'] = 'SUBMISSION ERROR'
             else:
-                relmon['condor_status'] = '<unknown>'
+                relmon['condor_status'] = 'REMOVED'
                 self.logger.info('Unknown status %s of %s (%s)?' % (status_number,
                                                                     relmon['name'],
                                                                     relmon['id']))
@@ -156,7 +156,7 @@ class Controller():
         self.persistent_storage.update_relmon(relmon)
 
     def __collect_output(self, relmon):
-        if relmon['condor_status'] != 'DONE':
+        if relmon['condor_status'] != 'DONE' and relmon['condor_status'] != 'REMOVED':
             self.logger.info('%s (%s) is still running, will not try to collect' % (relmon['name'], relmon['id']))
             return
 
