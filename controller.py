@@ -250,7 +250,7 @@ class Controller():
                                # Do integrity check
                                'echo "PRAGMA integrity_check" | sqlite3 reports.sqlite',
                                # Copy reports sqlite to web path
-                               'time cp -v reports.sqlite %s%s.sqlite' % (self.__web_path, relmon['name'])]
+                               'time rsync -v reports.sqlite %s%s.sqlite' % (self.__web_path, relmon['name'])]
 
         script_file_content = '\n'.join(script_file_content)
         with open(script_file_name, 'w') as file:
