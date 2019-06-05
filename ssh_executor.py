@@ -19,24 +19,28 @@ class SSHExecutor():
         """
         Initiate SSH connection and save it as self.ssh_client
         """
+        self.logger.info('Will set up ssh')
         if self.ssh_client:
             self.close_connections()
 
         with open(self.__credentials_file_path) as json_file:
             credentials = json.load(json_file)
 
+        self.logger.info('Credentials loaded successfully: %s' % (credentials['username']))
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh_client.connect(self.__remote_host,
                                 username=credentials["username"],
                                 password=credentials["password"],
                                 timeout=30)
+        self.logger.info('Done setting up ssh')
 
     def setup_ftp(self):
         """
         Initiate SFTP connection and save it as self.ftp_client
         If needed, SSH connection will be automatically set up
         """
+        self.logger.info('Will set up ftp')
         if self.ftp_client:
             self.close_connections()
 
@@ -44,6 +48,7 @@ class SSHExecutor():
             self.setup_ssh()
 
         self.ftp_client = self.ssh_client.open_sftp()
+        self.logger.info('Done setting up ftp')
 
     def execute_command(self, command):
         """
@@ -71,11 +76,13 @@ class SSHExecutor():
         """
         Upload a file
         """
+        self.logger.info('Will upload file %s to %s' % (copy_from, copy_to))
         if not self.ftp_client:
             self.setup_ftp()
 
         try:
             self.ftp_client.put(copy_from, copy_to)
+            self.logger.info('Uploaded file to %s' % copy_to)
         except Exception as ex:
             self.logger.error('Error uploading file from %s to %s. %s' % (copy_from, copy_to, ex))
 
@@ -83,11 +90,13 @@ class SSHExecutor():
         """
         Download file from remote host
         """
+        self.logger.info('Will download file %s to %s' % (copy_from, copy_to))
         if not self.ftp_client:
             self.setup_ftp()
 
         try:
             self.ftp_client.get(copy_from, copy_to)
+            self.logger.info('Downloaded file to %s' % copy_to)
         except Exception as ex:
             self.logger.error('Error downloading file from %s to %s. %s' % (copy_from, copy_to, ex))
 
@@ -96,9 +105,13 @@ class SSHExecutor():
         Close any active connections
         """
         if self.ftp_client:
+            self.logger.info('Closing ftp client')
             self.ftp_client.close()
             self.ftp_client = None
+            self.logger.info('Closed ftp client')
 
         if self.ssh_client:
+            self.logger.info('Closing ssh client')
             self.ssh_client.close()
             self.ssh_client = None
+            self.logger.info('Closed ssh client')
