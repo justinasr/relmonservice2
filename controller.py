@@ -18,7 +18,7 @@ class Controller():
     __remote_directory = 'relmon_test/'
     # Directory where to move done comparisons
     # __web_path = '/eos/user/j/jrumsevi/www/relmon/'
-    __web_path = '/eos/project/c/cmsweb/www/pdmv-web-test/relmon_test'
+    __web_path = '/eos/project/c/cmsweb/www/pdmv-web-test/relmon_test/'
     # Directory where user certificate and key for GRID authentication is located
     __grid_location = '/afs/cern.ch/user/j/jrumsevi/private/'
     # GRID certificate file
