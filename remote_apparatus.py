@@ -235,6 +235,8 @@ def compare_compress_move(category_name, HLT, reference_list, target_list, log_f
                                    '--hash_name',
                                    '--HLT' if HLT else ''])
 
+    # Remove all /cms-service-reldqm/style/blueprint/ from HTML files
+    path_fix_command = 'sed -i -e \'s/\/cms-service-reldqm\/style\/blueprint\///g\' $(find %s/ -type f -name *.html)' % (subreport_path)
     compression_command = ' '.join(['dir2webdir.py', subreport_path])
     move_command = ' '.join(['mv', subreport_path, 'Reports/'])
 
@@ -242,6 +244,13 @@ def compare_compress_move(category_name, HLT, reference_list, target_list, log_f
     proc = subprocess.Popen(comparison_command,
                             stdout=log_file,
                             stderr=log_file,
+                            shell=True)
+    proc.wait()
+
+    logging.info('Path fix command: %s' % (path_fix_command))
+    proc = subprocess.Popen(path_fix_command,
+                            stdout=log_file,
+                            stdout=log_file,
                             shell=True)
     proc.wait()
 

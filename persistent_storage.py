@@ -53,24 +53,32 @@ class PersistentStorage:
         if self.get_relmon_by_name(relmon['name']) is not None:
             raise Exception('Duplicate')
 
+        self.logger.info('Will acquire lock for %s (%s). Method create_relmon' % (relmon['name'], relmon['id']))
         self.lock.acquire()
+        self.logger.info('Did acquire lock for %s (%s). Method create_relmon' % (relmon['name'], relmon['id']))
         data = self.get_all_data()
         relmon['last_update'] = int(time.time())
         data.append(relmon)
         with open('data.json', 'w') as json_file:
             json.dump(data, json_file, indent=2, sort_keys=True)
 
+        self.logger.info('Will release lock for %s (%s). Method create_relmon' % (relmon['name'], relmon['id']))
         self.lock.release()
+        self.logger.info('Did release lock for %s (%s). Method create_relmon' % (relmon['name'], relmon['id']))
 
     def update_relmon(self, relmon):
         self.delete_relmon(relmon['id'])
         self.create_relmon(relmon)
 
     def delete_relmon(self, relmon_id):
+        self.logger.info('Will acquire lock for (%s). Method delete_relmon' % (relmon_id))
         self.lock.acquire()
+        self.logger.info('Did acquire lock for (%s). Method delete_relmon' % (relmon_id))
         data = self.get_all_data()
         data = [x for x in data if x['id'] != relmon_id]
         with open('data.json', 'w') as json_file:
             json.dump(data, json_file, indent=2, sort_keys=True)
 
+        self.logger.info('Will release lock for (%s). Method delete_relmon' % (relmon_id))
         self.lock.release()
+        self.logger.info('Did release lock for (%s). Method delete_relmon' % (relmon_id))

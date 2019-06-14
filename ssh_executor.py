@@ -1,6 +1,7 @@
 import paramiko
 import logging
 import json
+import time
 
 
 class SSHExecutor():
@@ -62,8 +63,27 @@ class SSHExecutor():
 
         self.logger.info('Executing %s' % (command))
         (_, stdout, stderr) = self.ssh_client.exec_command(command)
+        self.logger.info('Executed %s. Reading response' % (command))
+        # Close channel after minute of waiting for EOF
+        # This timeouts and closes channel if nothing was received
+        stdout_timeout = time.time() + 60
+        while not stdout.channel.eof_received:
+            time.sleep(1)
+            if time.time() > stdout_timeout:
+                stdout.channel.close()
+                break
+
         stdout = stdout.read().decode('utf-8').strip()
+        # Same thing for stderr
+        stderr_timeout = time.time() + 60
+        while not stderr.channel.eof_received:
+            time.sleep(1)
+            if time.time() > stderr_timeout:
+                stderr.channel.close()
+                break
+
         stderr = stderr.read().decode('utf-8').strip()
+        # Read output from stdout and stderr streams
         if stdout:
             self.logger.info("STDOUT (%s): %s" % (command, stdout))
 

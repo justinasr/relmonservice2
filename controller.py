@@ -156,7 +156,7 @@ class Controller():
         self.persistent_storage.update_relmon(relmon)
 
     def __collect_output(self, relmon):
-        if relmon['condor_status'] != 'DONE' and relmon['condor_status'] != 'REMOVED':
+        if relmon['condor_status'] != 'DONE' and relmon['condor_status'] != 'REMOVED' and relmon['condor_status'] != '<unknown>':
             self.logger.info('%s (%s) is still running, will not try to collect' % (relmon['name'], relmon['id']))
             return
 
@@ -243,14 +243,25 @@ class Controller():
                                # Remove sql file from web path
                                'rm -rf %s%s.sqlite' % (self.__web_path, relmon['name']),
                                # Checksum for created sqlite
+                               'echo "HTCondor workspace"',
                                'echo "MD5 Sum"',
                                'md5sum reports.sqlite',
                                # List sizes
-                               'ls -l',
+                               'ls -l *.sqlite',
                                # Do integrity check
+                               'echo "Integrity check:"',
                                'echo "PRAGMA integrity_check" | sqlite3 reports.sqlite',
                                # Copy reports sqlite to web path
-                               'time rsync -v reports.sqlite %s%s.sqlite' % (self.__web_path, relmon['name'])]
+                               'time rsync -v reports.sqlite %s%s.sqlite' % (self.__web_path, relmon['name']),
+                               # Checksum for created sqlite
+                               'echo "EOS space"',
+                               'echo "MD5 Sum"',
+                               'md5sum %s%s.sqlite' % (self.__web_path, relmon['name']),
+                               # List sizes
+                               'ls -l %s*.sqlite' % (self.__web_path),
+                               # Do integrity check
+                               'echo "Integrity check:"',
+                               'echo "PRAGMA integrity_check" | sqlite3 %s%s.sqlite' % (self.__web_path, relmon['name'])]
 
         script_file_content = '\n'.join(script_file_content)
         with open(script_file_name, 'w') as file:
