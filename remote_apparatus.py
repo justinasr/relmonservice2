@@ -250,7 +250,7 @@ def compare_compress_move(category_name, HLT, reference_list, target_list, log_f
     logging.info('Path fix command: %s' % (path_fix_command))
     proc = subprocess.Popen(path_fix_command,
                             stdout=log_file,
-                            stdout=log_file,
+                            stderr=log_file,
                             shell=True)
     proc.wait()
 

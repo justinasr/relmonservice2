@@ -73,6 +73,7 @@ class Controller():
         relmon = self.reset_relmon(relmon)
         relmon['status'] = 'submitting'
         relmon['secret_hash'] = '%032x' % (random.getrandbits(128))
+        relmon['categories'].sort(key=lambda x: x.get('name'))
 
         self.persistent_storage.update_relmon(relmon)
         try:
