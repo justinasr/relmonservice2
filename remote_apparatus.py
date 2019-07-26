@@ -17,6 +17,7 @@ import os
 import time
 from difflib import SequenceMatcher
 import sys
+from sso_cookie_maker import make_cookie_file
 
 
 __callback_url = 'http://instance4.cern.ch:8080/update'
@@ -74,6 +75,7 @@ def notify(relmon):
         command = ['curl',
                    '-X',
                    'POST',
+                   '--cookie cookie.txt',
                    __callback_url,
                    '-s',
                    '-k',
@@ -309,6 +311,7 @@ if __name__ == '__main__':
     else:
         try:
             cmsweb = CMSWebWrapper(cert_file, key_file)
+            make_cookie_file('https://cms-pdmv.cern.ch/mcm/', cert_file, key_file, 'cookie.txt')
             relmon = read_relmon(relmon_filename)
             relmon['status'] = 'running'
             notify(relmon)

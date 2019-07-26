@@ -58,7 +58,7 @@ class Controller():
                 self.__reset_relmon(relmon)
             elif status == 'deleting':
                 self.__delete_relmon(relmon)
-            elif status == 'submitted' or status == 'running':
+            elif (status == 'submitted' or status == 'running') and relmon.get('condor_status') != 'DONE':
                 self.__check_if_running(relmon)
             elif status == 'moving' or (status != 'done' and relmon.get('condor_status') == 'DONE'):
                 self.__check_if_running(relmon)
@@ -263,6 +263,8 @@ class Controller():
                                # Do integrity check
                                'echo "Integrity check:"',
                                'echo "PRAGMA integrity_check" | sqlite3 %s%s.sqlite' % (self.__web_path, relmon['name'])]
+
+        script_file_content.extend(['curl -s -k -L --cookie cookie.txt https://cms-pdmv.cern.ch/mcm/ | grep "<title>"'])
 
         script_file_content = '\n'.join(script_file_content)
         with open(script_file_name, 'w') as file:
