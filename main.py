@@ -107,48 +107,8 @@ def add_relmon():
 def reset_relmon():
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
-        storage = PersistentStorage()
-        relmon = storage.get_relmon_by_id(data['id'])
-        if relmon['status'] not in ['terminated', 'failed', 'done']:
-            return output_text({'message': 'Cannot reset relmon in status %s' % (relmon['status'])})
-
-        relmon['status'] = 'new'
-        storage.update_relmon(relmon)
-        tick()
-        return output_text({'message': 'OK'})
-
-    return output_text({'message': 'No ID'})
-
-
-@app.route('/terminate', methods=['POST'])
-def terminate_relmon():
-    data = json.loads(request.data.decode('utf-8'))
-    if 'id' in data:
-        storage = PersistentStorage()
-        relmon = storage.get_relmon_by_id(data['id'])
-        if relmon['status'] not in ['submitted', 'running', 'moving']:
-            return output_text({'message': 'Cannot terminate relmon in status %s' % (relmon['status'])})
-
-        relmon['status'] = 'terminating'
-        storage.update_relmon(relmon)
-        tick()
-        return output_text({'message': 'OK'})
-
-    return output_text({'message': 'No ID'})
-
-
-@app.route('/delete', methods=['DELETE'])
-def delete_relmon():
-    data = json.loads(request.data.decode('utf-8'))
-    if 'id' in data:
-        storage = PersistentStorage()
-        relmon = storage.get_relmon_by_id(data['id'])
-        if relmon['status'] not in ['terminated', 'done', 'failed']:
-            return output_text({'message': 'Cannot delete relmon in status %s' % (relmon['status'])})
-
-        relmon['status'] = 'deleting'
-        storage.update_relmon(relmon)
-        tick()
+        controller.add_to_reset_list(data['id'])
+        controller_tick()
         return output_text({'message': 'OK'})
 
     return output_text({'message': 'No ID'})
@@ -183,7 +143,7 @@ def update_info():
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
     if relmon['status'] != old_status:
-        tick()
+        controller_tick()
 
     logger.info('Update for %s (%s). Status is %s' % (relmon['name'],
                                                       relmon['id'],
@@ -231,6 +191,7 @@ def tick():
 
 def setup_console_logging():
     logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
+
 
 def setup_logging():
     # Max log file size - 5Mb

@@ -17,7 +17,6 @@ import os
 import time
 from difflib import SequenceMatcher
 import sys
-from sso_cookie_maker import make_cookie_file
 
 
 __callback_url = 'http://instance4.cern.ch:8080/update'
@@ -299,6 +298,7 @@ if __name__ == '__main__':
     parser.add_argument('--cert')
     parser.add_argument('--key')
     parser.add_argument('--cpus')
+    parser.add_argument('--notify-finished', action='store_true')
     args = vars(parser.parse_args())
     logging.basicConfig(stream=sys.stdout, format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
 
@@ -306,20 +306,20 @@ if __name__ == '__main__':
     key_file = args.get('key')
     relmon_filename = args.get('relmon')
     cpus = int(args.get('cpus', 1))
-    if not cert_file or not key_file or not relmon_filename:
-        logging.error('Missing user certificate or key or relmon file')
-    else:
-        try:
+    notify_finished = bool(args.get('notify-finished'))
+    try:
+        relmon = read_relmon(relmon_filename)
+        if notify_finished:
+            relmon['status'] = 'finished'
+        else:
             cmsweb = CMSWebWrapper(cert_file, key_file)
-            make_cookie_file('https://cms-pdmv.cern.ch/mcm/', cert_file, key_file, 'cookie.txt')
-            relmon = read_relmon(relmon_filename)
             relmon['status'] = 'running'
             notify(relmon)
             relmon = download_root_files(relmon, cmsweb)
             run_validation_matrix(relmon, cpus)
-            relmon['status'] = 'moving'
-        except Exception as ex:
-            logging.error(ex)
-            relmon['status'] = 'failed'
+            relmon['status'] = 'finishing'
+    except Exception as ex:
+        logging.error(ex)
+        relmon['status'] = 'failed'
 
-        notify(relmon)
+    notify(relmon)
