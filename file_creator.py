@@ -22,6 +22,7 @@ class FileCreator():
             'git clone https://github.com/justinasr/relmonservice2.git',
             'scramv1 project CMSSW CMSSW_10_4_0',
             'cd CMSSW_10_4_0/src',
+            '(',
             'eval `scramv1 runtime -sh`',
             'cd $DIR',
             'mkdir -p Reports',
@@ -30,6 +31,8 @@ class FileCreator():
                                                           self.grid_cert_file,
                                                           self.grid_key_file,
                                                           cpus),
+            ')',
+            'cd $DIR',
             # Remove all root files
             'rm *.root',
             # Copy sqlitify to Reports directory
