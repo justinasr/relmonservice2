@@ -60,8 +60,13 @@ class FileCreator():
             # Do integrity check
             'echo "Integrity check:"',
             'echo "PRAGMA integrity_check" | sqlite3 %s' % (web_sqlite_path),
+            'cd $DIR',
             'python3 relmonservice2/remote_apparatus.py --relmon %s.json --notify-finished' % (relmon_id)
         ]
+
+        script_file_content.extend([
+            'cern-get-sso-cookie -u https://cms-pdmv.cern.ch/mcm -o cookie.txt',
+            'curl --cookie cookie.txt -s -k -L https://cms-pdmv.cern.ch/mcm | grep title'])
 
         script_file_content = '\n'.join(script_file_content)
         with open(script_file_name, 'w') as file:

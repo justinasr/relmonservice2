@@ -297,7 +297,7 @@ if __name__ == '__main__':
     parser.add_argument('--relmon')
     parser.add_argument('--cert')
     parser.add_argument('--key')
-    parser.add_argument('--cpus')
+    parser.add_argument('--cpus', nargs='?', const=1, type=int)
     parser.add_argument('--notify-finished', action='store_true')
     args = vars(parser.parse_args())
     logging.basicConfig(stream=sys.stdout, format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)

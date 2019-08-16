@@ -97,9 +97,7 @@ def add_relmon():
     if 'id' not in relmon:
         relmon['id'] = int(time.time())
 
-    controller.reset_relmon(relmon)
-    storage = PersistentStorage()
-    storage.create_relmon(relmon)
+    controller.create_relmon(relmon)
     return output_text({'message': 'OK'})
 
 
@@ -107,7 +105,18 @@ def add_relmon():
 def reset_relmon():
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
-        controller.add_to_reset_list(data['id'])
+        controller.add_to_reset_list(int(data['id']))
+        controller_tick()
+        return output_text({'message': 'OK'})
+
+    return output_text({'message': 'No ID'})
+
+
+@app.route('/delete', methods=['DELETE'])
+def delete_relmon():
+    data = json.loads(request.data.decode('utf-8'))
+    if 'id' in data:
+        controller.add_to_delete_list(int(data['id']))
         controller_tick()
         return output_text({'message': 'OK'})
 

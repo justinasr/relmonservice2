@@ -11,6 +11,7 @@ import shutil
 from ssh_executor import SSHExecutor
 from relmon import RelMon
 from file_creator import FileCreator
+from multiprocessing import Manager
 
 
 class Controller():
@@ -33,8 +34,10 @@ class Controller():
                                         self.__grid_key,
                                         self.__remote_directory,
                                         self.__web_location)
-        self.relmons_to_reset = []
-        self.relmons_to_delete = []
+        manager = Manager()
+        self.relmons_to_reset = manager.list()
+        self.relmons_to_delete = manager.list()
+        self.logger.info('***** Creating a CONTROLLER! %s *****' % (self))
 
     def tick(self):
         """
@@ -45,7 +48,9 @@ class Controller():
         """
         self.logger.info('Controller tick')
         data = self.persistent_storage.get_all_data()
-        self.logger.info('Found %s relmons for reset, termination, deletion' % (len(data)))
+        self.logger.info('Found %s relmons' % (len(data)))
+        self.logger.info('Relmons to reset: %s. List: %s' % (self.relmons_to_reset, hex(id(self.relmons_to_reset))))
+        self.logger.info('Relmons to delete: %s. List: %s' % (self.relmons_to_delete, hex(id(self.relmons_to_delete))))
         for relmon_json in data:
             relmon = RelMon(relmon_json)
             relmon_id = relmon.get_id()
@@ -80,12 +85,24 @@ class Controller():
         self.logger.info('Controller tick finished')
 
     def add_to_reset_list(self, relmon_id):
+        self.logger.info('Will try to add %s to reset list %s' % (relmon_id, hex(id(self.relmons_to_reset))))
         if relmon_id not in self.relmons_to_reset:
+            self.logger.info('Adding %s to reset list %s' % (relmon_id, hex(id(self.relmons_to_reset))))
             self.relmons_to_reset.append(relmon_id)
 
+        self.logger.info('List of reset %s. List: %s' % (self.relmons_to_reset, hex(id(self.relmons_to_reset))))
+
     def add_to_delete_list(self, relmon_id):
+        self.logger.info('Will try to add %s to delete list %s' % (relmon_id, hex(id(self.relmons_to_delete))))
         if relmon_id not in self.relmons_to_delete:
+            self.logger.info('Adding %s to delete list %s' % (relmon_id, hex(id(self.relmons_to_delete))))
             self.relmons_to_delete.append(relmon_id)
+        self.logger.info('List of delete %s. List: %s' % (self.relmons_to_delete, hex(id(self.relmons_to_delete))))
+
+    def create_relmon(self, relmon_data):
+        relmon = RelMon(relmon_data)
+        relmon.reset()
+        self.persistent_storage.create_relmon(relmon.get_json())
 
     def __submit_to_condor(self, relmon):
         relmon_id = relmon.get_id()
@@ -96,6 +113,10 @@ class Controller():
         relmon.reset()
         self.persistent_storage.update_relmon(relmon.get_json())
         self.logger.info('%s status is %s' % (relmon, relmon.get_status()))
+        self.logger.info('Resources for %s: CPU: %s, memory: %s, disk %s' % (relmon,
+                                                                             relmon.get_cpu(),
+                                                                             relmon.get_memory(),
+                                                                             relmon.get_disk()))
         try:
             # Dump the json to a file
             relmon_file = self.file_creator.create_relmon_file(relmon)

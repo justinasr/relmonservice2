@@ -9,10 +9,6 @@ class RelMon():
         self.data = data
         self.data['categories'].sort(key=lambda x: x.get('name'))
         self.logger = logging.getLogger('logger')
-        self.logger.info('Resources for %s are CPU:%s, memory: %s memory, disk: %s' % (self,
-                                                                                       self.get_cpu(),
-                                                                                       self.get_memory(),
-                                                                                       self.get_disk()))
 
     def reset(self):
         # Delete local logs
@@ -23,12 +19,12 @@ class RelMon():
         self.data['secret_hash'] = '%032x' % (random.getrandbits(128))
         for category in self.data['categories']:
             category['status'] = 'initial'
-            category['reference'] = [{'name': x['name'].strip(),
+            category['reference'] = [{'name': x.strip() if isinstance(x, str) else x['name'].strip(),
                                       'file_name': '',
                                       'file_url': '',
                                       'file_size': 0,
                                       'status': 'initial'} for x in category['reference']]
-            category['target'] = [{'name': (x['name'].strip()),
+            category['target'] = [{'name': x.strip() if isinstance(x, str) else x['name'].strip(),
                                    'file_name': '',
                                    'file_url': '',
                                    'file_size': 0,
@@ -37,7 +33,7 @@ class RelMon():
         return self.data
 
     def get_id(self):
-        return self.data['id']
+        return int(self.data['id'])
 
     def get_name(self):
         return self.data['name']
