@@ -308,11 +308,13 @@ if __name__ == '__main__':
     cpus = args.get('cpus', 1)
     if cpus:
         cpus = int(cpus)
+
     notify_finished = bool(args.get('notify-finished'))
     try:
         relmon = read_relmon(relmon_filename)
         if notify_finished:
             relmon['status'] = 'finished'
+            logging.info(subprocess.check_output('curl --cookie cookie.txt -s -k -L https://cms-pdmv.cern.ch/mcm | grep title', shell=True))
         else:
             cmsweb = CMSWebWrapper(cert_file, key_file)
             relmon['status'] = 'running'
