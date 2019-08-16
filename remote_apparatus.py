@@ -305,7 +305,9 @@ if __name__ == '__main__':
     cert_file = args.get('cert')
     key_file = args.get('key')
     relmon_filename = args.get('relmon')
-    cpus = int(args.get('cpus', 1))
+    cpus = args.get('cpus', 1)
+    if cpus:
+        cpus = int(cpus)
     notify_finished = bool(args.get('notify-finished'))
     try:
         relmon = read_relmon(relmon_filename)
