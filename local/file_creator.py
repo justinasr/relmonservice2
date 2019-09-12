@@ -1,7 +1,7 @@
 import json
 
 
-class FileCreator():
+class FileCreator(object):
     def __init__(self, grid_cert, grid_key, remote_location, web_location):
         self.grid_cert = grid_cert
         self.grid_key = grid_key
@@ -71,16 +71,16 @@ class FileCreator():
             'python3 relmonservice2/remote_apparatus.py --relmon %s.json --notify-finished' % (relmon_id)
         ]
 
-        script_file_content = '\n'.join(script_file_content)
-        with open(script_file_name, 'w') as file:
-            file.write(script_file_content)
+        script_file_content_string = '\n'.join(script_file_content)
+        with open(script_file_name, 'w') as output_file:
+            output_file.write(script_file_content_string)
 
     def create_relmon_file(self, relmon):
         relmon_id = relmon.get_id()
         relmon_data = relmon.get_json()
         relmon_file_name = 'relmons/%s/%s.json' % (relmon_id, relmon_id)
-        with open(relmon_file_name, 'w') as json_file:
-            json.dump(relmon_data, json_file, indent=2, sort_keys=True)
+        with open(relmon_file_name, 'w') as output_file:
+            json.dump(relmon_data, output_file, indent=2, sort_keys=True)
 
     def create_condor_job_file(self, relmon, relmon_data_file_name):
         relmon_id = relmon.get_id()
@@ -103,10 +103,11 @@ class FileCreator():
             '+JobFlavour             = "tomorrow"',
             'requirements            = (OpSysAndVer =?= "SLCern6")',
             # Leave in queue when status is DONE for two hours - 7200 seconds
-            'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED || ((CurrentTime - CompletionDate) < 7200))',
+            'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED'
+            '                          || ((CurrentTime - CompletionDate) < 7200))',
             'queue'
         ]
 
-        condor_file_content = '\n'.join(condor_file_content)
-        with open(condor_file_name, 'w') as file:
-            file.write(condor_file_content)
+        condor_file_content_string = '\n'.join(condor_file_content)
+        with open(condor_file_name, 'w') as output_file:
+            output_file.write(condor_file_content_string)

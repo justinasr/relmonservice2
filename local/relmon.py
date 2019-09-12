@@ -1,4 +1,4 @@
-class RelMon():
+class RelMon(object):
 
     def __init__(self, data):
         self.data = data
