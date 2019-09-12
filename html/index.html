@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <base href="/relmonsvc/">
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -181,11 +182,15 @@
                 Condor job ID: {{ relmon.condor_id}}<br>
                 Download progress:
                 <div class="progress">
+                  {% if relmon.total_relvals > 0 %}
                   <div class="progress-bar bg-success" role="progressbar" style="width: {{ 1.0 * relmon.downloaded_relvals / relmon.total_relvals * 100 }}%;" aria-valuemin="0" aria-valuemax="100">{{ (1.0 * relmon.downloaded_relvals / relmon.total_relvals * 100) | round}}%</div>
+                  {% endif %}
                 </div>
                 Comparison progress:
                 <div class="progress">
+                  {% if relmon.total_size > 0 %}
                   <div class="progress-bar" role="progressbar" style="width: {{ 1.0 * relmon.done_size / relmon.total_size * 100 }}%;" aria-valuemin="0" aria-valuemax="100">{{ (relmon.done_size / relmon.total_size * 100) | round}}%</div>
+                  {% endif %}
                 </div>
 
                 <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="resetRelmon({{ relmon.id }});">Reset relmon</button>

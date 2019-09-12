@@ -1,22 +1,12 @@
-import logging
-import shutil
-import random
-
-
 class RelMon():
 
     def __init__(self, data):
         self.data = data
-        self.data['categories'].sort(key=lambda x: x.get('name'))
-        self.logger = logging.getLogger('logger')
 
     def reset(self):
-        # Delete local logs
-        shutil.rmtree('logs/%s' % (self.get_id()), ignore_errors=True)
         self.set_status('new')
         self.set_condor_status('<unknown>')
         self.set_condor_id(0)
-        self.data['secret_hash'] = '%032x' % (random.getrandbits(128))
         for category in self.data['categories']:
             category['status'] = 'initial'
             category['reference'] = [{'name': x.strip() if isinstance(x, str) else x['name'].strip(),
@@ -33,7 +23,7 @@ class RelMon():
         return self.data
 
     def get_id(self):
-        return int(self.data['id'])
+        return self.data['id']
 
     def get_name(self):
         return self.data['name']
@@ -83,13 +73,10 @@ class RelMon():
         return self.data['status']
 
     def get_condor_status(self):
-        if 'condor_status' in self.data:
-            return self.data['condor_status']
-        else:
-            return ''
+        return self.data.get('condor_status', '')
 
     def get_condor_id(self):
-        return self.data['condor_id']
+        return self.data.get('condor_id', 0)
 
     def set_status(self, status):
         self.data['status'] = status

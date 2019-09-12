@@ -14,7 +14,7 @@ class FileCreator():
         relmon_id = relmon.get_id()
         cpus = relmon.get_cpu()
         relmon_name = relmon.get_name()
-        script_file_name = 'RELMON_%s.sh' % (relmon_id)
+        script_file_name = 'relmons/%s/%s.sh' % (relmon_id, relmon_id)
         web_sqlite_path = '"%s%s.sqlite"' % (self.web_location, relmon_name)
         script_file_content = [
             '#!/bin/bash',
@@ -75,23 +75,19 @@ class FileCreator():
         with open(script_file_name, 'w') as file:
             file.write(script_file_content)
 
-        return script_file_name
-
     def create_relmon_file(self, relmon):
         relmon_id = relmon.get_id()
         relmon_data = relmon.get_json()
-        relmon_file_name = '%s.json' % (relmon_id)
+        relmon_file_name = 'relmons/%s/%s.json' % (relmon_id, relmon_id)
         with open(relmon_file_name, 'w') as json_file:
             json.dump(relmon_data, json_file, indent=2, sort_keys=True)
-
-        return relmon_file_name
 
     def create_condor_job_file(self, relmon, relmon_data_file_name):
         relmon_id = relmon.get_id()
         cpus = relmon.get_cpu()
         memory = relmon.get_memory()
         disk = relmon.get_disk()
-        condor_file_name = 'RELMON_%s.sub' % (relmon_id)
+        condor_file_name = 'relmon/%s/%s.sub' % (relmon_id, relmon_id)
         condor_file_content = [
             'executable              = RELMON_%s.sh' % (relmon_id),
             'output                  = RELMON_%s.out' % (relmon_id),
@@ -114,5 +110,3 @@ class FileCreator():
         condor_file_content = '\n'.join(condor_file_content)
         with open(condor_file_name, 'w') as file:
             file.write(condor_file_content)
-
-        return condor_file_name

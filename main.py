@@ -1,14 +1,14 @@
 from flask import Flask, render_template, request, make_response
 from flask_restful import Api
-import argparse
-import logging
-import json
-from controller import Controller
-from persistent_storage import PersistentStorage
-import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 from logging import handlers
+import argparse
+import logging
+import json
+import time
+from local.controller import Controller
+from couchdb_database import Database
 
 
 app = Flask(__name__,
@@ -21,14 +21,8 @@ controller = Controller()
 
 @app.route('/')
 def index():
-    storage = PersistentStorage()
-    data = None
-    while not data:
-        try:
-            data = storage.get_all_data()
-        except:
-            time.sleep(1)
-
+    db = Database()
+    data = db.get_relmons(include_docs=True)
     for relmon in data:
         relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(relmon.get('last_update', 0)))
         relmon['done_size'] = 0
@@ -84,8 +78,6 @@ def index():
             relmon['total_size'] += category['reference_total_size'] + category['target_total_size']
 
         relmon['total_size'] = max(relmon['total_size'], 0.001)
-        if 'secret_hash' in relmon:
-            del relmon['secret_hash']
 
     data.sort(key=lambda x: x.get('id', -1))
     return render_template('index.html', data=data)
@@ -94,10 +86,8 @@ def index():
 @app.route('/create', methods=['POST'])
 def add_relmon():
     relmon = json.loads(request.data.decode('utf-8'))
-    if 'id' not in relmon:
-        relmon['id'] = int(time.time())
-
     controller.create_relmon(relmon)
+    controller_tick()
     return output_text({'message': 'OK'})
 
 
@@ -105,7 +95,7 @@ def add_relmon():
 def reset_relmon():
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
-        controller.add_to_reset_list(int(data['id']))
+        controller.add_to_reset_list(str(int(data['id'])))
         controller_tick()
         return output_text({'message': 'OK'})
 
@@ -116,7 +106,7 @@ def reset_relmon():
 def delete_relmon():
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
-        controller.add_to_delete_list(int(data['id']))
+        controller.add_to_delete_list(str(int(data['id'])))
         controller_tick()
         return output_text({'message': 'OK'})
 
@@ -169,31 +159,6 @@ def controller_tick():
     return output_text({'message': 'OK'})
 
 
-def run_flask():
-    parser = argparse.ArgumentParser(description='Stats2')
-    parser.add_argument('--port',
-                        help='Port, default is 8001')
-    parser.add_argument('--host',
-                        help='Host IP, default is 127.0.0.1')
-    parser.add_argument('--debug',
-                        help='Debug mode',
-                        action='store_true')
-    args = vars(parser.parse_args())
-    port = args.get('port', None)
-    host = args.get('host', None)
-    debug = args.get('debug', False)
-    if not port:
-        port = 8001
-
-    if not host:
-        host = '127.0.0.1'
-
-    app.run(host=host,
-            port=int(port),
-            debug=debug,
-            threaded=True)
-
-
 def tick():
     controller.tick()
 
@@ -220,9 +185,34 @@ def setup_logging():
 
 
 if __name__ == '__main__':
-    setup_console_logging()
+    parser = argparse.ArgumentParser(description='Stats2')
+    parser.add_argument('--port',
+                        help='Port, default is 8001')
+    parser.add_argument('--host',
+                        help='Host IP, default is 127.0.0.1')
+    parser.add_argument('--debug',
+                        help='Debug mode',
+                        action='store_true')
+    args = vars(parser.parse_args())
+    port = args.get('port', None)
+    host = args.get('host', None)
+    debug = args.get('debug', False)
+    if debug:
+        setup_console_logging()
+    else:
+        setup_logging()
+
     scheduler.add_executor('processpool')
     scheduler.add_job(tick, 'interval', seconds=600, max_instances=1)
     scheduler.start()
-    run_flask()
+    if not port:
+        port = 8001
+
+    if not host:
+        host = '127.0.0.1'
+
+    app.run(host=host,
+            port=int(port),
+            debug=debug,
+            threaded=True)
     scheduler.shutdown()

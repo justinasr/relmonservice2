@@ -109,4 +109,6 @@ venv.bak/
 *.sub
 
 logs/*
+relmons/*
 !logs/.empty
+!relmons/.empty

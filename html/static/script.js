@@ -61,7 +61,7 @@ function createRelmon() {
   console.log(data);
   $.ajax({
     type: "POST",
-    url: "/create",
+    url: "/relmonsvc/create",
     contentType: "application/json",
     data: JSON.stringify(data),
   }).done(function (data) {
@@ -77,7 +77,7 @@ function tick() {
   console.log('Tick')
   $.ajax({
     type: "GET",
-    url: "/tick",
+    url: "/relmonsvc/tick",
   }).done(function (data) {
     console.log(data)
     alert(data.message)
@@ -91,7 +91,7 @@ function resetRelmon(relmonID) {
   console.log('Reset ' + relmonID)
   $.ajax({
     type: "POST",
-    url: "/reset",
+    url: "/relmonsvc/reset",
     contentType: "application/json",
     data: JSON.stringify({id: relmonID}),
   }).done(function (data) {
@@ -107,7 +107,7 @@ function terminateRelmon(relmonID) {
   console.log('Terminate ' + relmonID)
   $.ajax({
     type: "POST",
-    url: "/terminate",
+    url: "/relmonsvc/terminate",
     contentType: "application/json",
     data: JSON.stringify({id: relmonID}),
   }).done(function (data) {
@@ -123,7 +123,7 @@ function deleteRelmon(relmonID) {
   console.log('Delete ' + relmonID)
   $.ajax({
     type: "DELETE",
-    url: "/delete",
+    url: "/relmonsvc/delete",
     contentType: "application/json",
     data: JSON.stringify({id: relmonID}),
   }).done(function (data) {
