@@ -19,7 +19,7 @@ from difflib import SequenceMatcher
 import sys
 
 
-__callback_url = 'http://instance4.cern.ch:8080/update'
+__callback_url = 'http://instance3.cern.ch/relmonsvc/update'
 
 
 def get_workflow(workflow_name, cmsweb):

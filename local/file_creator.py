@@ -19,15 +19,20 @@ class FileCreator(object):
         script_file_content = [
             '#!/bin/bash',
             'DIR=$(pwd)',
+            # Clone the relmon service
             'git clone https://github.com/justinasr/relmonservice2.git',
+            # Make a cookie for callbacks about progress
             'cern-get-sso-cookie -u https://cms-pdmv.cern.ch/mcm -o cookie.txt',
             'mv cookie.txt relmonservice2',
+            # CMSSW environment setup
             'scramv1 project CMSSW CMSSW_10_4_0',
             'cd CMSSW_10_4_0/src',
             '(',
             'eval `scramv1 runtime -sh`',
             'cd $DIR',
+            # Create reports directory
             'mkdir -p Reports',
+            # Run the remote apparatus
             'python3 relmonservice2/remote_apparatus.py '  # No newline here
             '--relmon %s --cert %s --key %s --cpus %s' % (relmon_data_file_name,
                                                           self.grid_cert_file,
@@ -43,8 +48,6 @@ class FileCreator(object):
             'cd Reports',
             # Run sqltify
             'python3 sqltify.py',
-            # Remove sql file from web path
-            'rm -rf %s' % (web_sqlite_path),
             # Checksum for created sqlite
             'echo "HTCondor workspace"',
             'echo "MD5 Sum"',
@@ -54,6 +57,8 @@ class FileCreator(object):
             # Do integrity check
             'echo "Integrity check:"',
             'echo "PRAGMA integrity_check" | sqlite3 reports.sqlite',
+            # Remove sql file from web path
+            'rm -rf %s' % (web_sqlite_path),
             # Copy reports sqlite to web path
             'time rsync -v reports.sqlite %s' % (web_sqlite_path),
             # Checksum for created sqlite
