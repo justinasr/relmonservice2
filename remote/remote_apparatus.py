@@ -166,6 +166,10 @@ def download_root_files(relmon, cmsweb):
 
 
 def get_local_subreport_path(category_name, hlt):
+    """
+    Return name of local folder
+    Basically add Report and HLT to category name
+    """
     name = category_name
     if 'PU' in category_name:
         name = name.split('_')[0] + 'Report_PU'
@@ -219,31 +223,40 @@ def pair_references_with_targets(references, targets):
 
 
 def get_dataset_lists(category):
+    """
+    Return lists of files to compare
+    Automatically paired if automatic pairing is enabled
+    """
     reference_list = category.get('reference', {})
     target_list = category.get('target', {})
     reference_dataset_list = []
     target_dataset_list = []
-
-    for i in range(min(len(reference_list), len(target_list))):
-        if reference_list[i]['file_name'] and target_list[i]['file_name']:
-            reference_dataset_list.append(reference_list[i]['file_name'])
-            target_dataset_list.append(target_list[i]['file_name'])
-
-        if not reference_list[i]['file_name']:
-            logging.error('Downloaded file name is missing for %s, will not compare this workflow' % (reference_list[i]['name']))
-
-        if not target_list[i]['file_name']:
-            logging.error('Downloaded file name is missing for %s, will not compare this workflow' % (reference_list[i]['name']))
-
     automatic_pairing = category['automatic_pairing']
+
     if automatic_pairing:
         reference_dataset_list, target_dataset_list = pair_references_with_targets(reference_dataset_list, target_dataset_list)
+    else:
+        for i in range(min(len(reference_list), len(target_list))):
+            if reference_list[i]['file_name'] and target_list[i]['file_name']:
+                reference_dataset_list.append(reference_list[i]['file_name'])
+                target_dataset_list.append(target_list[i]['file_name'])
+
+            if not reference_list[i]['file_name']:
+                logging.error('Downloaded file name is missing for %s, will not compare this workflow',
+                              reference_list[i]['name'])
+
+            if not target_list[i]['file_name']:
+                logging.error('Downloaded file name is missing for %s, will not compare this workflow',
+                              reference_list[i]['name'])
 
     return reference_dataset_list, target_dataset_list
 
 
-def compare_compress_move(category_name, HLT, reference_list, target_list, log_file, cpus):
-    subreport_path = get_local_subreport_path(category_name, HLT)
+def compare_compress_move(category_name, hlt, reference_list, target_list, log_file, cpus):
+    """
+    The main function that compares, compresses and moves reports to Reports directory
+    """
+    subreport_path = get_local_subreport_path(category_name, hlt)
     comparison_command = ' '.join(['ValidationMatrix.py',
                                    '-R',
                                    ','.join(reference_list),
@@ -253,7 +266,7 @@ def compare_compress_move(category_name, HLT, reference_list, target_list, log_f
                                    subreport_path,
                                    '-N %s' % (cpus),
                                    '--hash_name',
-                                   '--HLT' if HLT else ''])
+                                   '--HLT' if hlt else ''])
 
     # Remove all /cms-service-reldqm/style/blueprint/ from HTML files
     path_fix_command = 'sed -i -e \'s/\/cms-service-reldqm\/style\/blueprint\///g\' $(find %s/ -type f -name *.html)' % (subreport_path)
@@ -290,6 +303,9 @@ def compare_compress_move(category_name, HLT, reference_list, target_list, log_f
 
 
 def run_validation_matrix(config, cpus):
+    """
+    Iterate through categories and start comparison process
+    """
     log_file = open("validation_matrix.log", "w")
     for category in config.get('categories', []):
         category_name = category['name']
@@ -329,6 +345,12 @@ if __name__ == '__main__':
         cpus = int(cpus)
 
     notify_finished = bool(args.get('notify-finished'))
+    logging.info('Arguments: relmon %s; cert %s; key %s; cpus %s; notify-finished %s',
+                 relmon_filename,
+                 cert_file,
+                 key_file,
+                 cpus,
+                 'YES' if notify_finished else 'NO')
     try:
         relmon = read_relmon(relmon_filename)
         if notify_finished:
