@@ -2,13 +2,16 @@ import json
 
 
 class FileCreator(object):
-    def __init__(self, grid_cert, grid_key, remote_location, web_location):
-        self.grid_cert = grid_cert
-        self.grid_key = grid_key
+    # GRID certificate file
+    __grid_cert = '/afs/cern.ch/user/j/jrumsevi/private/user.crt.pem'
+    # GRID key file
+    __grid_key = '/afs/cern.ch/user/j/jrumsevi/private/user.key.pem'
+
+    def __init__(self, remote_location, web_location):
         self.remote_location = remote_location
         self.web_location = web_location
-        self.grid_cert_file = grid_cert.split('/')[-1]
-        self.grid_key_file = grid_key.split('/')[-1]
+        self.grid_cert_file = self.__grid_cert.split('/')[-1]
+        self.grid_key_file = self.__grid_key.split('/')[-1]
 
     def create_job_script_file(self, relmon):
         relmon_id = relmon.get_id()
@@ -33,7 +36,7 @@ class FileCreator(object):
             # Create reports directory
             'mkdir -p Reports',
             # Run the remote apparatus
-            'python3 relmonservice2/remote_apparatus.py '  # No newline here
+            'python3 relmonservice2/remote/remote_apparatus.py '  # No newline here
             '-r %s.json -c %s -k %s --cpus %s' % (relmon_id,
                                                   self.grid_cert_file,
                                                   self.grid_key_file,
@@ -43,7 +46,7 @@ class FileCreator(object):
             # Remove all root files
             'rm *.root',
             # Copy sqlitify to Reports directory
-            'cp relmonservice2/sqltify.py Reports/sqltify.py',
+            'cp relmonservice2/remote/sqltify.py Reports/sqltify.py',
             # Go to reports directory
             'cd Reports',
             # Run sqltify
@@ -73,7 +76,7 @@ class FileCreator(object):
             'cd $DIR',
             'cern-get-sso-cookie -u https://cms-pdmv.cern.ch/mcm -o cookie.txt',
             'mv cookie.txt relmonservice2',
-            'python3 relmonservice2/remote_apparatus.py --relmon %s.json --notify-finished' % (relmon_id)
+            'python3 relmonservice2/remote/remote_apparatus.py --relmon %s.json --notify-finished' % (relmon_id)
         ]
 
         script_file_content_string = '\n'.join(script_file_content)
@@ -99,8 +102,8 @@ class FileCreator(object):
             'error                   = %s.err' % (relmon_id),
             'log                     = %s.log' % (relmon_id),
             'transfer_input_files    = %s.json,%s,%s' % (relmon_id,
-                                                         self.grid_cert,
-                                                         self.grid_key),
+                                                         self.__grid_cert,
+                                                         self.__grid_key),
             'when_to_transfer_output = on_exit',
             'request_cpus            = %s' % (cpus),
             'request_memory          = %s' % (memory),

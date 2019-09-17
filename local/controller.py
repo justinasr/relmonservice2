@@ -16,10 +16,6 @@ class Controller(object):
 
     # Directory in remote host to keep files for submission and collect output
     __remote_directory = 'relmon_test/'
-    # GRID certificate file
-    __grid_cert = '/afs/cern.ch/user/j/jrumsevi/private/user.crt.pem'
-    # GRID key file
-    __grid_key = '/afs/cern.ch/user/j/jrumsevi/private/user.key.pem'
     # Place where results should be moved
     __web_location = '/eos/project/c/cmsweb/www/pdmv-web-test/relmon_test/'
 
@@ -29,9 +25,7 @@ class Controller(object):
         self.is_tick_running = False
         self.db = Database()
         self.ssh_executor = SSHExecutor()
-        self.file_creator = FileCreator(self.__grid_cert,
-                                        self.__grid_key,
-                                        self.__remote_directory,
+        self.file_creator = FileCreator(self.__remote_directory,
                                         self.__web_location)
         # Multithread manager
         manager = Manager()
