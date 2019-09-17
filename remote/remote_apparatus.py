@@ -10,30 +10,37 @@ Output is stored in Reports directory
 import json
 import argparse
 import re
-from cmswebwrapper import CMSWebWrapper
 import logging
 import subprocess
 import os
 import time
-from difflib import SequenceMatcher
 import sys
+from difflib import SequenceMatcher
+from cmswebwrapper import CMSWebWrapper
 
 
-__callback_url = 'http://instance3.cern.ch/relmonsvc/update'
+__CALLBACK_URL = 'http://instance3.cern.ch/relmonsvc/update'
 
 
 def get_workflow(workflow_name, cmsweb):
+    """
+    Get workflow from cmsweb
+    """
     workflow = cmsweb.get_workflow(workflow_name)
     return workflow
 
 
 def get_dqmio_dataset(workflow):
+    """
+    Given a workflow dictionary, return first occurence of DQMIO string
+    Return None if it could not be found
+    """
     output_datasets = workflow.get('OutputDatasets', [])
-    output_datasets = [x for x in output_datasets if '/DQMIO' in x]
-    if len(output_datasets) > 0:
-        return output_datasets[0]
-    else:
-        return None
+    for dataset in output_datasets:
+        if '/DQMIO' in dataset:
+            return dataset
+
+    return None
 
 
 def get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name):
@@ -75,7 +82,7 @@ def notify(relmon):
                    '-X',
                    'POST',
                    '--cookie cookie.txt',
-                   __callback_url,
+                   __CALLBACK_URL,
                    '-s',
                    '-k',
                    '-L',
@@ -102,6 +109,9 @@ def notify(relmon):
 
 
 def download_root_files(relmon, cmsweb):
+    """
+    Download all files needed for comparison and fill relmon dictionary
+    """
     for category in relmon.get('categories', []):
         category_name = category['name']
         reference_list = category.get('reference', [])
@@ -111,21 +121,28 @@ def download_root_files(relmon, cmsweb):
             if not workflow:
                 item['status'] = 'no_workflow'
                 notify(relmon)
+                logging.warning('Could not find workflow %s in ReqMgr2', item['name'])
                 continue
 
             dqmio_dataset = get_dqmio_dataset(workflow)
             if not dqmio_dataset:
                 item['status'] = 'no_dqmio'
                 notify(relmon)
+                logging.warning('Could not find DQMIO dataset in %s. Datasets: %s',
+                                item['name'],
+                                ', '.join(workflow.get('OutputDatasets', [])))
                 continue
 
             file_url = get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name)
             if not file_url:
                 item['status'] = 'no_root'
                 notify(relmon)
+                logging.warning('Could not get root file path for %s dataset of %s workflow',
+                                dqmio_dataset,
+                                item['name'])
                 continue
 
-            logging.info('Dataset URL %s for %s' % (file_url, item['name']))
+            logging.info('File URL for %s is %s', item['name'], file_url)
             item['file_url'] = file_url
             item['file_size'] = 0
             item['status'] = 'downloading'
@@ -135,10 +152,12 @@ def download_root_files(relmon, cmsweb):
                 item['file_name'] = cmsweb.get_big_file(item['file_url'])
                 item['status'] = 'downloaded'
                 item['file_size'] = os.path.getsize(item['file_name'])
-                logging.info('Downloaded %s. Size %s MB' % (item['file_name'], item.get('file_size', 0) / 1024.0 / 1024.0))
+                logging.info('Downloaded %s. Size %s MB',
+                             item['file_name'],
+                             item.get('file_size', 0) / 1024.0 / 1024.0)
             except Exception as ex:
                 logging.error(ex)
-                logging.error('Error getting %s for %s' % (item['file_url'], item['name']))
+                logging.error('Error getting %s for %s', item['file_url'], item['name'])
                 item['status'] = 'failed'
 
             notify(relmon)
@@ -294,9 +313,9 @@ def run_validation_matrix(config, cpus):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ROOT file downloader and ValidationMatrix runner')
-    parser.add_argument('--relmon')
-    parser.add_argument('--cert')
-    parser.add_argument('--key')
+    parser.add_argument('--relmon', '-r')
+    parser.add_argument('--cert', '-c')
+    parser.add_argument('--key', '-k')
     parser.add_argument('--cpus', nargs='?', const=1, type=int)
     parser.add_argument('--notify-finished', action='store_true')
     args = vars(parser.parse_args())
@@ -313,8 +332,8 @@ if __name__ == '__main__':
     try:
         relmon = read_relmon(relmon_filename)
         if notify_finished:
-            relmon['status'] = 'finished'
-            logging.info(subprocess.check_output('curl --cookie cookie.txt -s -k -L https://cms-pdmv.cern.ch/mcm | grep title', shell=True))
+            if relmon['status'] != 'failed':
+                relmon['status'] = 'finished'
         else:
             cmsweb = CMSWebWrapper(cert_file, key_file)
             relmon['status'] = 'running'

@@ -67,7 +67,7 @@ class Controller(object):
                          ', '.join(self.relmons_to_reset))
         for relmon_id in self.relmons_to_reset:
             self.__reset_relmon(relmon_id)
-            self.relmons_to_delete.remove(relmon_id)
+            self.relmons_to_reset.remove(relmon_id)
 
         # Check relmons
         relmons_to_check = self.db.get_relmons_with_status('submitted', include_docs=True)
@@ -82,6 +82,8 @@ class Controller(object):
             self.__check_if_running(relmon)
             condor_status = relmon.get_condor_status()
             if condor_status in ['DONE', 'REMOVED']:
+                # Refetch after check if running save
+                relmon = RelMon(self.db.get(relmon.get_id()))
                 self.__collect_output(relmon)
 
         # Submit relmons
@@ -106,18 +108,18 @@ class Controller(object):
         Add relmon id to list of ids to be reset during next tick
         """
         self.logger.info('Will add %s to reset list', relmon_id)
-        if relmon_id not in self.relmons_to_reset:
+        if str(relmon_id) not in self.relmons_to_reset:
             self.logger.info('Added %s to reset list', relmon_id)
-            self.relmons_to_reset.append(relmon_id)
+            self.relmons_to_reset.append(str(relmon_id))
 
     def add_to_delete_list(self, relmon_id):
         """
         Add relmon id to list of ids to be deleted during next tick
         """
         self.logger.info('Will add %s to delete list', relmon_id)
-        if relmon_id not in self.relmons_to_delete:
+        if str(relmon_id) not in self.relmons_to_delete:
             self.logger.info('Added %s to delete list', relmon_id)
-            self.relmons_to_delete.append(relmon_id)
+            self.relmons_to_delete.append(str(relmon_id))
 
     def create_relmon(self, relmon_data):
         """
@@ -158,6 +160,7 @@ class Controller(object):
                          relmon.get_memory(),
                          relmon.get_disk())
         try:
+            self.logger.info('Will create files for %s', relmon)
             # Dump the json to a file
             self.file_creator.create_relmon_file(relmon)
             # Create HTCondor submit file
@@ -165,20 +168,23 @@ class Controller(object):
             # Create actual job script file
             self.file_creator.create_job_script_file(relmon)
 
+            self.logger.info('Will prepare remote directory for %s', relmon)
             # Prepare remote directory. Delete old one and create a new one
             self.ssh_executor.execute_command([
                 'rm -rf %s' % (remote_relmon_directory),
                 'mkdir -p %s' % (remote_relmon_directory)
             ])
 
+            self.logger.info('Will upload files for %s', relmon)
             # Upload relmon json, submit file and script to run
-            self.ssh_executor.upload_file('%s%s.json' % (local_relmon_directory),
-                                          '%s%s.json' % (remote_relmon_directory))
-            self.ssh_executor.upload_file('%s%s.sub' % (local_relmon_directory),
-                                          '%s%s.sub' % (remote_relmon_directory))
-            self.ssh_executor.upload_file('%s%s.sh' % (local_relmon_directory),
-                                          '%s%s.sh' % (remote_relmon_directory))
+            self.ssh_executor.upload_file('%s%s.json' % (local_relmon_directory, relmon_id),
+                                          '%s%s.json' % (remote_relmon_directory, relmon_id))
+            self.ssh_executor.upload_file('%s%s.sub' % (local_relmon_directory, relmon_id),
+                                          '%s%s.sub' % (remote_relmon_directory, relmon_id))
+            self.ssh_executor.upload_file('%s%s.sh' % (local_relmon_directory, relmon_id),
+                                          '%sRELMON_%s.sh' % (remote_relmon_directory, relmon_id))
 
+            self.logger.info('Will try to submit %s', relmon)
             # Run condor_submit
             # Submission happens through lxplus as condor is not available on website machine
             # It is easier to ssh to lxplus than set up condor locally
@@ -271,7 +277,9 @@ class Controller(object):
             'cd ..',
             'rm -r %s' % (relmon_id)
         ])
-        relmon.set_status('done')
+        if relmon.get_status() != 'failed':
+            relmon.set_status('done')
+
         self.db.update_relmon(relmon)
 
     def __reset_relmon(self, relmon_id):

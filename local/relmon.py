@@ -1,7 +1,13 @@
+import os
+
+
 class RelMon(object):
 
     def __init__(self, data):
         self.data = data
+        relmon_path = 'relmons/%s/' % (self.get_id())
+        if not os.path.isdir(relmon_path):
+            os.mkdir(relmon_path)
 
     def reset(self):
         self.set_status('new')

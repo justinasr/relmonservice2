@@ -10,7 +10,7 @@ class FileCreator(object):
         self.grid_cert_file = grid_cert.split('/')[-1]
         self.grid_key_file = grid_key.split('/')[-1]
 
-    def create_job_script_file(self, relmon, relmon_data_file_name):
+    def create_job_script_file(self, relmon):
         relmon_id = relmon.get_id()
         cpus = relmon.get_cpu()
         relmon_name = relmon.get_name()
@@ -34,10 +34,10 @@ class FileCreator(object):
             'mkdir -p Reports',
             # Run the remote apparatus
             'python3 relmonservice2/remote_apparatus.py '  # No newline here
-            '--relmon %s --cert %s --key %s --cpus %s' % (relmon_data_file_name,
-                                                          self.grid_cert_file,
-                                                          self.grid_key_file,
-                                                          cpus),
+            '-r %s.json -c %s -k %s --cpus %s' % (relmon_id,
+                                                  self.grid_cert_file,
+                                                  self.grid_key_file,
+                                                  cpus),
             ')',
             'cd $DIR',
             # Remove all root files
@@ -87,20 +87,20 @@ class FileCreator(object):
         with open(relmon_file_name, 'w') as output_file:
             json.dump(relmon_data, output_file, indent=2, sort_keys=True)
 
-    def create_condor_job_file(self, relmon, relmon_data_file_name):
+    def create_condor_job_file(self, relmon):
         relmon_id = relmon.get_id()
         cpus = relmon.get_cpu()
         memory = relmon.get_memory()
         disk = relmon.get_disk()
-        condor_file_name = 'relmon/%s/%s.sub' % (relmon_id, relmon_id)
+        condor_file_name = 'relmons/%s/%s.sub' % (relmon_id, relmon_id)
         condor_file_content = [
             'executable              = RELMON_%s.sh' % (relmon_id),
-            'output                  = RELMON_%s.out' % (relmon_id),
-            'error                   = RELMON_%s.err' % (relmon_id),
-            'log                     = RELMON_%s.log' % (relmon_id),
-            'transfer_input_files    = %s,%s,%s' % (relmon_data_file_name,
-                                                    self.grid_cert,
-                                                    self.grid_key),
+            'output                  = %s.out' % (relmon_id),
+            'error                   = %s.err' % (relmon_id),
+            'log                     = %s.log' % (relmon_id),
+            'transfer_input_files    = %s.json,%s,%s' % (relmon_id,
+                                                         self.grid_cert,
+                                                         self.grid_key),
             'when_to_transfer_output = on_exit',
             'request_cpus            = %s' % (cpus),
             'request_memory          = %s' % (memory),

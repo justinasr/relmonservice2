@@ -1,9 +1,18 @@
-import http.client
+"""
+Module that contains CMSWebWrapper
+"""
+
 import logging
 import json
+import os
+import http.client
 
 
-class CMSWebWrapper():
+class CMSWebWrapper(object):
+    """
+    CMSWebWrapper handles all communication with cmsweb
+    It requires paths to grid user certificate and grid user key files
+    """
 
     __cache = {}
 
@@ -11,7 +20,10 @@ class CMSWebWrapper():
         self.cert_file = cert_file
         self.key_file = key_file
 
-    def get_connection(self):
+    def __get_connection(self):
+        """
+        Return a HTTPSConnection to cmsweb.cern.ch
+        """
         if self.cert_file is None or self.key_file is None:
             raise Exception('Missing USERCRT or USERKEY environment variables')
 
@@ -22,15 +34,19 @@ class CMSWebWrapper():
                                            timeout=120)
 
     def get(self, path, cache=True):
-        logging.info('Will try to GET %s' % (path))
+        """
+        Make a simple GET request
+        Add Accept: application/json headers
+        """
+        logging.info('Will try to GET %s', path)
         if cache and path in self.__cache:
             return self.__cache[path]
 
-        connection = self.get_connection()
-        connection.request('GET', path, headers={"Accept": "application/json"})
+        connection = self.__get_connection()
+        connection.request('GET', path, headers={'Accept': 'application/json'})
         response = connection.getresponse()
         if response.status != 200:
-            logging.error("Problems (%d) with %s: %s" % (response.status, path, response.read()))
+            logging.error('Problems (%d) with %s: %s', response.status, path, response.read())
             connection.close()
             return None
 
@@ -42,21 +58,28 @@ class CMSWebWrapper():
         return decoded_response
 
     def get_big_file(self, path, filename=None):
-        logging.info('Will try to download file %s' % (path))
+        """
+        Download files chunk by chunk
+        """
+        logging.info('Will try to download file %s', path)
         if filename is None:
             filename = path.split('/')[-1]
-            logging.info('Using file name %s for %s' % (filename, path))
+            logging.info('Using file name %s for %s', filename, path)
 
-        connection = self.get_connection()
+        if os.path.isfile(filename):
+            logging.info('File %s already exists', filename)
+            return filename
+
+        connection = self.__get_connection()
         connection.request('GET', path)
         response = connection.getresponse()
         chunk_size = 1024 * 1024 * 4  # 4 megabytes
-        with open(filename, "wb") as file:
+        with open(filename, 'wb') as output_file:
             while True:
                 chunk = response.read(chunk_size)
                 if chunk:
-                    file.write(chunk)
-                    file.flush()
+                    output_file.write(chunk)
+                    output_file.flush()
                 else:
                     break
 
@@ -64,14 +87,21 @@ class CMSWebWrapper():
         return filename
 
     def get_workflow(self, workflow_name):
+        """
+        Get a single workflow from ReqMgr2
+        """
         workflow_string = self.get('/reqmgr2/data/request?name=%s' % (workflow_name))
         if not workflow_string:
             return None
 
         try:
             workflow = json.loads(workflow_string)
-            # 'result' is a list of elements and each of them is dictionary that has workflow name as key
+            # 'result' is a list of elements and each of them is
+            # dictionary that has workflow name as key
             return workflow.get('result', [{}])[0].get(workflow_name)
-        except Exception as ex:
-            logging.error('Failed to parse workflow %s JSON %s. %s' % (workflow_name, workflow_string, ex))
+        except ValueError as ex:
+            logging.error('Failed to parse workflow %s JSON %s. %s',
+                          workflow_name,
+                          workflow_string,
+                          ex)
             return None
