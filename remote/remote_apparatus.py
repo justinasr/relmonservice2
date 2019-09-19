@@ -44,22 +44,26 @@ def get_dqmio_dataset(workflow):
 
 
 def get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name):
+    logging.info('Getting root file path for dataset %s. Category %s', dqmio_dataset, category_name)
     parts = dqmio_dataset.split('/')[1:]
     dataset = parts[0]
     cmssw = parts[1].split('-')[0]
-    PS = '-'.join(parts[1].split('-')[1:])
-    dataset_part = dataset + "__" + cmssw + '-' + PS
+    processing_string = '-'.join(parts[1].split('-')[1:])
+    dataset_part = dataset + "__" + cmssw + '-' + processing_string
     if category_name == 'Data':
         cmsweb_dqm_dir_link = '/dqm/relval/data/browse/ROOT/RelValData/'
     else:
         cmsweb_dqm_dir_link = '/dqm/relval/data/browse/ROOT/RelVal/'
 
     cmsweb_dqm_dir_link += '_'.join(cmssw.split('_')[:3]) + '_x/'
+    logging.info('CMSWeb dqm directory %s', cmsweb_dqm_dir_link)
     response = cmsweb.get(cmsweb_dqm_dir_link)
     hyperlink_regex = re.compile("href=['\"]([-\._a-zA-Z/\d]*)['\"]")
     hyperlinks = hyperlink_regex.findall(response)[1:]
     hyperlinks = list(hyperlinks)
+    # logging.info('Hyperlinks %s', json.dumps(hyperlinks, indent=2))
     hyperlinks = [x for x in hyperlinks if dataset_part in x]
+    logging.info('Selected hyperlinks %s', json.dumps(hyperlinks, indent=2))
     if len(hyperlinks) > 0:
         return hyperlinks[0]
     else:
@@ -186,38 +190,88 @@ def get_important_part(file_name):
     return file_name.split('__')[1] + '_' + file_name.split("__")[2].split("-")[1]
 
 
-def pair_references_with_targets(references, targets):
-    if len(references) != len(targets):
-        logging.error('Cannot do automatic pairing for different length lists')
-        return references, targets
+def make_file_tree(filenames, category):
+    result_tree = {}
+    for filename in filenames:
+        dataset = filename.split('__')[1]
+        if category == 'Data':
+            run_number = filename.split('__')[0].split('_')[-1]
+        else:
+            run_number = 'all_runs'
 
-    all_ratios = []
-    for reference in references:
-        for target in targets:
-            reference_string = get_important_part(reference)
-            target_string = get_important_part(target)
-            ratio = SequenceMatcher(a=reference_string, b=target_string).ratio()
-            reference_target_ratio = (reference, target, ratio)
-            all_ratios.append(reference_target_ratio)
-            logging.info('%s %s -> %s' % (reference_string, target_string, ratio))
+        if dataset not in result_tree:
+            result_tree[dataset] = {}
 
-    used_references = set()
-    used_targets = set()
-    all_ratios.sort(key=lambda x: x[2], reverse=True)
+        if run_number not in result_tree[dataset]:
+            result_tree[dataset][run_number] = []
+
+        result_tree[dataset][run_number].append(filename)
+
+    return result_tree
+
+
+def pair_references_with_targets(references, targets, category):
+    logging.info('Will try to pair references:\n%s\nwith targets:\n%s',
+                 ',\n'.join(sorted(references, key=lambda name: '__'.join(name.split('__')[1:]))),
+                 ',\n'.join(sorted(targets, key=lambda name: '__'.join(name.split('__')[1:]))))
+
+    reference_tree = make_file_tree(references, category)
+    target_tree = make_file_tree(targets, category)
+
+    logging.info(json.dumps(reference_tree, indent=4))
+    logging.info(json.dumps(target_tree, indent=4))
+
     selected_pairs = []
-    for reference_target_ratio in all_ratios:
-        reference_name = reference_target_ratio[0]
-        target_name = reference_target_ratio[1]
-        if reference_name not in used_references and target_name not in used_targets:
-            selected_pairs.append(reference_target_ratio)
-            used_references.add(reference_name)
-            used_targets.add(target_name)
+
+    for reference_dataset, reference_runs in reference_tree.items():
+        for reference_run, references_in_run in reference_runs.items():
+            targets_in_run = target_tree.get(reference_dataset, {}).get(reference_run, [])
+            if len(references_in_run) == 1 and len(targets_in_run) == 1:
+                reference_name = references_in_run.pop(0)
+                target_name = targets_in_run.pop(0)
+                logging.info('Pair %s with %s', reference_name, target_name)
+                selected_pairs.append((reference_name, target_name))
+            else:
+                logging.info('Dataset %s. Run %s. Will try to match %s\nwith\n%s',
+                             reference_dataset,
+                             reference_run,
+                             json.dumps(references_in_run, indent=2),
+                             json.dumps(targets_in_run, indent=2))
+
+                all_ratios = []
+                for reference in references_in_run:
+                    for target in targets_in_run:
+                        reference_string = get_important_part(reference)
+                        target_string = get_important_part(target)
+                        ratio = SequenceMatcher(a=reference_string, b=target_string).ratio()
+                        reference_target_ratio = (reference, target, ratio)
+                        all_ratios.append(reference_target_ratio)
+                        logging.info('%s %s -> %s' % (reference_string, target_string, ratio))
+
+                used_references = set()
+                used_targets = set()
+                all_ratios.sort(key=lambda x: x[2], reverse=True)
+                for reference_target_ratio in all_ratios:
+                    reference_name = reference_target_ratio[0]
+                    target_name = reference_target_ratio[1]
+                    similarity_ratio = reference_target_ratio[2]
+                    if reference_name not in used_references and target_name not in used_targets:
+                        logging.info('Pair %s with %s. Similarity %.3f',
+                                     reference_name,
+                                     target_name,
+                                     similarity_ratio)
+                        used_references.add(reference_name)
+                        used_targets.add(target_name)
+                        references_in_run.remove(reference_name)
+                        targets_in_run.remove(target_name)
+                        selected_pairs.append((reference_name, target_name))
+
+    logging.info('Leftovers:')
+    logging.info(json.dumps(reference_tree, indent=4))
+    logging.info(json.dumps(target_tree, indent=4))
 
     sorted_references = [x[0] for x in selected_pairs]
     sorted_targets = [x[1] for x in selected_pairs]
-    if len(sorted_references) != len(references) or len(sorted_targets) != len(targets):
-        logging.error('Mismatch of number of references or targets after matching')
-        return references, targets
 
     return sorted_references, sorted_targets
 
@@ -234,7 +288,11 @@ def get_dataset_lists(category):
     automatic_pairing = category['automatic_pairing']
 
     if automatic_pairing:
-        reference_dataset_list, target_dataset_list = pair_references_with_targets(reference_dataset_list, target_dataset_list)
+        reference_dataset_list = [x['file_name'] for x in reference_list if x.get('file_name')]
+        target_dataset_list = [x['file_name'] for x in target_list if x.get('file_name')]
+        reference_dataset_list, target_dataset_list = pair_references_with_targets(reference_dataset_list,
+                                                                                   target_dataset_list,
+                                                                                   category['name'])
     else:
         for i in range(min(len(reference_list), len(target_list))):
             if reference_list[i]['file_name'] and target_list[i]['file_name']:
@@ -343,6 +401,8 @@ if __name__ == '__main__':
     cpus = args.get('cpus', 1)
     if cpus:
         cpus = int(cpus)
+    else:
+        cpus = 1
 
     notify_finished = bool(args.get('notify-finished'))
     logging.info('Arguments: relmon %s; cert %s; key %s; cpus %s; notify-finished %s',
@@ -361,6 +421,9 @@ if __name__ == '__main__':
             relmon['status'] = 'running'
             notify(relmon)
             relmon = download_root_files(relmon, cmsweb)
+            # with open(relmon_filename, 'w') as relmon_file:
+            #     json.dump(relmon, relmon_file, indent=4)
+
             run_validation_matrix(relmon, cpus)
             relmon['status'] = 'finishing'
     except Exception as ex:

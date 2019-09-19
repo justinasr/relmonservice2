@@ -5,6 +5,7 @@ Module that contains CMSWebWrapper
 import logging
 import json
 import os
+import time
 import http.client
 
 
@@ -40,6 +41,7 @@ class CMSWebWrapper(object):
         """
         logging.info('Will try to GET %s', path)
         if cache and path in self.__cache:
+            logging.info('Found %s response in cache', path)
             return self.__cache[path]
 
         connection = self.__get_connection()
@@ -73,17 +75,27 @@ class CMSWebWrapper(object):
         connection = self.__get_connection()
         connection.request('GET', path)
         response = connection.getresponse()
-        chunk_size = 1024 * 1024 * 4  # 4 megabytes
+        chunk_size = 1024 * 1024 * 8  # 8 megabytes
         with open(filename, 'wb') as output_file:
             while True:
                 chunk = response.read(chunk_size)
                 if chunk:
+                    start_time = time.time()
                     output_file.write(chunk)
                     output_file.flush()
+                    end_time = time.time()
+                    speed = (len(chunk) / (1024.0 * 1024.0)) / (end_time - start_time)
+                    logging.info('Downloaded %.2fMB in %.2fs. Speed %.2fMB/s',
+                                 len(chunk) / (1024.0 * 1024.0),
+                                 end_time - start_time,
+                                 speed)
                 else:
+                    logging.info('Nothing left')
                     break
 
+        logging.info('Will close connection')
         connection.close()
+        logging.info('Connection closed')
         return filename
 
     def get_workflow(self, workflow_name):
