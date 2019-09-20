@@ -61,13 +61,10 @@ def get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name):
     hyperlink_regex = re.compile("href=['\"]([-\._a-zA-Z/\d]*)['\"]")
     hyperlinks = hyperlink_regex.findall(response)[1:]
     hyperlinks = list(hyperlinks)
-    # logging.info('Hyperlinks %s', json.dumps(hyperlinks, indent=2))
     hyperlinks = [x for x in hyperlinks if dataset_part in x]
     logging.info('Selected hyperlinks %s', json.dumps(hyperlinks, indent=2))
-    if len(hyperlinks) > 0:
-        return hyperlinks[0]
-    else:
-        return None
+    hyperlinks = sorted(hyperlinks)
+    return hyperlinks
 
 
 def read_relmon(relmon_filename):
@@ -109,7 +106,7 @@ def notify(relmon):
         logging.error('Error while doing notifying: %s' % (ex))
         pass
 
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 
 def download_root_files(relmon, cmsweb):
@@ -121,6 +118,13 @@ def download_root_files(relmon, cmsweb):
         reference_list = category.get('reference', [])
         target_list = category.get('target', [])
         for item in reference_list + target_list:
+            if os.path.isfile(item.get('file_name', 'xxx')):
+                item['file_size'] = os.path.getsize(item['file_name'])
+                item['status'] = 'downloaded'
+                time.sleep(0.05)
+                notify(relmon)
+                continue
+
             workflow = get_workflow(item['name'], cmsweb)
             if not workflow:
                 item['status'] = 'no_workflow'
@@ -137,14 +141,17 @@ def download_root_files(relmon, cmsweb):
                                 ', '.join(workflow.get('OutputDatasets', [])))
                 continue
 
-            file_url = get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name)
-            if not file_url:
+            file_urls = get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name)
+            if not file_urls:
                 item['status'] = 'no_root'
                 notify(relmon)
                 logging.warning('Could not get root file path for %s dataset of %s workflow',
                                 dqmio_dataset,
                                 item['name'])
                 continue
+
+            item['versioned'] = len(file_urls) > 1
+            file_url = file_urls[-1]
 
             logging.info('File URL for %s is %s', item['name'], file_url)
             item['file_url'] = file_url
@@ -190,9 +197,10 @@ def get_important_part(file_name):
     return file_name.split('__')[1] + '_' + file_name.split("__")[2].split("-")[1]
 
 
-def make_file_tree(filenames, category):
+def make_file_tree(items, category):
     result_tree = {}
-    for filename in filenames:
+    for item in items:
+        filename = item['file_name']
         dataset = filename.split('__')[1]
         if category == 'Data':
             run_number = filename.split('__')[0].split('_')[-1]
@@ -205,21 +213,20 @@ def make_file_tree(filenames, category):
         if run_number not in result_tree[dataset]:
             result_tree[dataset][run_number] = []
 
-        result_tree[dataset][run_number].append(filename)
+        result_tree[dataset][run_number].append(item)
 
     return result_tree
 
 
-def pair_references_with_targets(references, targets, category):
-    logging.info('Will try to pair references:\n%s\nwith targets:\n%s',
-                 ',\n'.join(sorted(references, key=lambda name: '__'.join(name.split('__')[1:]))),
-                 ',\n'.join(sorted(targets, key=lambda name: '__'.join(name.split('__')[1:]))))
+def pair_references_with_targets(category):
+    logging.info('Will try to automatically find pairs in %s', category['name'])
+    references = category.get('reference', [])
+    targets = category.get('target', [])
+    reference_tree = make_file_tree(references, category['name'])
+    target_tree = make_file_tree(targets, category['name'])
 
-    reference_tree = make_file_tree(references, category)
-    target_tree = make_file_tree(targets, category)
-
-    logging.info(json.dumps(reference_tree, indent=4))
-    logging.info(json.dumps(target_tree, indent=4))
+    logging.info('References tree: %s', json.dumps(reference_tree, indent=4))
+    logging.info('Targets tree: %s', json.dumps(target_tree, indent=4))
 
     selected_pairs = []
 
@@ -227,8 +234,10 @@ def pair_references_with_targets(references, targets, category):
         for reference_run, references_in_run in reference_runs.items():
             targets_in_run = target_tree.get(reference_dataset, {}).get(reference_run, [])
             if len(references_in_run) == 1 and len(targets_in_run) == 1:
-                reference_name = references_in_run.pop(0)
-                target_name = targets_in_run.pop(0)
+                reference = references_in_run.pop()
+                target = targets_in_run.pop()
+                reference_name = reference['file_name']
+                target_name = target['file_name']
                 logging.info('Pair %s with %s', reference_name, target_name)
                 selected_pairs.append((reference_name, target_name))
             else:
@@ -241,8 +250,8 @@ def pair_references_with_targets(references, targets, category):
                 all_ratios = []
                 for reference in references_in_run:
                     for target in targets_in_run:
-                        reference_string = get_important_part(reference)
-                        target_string = get_important_part(target)
+                        reference_string = get_important_part(reference['file_name'])
+                        target_string = get_important_part(target['file_name'])
                         ratio = SequenceMatcher(a=reference_string, b=target_string).ratio()
                         reference_target_ratio = (reference, target, ratio)
                         all_ratios.append(reference_target_ratio)
@@ -252,8 +261,8 @@ def pair_references_with_targets(references, targets, category):
                 used_targets = set()
                 all_ratios.sort(key=lambda x: x[2], reverse=True)
                 for reference_target_ratio in all_ratios:
-                    reference_name = reference_target_ratio[0]
-                    target_name = reference_target_ratio[1]
+                    reference_name = reference_target_ratio[0]['file_name']
+                    target_name = reference_target_ratio[1]['file_name']
                     similarity_ratio = reference_target_ratio[2]
                     if reference_name not in used_references and target_name not in used_targets:
                         logging.info('Pair %s with %s. Similarity %.3f',
@@ -262,13 +271,20 @@ def pair_references_with_targets(references, targets, category):
                                      similarity_ratio)
                         used_references.add(reference_name)
                         used_targets.add(target_name)
-                        references_in_run.remove(reference_name)
-                        targets_in_run.remove(target_name)
+                        references_in_run.remove(reference_target_ratio[0])
+                        targets_in_run.remove(reference_target_ratio[1])
                         selected_pairs.append((reference_name, target_name))
 
-    logging.info('Leftovers:')
-    logging.info(json.dumps(reference_tree, indent=4))
-    logging.info(json.dumps(target_tree, indent=4))
+            for reference in references_in_run:
+                if reference['status'] == 'downloaded':
+                    reference['status'] = 'no_match'
+
+            for target in targets_in_run:
+                if target['status'] == 'downloaded':
+                    target['status'] = 'no_match'
+
+    logging.info('References leftovers tree: %s', json.dumps(reference_tree, indent=4))
+    logging.info('Targets leftovers tree: %s', json.dumps(target_tree, indent=4))
 
     sorted_references = [x[0] for x in selected_pairs]
     sorted_targets = [x[1] for x in selected_pairs]
@@ -288,11 +304,7 @@ def get_dataset_lists(category):
     automatic_pairing = category['automatic_pairing']
 
     if automatic_pairing:
-        reference_dataset_list = [x['file_name'] for x in reference_list if x.get('file_name')]
-        target_dataset_list = [x['file_name'] for x in target_list if x.get('file_name')]
-        reference_dataset_list, target_dataset_list = pair_references_with_targets(reference_dataset_list,
-                                                                                   target_dataset_list,
-                                                                                   category['name'])
+        reference_dataset_list, target_dataset_list = pair_references_with_targets(category)
     else:
         for i in range(min(len(reference_list), len(target_list))):
             if reference_list[i]['file_name'] and target_list[i]['file_name']:
