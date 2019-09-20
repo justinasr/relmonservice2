@@ -77,7 +77,7 @@ class Controller(object):
             condor_status = relmon.get_condor_status()
             if condor_status in ['DONE', 'REMOVED']:
                 # Refetch after check if running save
-                relmon = RelMon(self.db.get(relmon.get_id()))
+                relmon = RelMon(self.db.get_relmon(relmon.get_id()))
                 self.__collect_output(relmon)
 
         # Submit relmons
@@ -245,6 +245,7 @@ class Controller(object):
             self.logger.info('%s status is not DONE or REMOVED, it is %s', relmon, condor_status)
             return
 
+        logging.info('Collecting output for %s', relmon)
         relmon_id = relmon.get_id()
         remote_relmon_directory = '%s%s/' % (self.__remote_directory, relmon_id)
         local_relmon_directory = 'relmons/%s/' % (relmon_id)

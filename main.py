@@ -9,6 +9,7 @@ import json
 import time
 from local.controller import Controller
 from couchdb_database import Database
+from local.relmon import RelMon
 
 
 app = Flask(__name__,
@@ -16,7 +17,7 @@ app = Flask(__name__,
             template_folder="./html")
 api = Api(app)
 scheduler = BackgroundScheduler()
-controller = Controller()
+controller = None
 
 
 @app.route('/')
@@ -34,7 +35,8 @@ def index():
                                       'file_name': x.get('file_name', ''),
                                       'file_url': x.get('file_url', ''),
                                       'file_size': x.get('file_size', 0),
-                                      'status': x.get('status', '')} for x in category['reference']]
+                                      'status': x.get('status', ''),
+                                      'versioned': x.get('versioned', False)} for x in category['reference']]
 
             category['reference_status'] = {}
             category['reference_total_size'] = 0
@@ -45,7 +47,7 @@ def index():
                 if relmon_status not in category['reference_status']:
                     category['reference_status'][relmon_status] = 0
 
-                if relmon_status == 'downloaded':
+                if relmon_status != 'initial':
                     relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
 
                 if category['status'] == 'done':
@@ -57,7 +59,8 @@ def index():
                                    'file_name': x.get('file_name', ''),
                                    'file_url': x.get('file_url', ''),
                                    'file_size': x.get('file_size', 0),
-                                   'status': x.get('status', '')} for x in category['target']]
+                                   'status': x.get('status', ''),
+                                   'versioned': x.get('versioned', False)} for x in category['target']]
 
             category['target_status'] = {}
             category['target_total_size'] = 0
@@ -67,7 +70,7 @@ def index():
                 if relmon_status not in category['target_status']:
                     category['target_status'][relmon_status] = 0
 
-                if relmon_status == 'downloaded':
+                if relmon_status != 'initial':
                     relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
 
                 if category['status'] == 'done':
@@ -127,27 +130,26 @@ def output_text(data, code=200, headers=None):
 @app.route('/update', methods=['POST'])
 def update_info():
     data = json.loads(request.data.decode('utf-8'))
-    storage = PersistentStorage()
-    relmon = storage.get_relmon_by_id(data['id'])
-    logger = logging.getLogger('logger')
-    if relmon.get('secret_hash', 'NO_HASH1') != data.get('secret_hash', 'NO_HASH2'):
-        logger.error('Wrong secret hash')
-        return output_text({'message': 'Wrong secret hash'})
+    db = Database()
+    relmon = db.get_relmon(data['id'])
+    if not relmon:
+        return output_text({'message', 'Could not find'})
 
+    logger = logging.getLogger('logger')
     old_status = relmon.get('status')
-    if old_status != 'submitted' and old_status != 'running':
-        logger.error('Bad status %s' % (old_status))
-        return output_text({'message': 'Bad status %s' % (old_status)})
+    # if old_status not in ['submitted', 'running', 'finishing']:
+    #     logger.error('Bad status %s' % (old_status))
+    #     return output_text({'message': 'Bad status %s' % (old_status)})
 
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
-    if relmon['status'] != old_status:
-        controller_tick()
-
     logger.info('Update for %s (%s). Status is %s' % (relmon['name'],
                                                       relmon['id'],
                                                       relmon['status']))
-    storage.update_relmon(relmon)
+    db.update_relmon(RelMon(relmon))
+    if relmon['status'] != old_status:
+        controller_tick()
+
     return output_text({'message': 'OK'})
 
 
@@ -202,6 +204,7 @@ if __name__ == '__main__':
     else:
         setup_logging()
 
+    controller = Controller()
     scheduler.add_executor('processpool')
     scheduler.add_job(tick, 'interval', seconds=600, max_instances=1)
     scheduler.start()

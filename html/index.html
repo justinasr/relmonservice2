@@ -237,20 +237,20 @@
                 <h5>Reference</h5>
                 <ul>
                 {% for wf in category.reference %}
-                  <li>Name: {{ wf.name }} ({{ wf.status }})<br>
+                  <li>{{ wf.name }} ({{ wf.status }}{% if wf.versioned %}, VERSIONED{% endif %})<br>
                       <small>File: {{ wf.file_name }}</small><br>
-                      <small>File location: {{ wf.file_url }}</small><br>
-                      <small>File size: {{ (wf.file_size / (1024.0 * 1024.0)) | round }}MB</small>
+                      <!--<small>File location: {{ wf.file_url }}</small><br>
+                      <small>File size: {{ (wf.file_size / (1024.0 * 1024.0)) | round }}MB</small>-->
                   </li>
                 {% endfor %}
                 </ul>
                 <h5>Target</h5>
                 <ul>
                 {% for wf in category.target %}
-                  <li>Name: {{ wf.name }} ({{ wf.status }})<br>
+                  <li>{{ wf.name }} ({{ wf.status }}{% if wf.versioned %}, VERSIONED{% endif %})<br>
                       <small>File: {{ wf.file_name }}</small><br>
-                      <small>File location: {{ wf.file_url }}</small><br>
-                      <small>File size: {{ (wf.file_size / (1024.0 * 1024.0)) | round }}MB</small>
+                      <!--<small>File location: {{ wf.file_url }}</small><br>
+                      <small>File size: {{ (wf.file_size / (1024.0 * 1024.0)) | round }}MB</small>-->
                   </li>
                 {% endfor %}
               </div><br>
