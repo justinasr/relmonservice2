@@ -336,7 +336,7 @@ def compare_compress_move(category_name, hlt, reference_list, target_list, log_f
                                    '--HLT' if hlt else ''])
 
     # Remove all /cms-service-reldqm/style/blueprint/ from HTML files
-    path_fix_command = 'sed -i -e \'s/\/cms-service-reldqm\/style\/blueprint\///g\' $(find %s/ -type f -name *.html)' % (subreport_path)
+    path_fix_command = "find %s/ -type f -name '*.html' | xargs -L1 sed -i -e 's#/cms-service-reldqm/style/blueprint/##g'" % (subreport_path)
     compression_command = ' '.join(['dir2webdir.py', subreport_path])
     move_command = ' '.join(['mv', subreport_path, 'Reports/'])
 
@@ -345,28 +345,28 @@ def compare_compress_move(category_name, hlt, reference_list, target_list, log_f
                             stdout=log_file,
                             stderr=log_file,
                             shell=True)
-    proc.wait()
+    proc.communicate()
 
     logging.info('Path fix command: %s' % (path_fix_command))
     proc = subprocess.Popen(path_fix_command,
                             stdout=log_file,
                             stderr=log_file,
                             shell=True)
-    proc.wait()
+    proc.communicate()
 
     logging.info('Compression command: %s' % (compression_command))
     proc = subprocess.Popen(compression_command,
                             stdout=log_file,
                             stderr=log_file,
                             shell=True)
-    proc.wait()
+    proc.communicate()
 
     logging.info('Move command: %s' % (move_command))
     proc = subprocess.Popen(move_command,
                             stdout=log_file,
                             stderr=log_file,
                             shell=True)
-    proc.wait()
+    proc.communicate()
 
 
 def run_validation_matrix(config, cpus):
