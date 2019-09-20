@@ -76,7 +76,7 @@ class FileCreator(object):
             'cd $DIR',
             'cern-get-sso-cookie -u https://cms-pdmv.cern.ch/mcm -o cookie.txt',
             'mv cookie.txt relmonservice2',
-            'python3 relmonservice2/remote/remote_apparatus.py --relmon %s.json --notify-finished' % (relmon_id)
+            'python3 relmonservice2/remote/remote_apparatus.py --relmon %s.json --notifyfinished' % (relmon_id)
         ]
 
         script_file_content_string = '\n'.join(script_file_content)

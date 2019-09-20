@@ -48,7 +48,7 @@ def get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name):
     parts = dqmio_dataset.split('/')[1:]
     dataset = parts[0]
     cmssw = parts[1].split('-')[0]
-    processing_string = '-'.join(parts[1].split('-')[1:])
+    processing_string = parts[1].split('-')[1]
     dataset_part = dataset + "__" + cmssw + '-' + processing_string
     if category_name == 'Data':
         cmsweb_dqm_dir_link = '/dqm/relval/data/browse/ROOT/RelValData/'
@@ -56,14 +56,13 @@ def get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name):
         cmsweb_dqm_dir_link = '/dqm/relval/data/browse/ROOT/RelVal/'
 
     cmsweb_dqm_dir_link += '_'.join(cmssw.split('_')[:3]) + '_x/'
-    logging.info('CMSWeb dqm directory %s', cmsweb_dqm_dir_link)
     response = cmsweb.get(cmsweb_dqm_dir_link)
     hyperlink_regex = re.compile("href=['\"]([-\._a-zA-Z/\d]*)['\"]")
     hyperlinks = hyperlink_regex.findall(response)[1:]
     hyperlinks = list(hyperlinks)
     hyperlinks = [x for x in hyperlinks if dataset_part in x]
-    logging.info('Selected hyperlinks %s', json.dumps(hyperlinks, indent=2))
     hyperlinks = sorted(hyperlinks)
+    logging.info('Selected hyperlinks %s', json.dumps(hyperlinks, indent=2))
     return hyperlinks
 
 
@@ -96,8 +95,7 @@ def notify(relmon):
                    '-o',
                    '/dev/null']
         command = ' '.join(command)
-        logging.info('Notify command: %s' % (command))
-        logging.info('curl callback length %s' % (len(command)))
+        logging.info('Notifying...')
         proc = subprocess.Popen(command,
                                 shell=True)
         proc.wait()
@@ -118,12 +116,11 @@ def download_root_files(relmon, cmsweb):
         reference_list = category.get('reference', [])
         target_list = category.get('target', [])
         for item in reference_list + target_list:
-            if os.path.isfile(item.get('file_name', 'xxx')):
-                item['file_size'] = os.path.getsize(item['file_name'])
-                item['status'] = 'downloaded'
-                time.sleep(0.05)
-                notify(relmon)
-                continue
+            # if os.path.isfile(item.get('file_name', 'no-file-name')):
+            #     item['file_size'] = os.path.getsize(item['file_name'])
+            #     item['status'] = 'downloaded'
+            #     notify(relmon)
+            #     continue
 
             workflow = get_workflow(item['name'], cmsweb)
             if not workflow:
@@ -163,7 +160,7 @@ def download_root_files(relmon, cmsweb):
                 item['file_name'] = cmsweb.get_big_file(item['file_url'])
                 item['status'] = 'downloaded'
                 item['file_size'] = os.path.getsize(item['file_name'])
-                logging.info('Downloaded %s. Size %s MB',
+                logging.info('Downloaded %s. Size %.2f MB',
                              item['file_name'],
                              item.get('file_size', 0) / 1024.0 / 1024.0)
             except Exception as ex:
@@ -403,7 +400,7 @@ if __name__ == '__main__':
     parser.add_argument('--cert', '-c')
     parser.add_argument('--key', '-k')
     parser.add_argument('--cpus', nargs='?', const=1, type=int)
-    parser.add_argument('--notify-finished', action='store_true')
+    parser.add_argument('--notifyfinished', action='store_true')
     args = vars(parser.parse_args())
     logging.basicConfig(stream=sys.stdout, format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
 
@@ -416,7 +413,7 @@ if __name__ == '__main__':
     else:
         cpus = 1
 
-    notify_finished = bool(args.get('notify-finished'))
+    notify_finished = bool(args.get('notifyfinished'))
     logging.info('Arguments: relmon %s; cert %s; key %s; cpus %s; notify-finished %s',
                  relmon_filename,
                  cert_file,
@@ -433,11 +430,10 @@ if __name__ == '__main__':
             relmon['status'] = 'running'
             notify(relmon)
             relmon = download_root_files(relmon, cmsweb)
-            # with open(relmon_filename, 'w') as relmon_file:
-            #     json.dump(relmon, relmon_file, indent=4)
-
             run_validation_matrix(relmon, cpus)
             relmon['status'] = 'finishing'
+            with open(relmon_filename, 'w') as relmon_file:
+                json.dump(relmon, relmon_file, indent=4)
     except Exception as ex:
         logging.error(ex)
         relmon['status'] = 'failed'

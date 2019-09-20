@@ -26,7 +26,7 @@ class CMSWebWrapper(object):
         Return a HTTPSConnection to cmsweb.cern.ch
         """
         if self.cert_file is None or self.key_file is None:
-            raise Exception('Missing USERCRT or USERKEY environment variables')
+            raise Exception('Missing user certificate or user key')
 
         return http.client.HTTPSConnection('cmsweb.cern.ch',
                                            port=443,
@@ -77,25 +77,25 @@ class CMSWebWrapper(object):
         response = connection.getresponse()
         chunk_size = 1024 * 1024 * 8  # 8 megabytes
         with open(filename, 'wb') as output_file:
+            total_chunk_size = 0
+            start_time = time.time()
             while True:
                 chunk = response.read(chunk_size)
                 if chunk:
-                    start_time = time.time()
                     output_file.write(chunk)
                     output_file.flush()
-                    end_time = time.time()
-                    speed = (len(chunk) / (1024.0 * 1024.0)) / (end_time - start_time)
-                    logging.info('Downloaded %.2fMB in %.2fs. Speed %.2fMB/s',
-                                 len(chunk) / (1024.0 * 1024.0),
-                                 end_time - start_time,
-                                 speed)
+                    total_chunk_size += len(chunk)
                 else:
-                    logging.info('Nothing left')
                     break
 
-        logging.info('Will close connection')
+            end_time = time.time()
+            speed = (total_chunk_size / (1024.0 * 1024.0)) / (end_time - start_time)
+            logging.info('Downloaded %.2fMB in %.2fs. Speed %.2fMB/s',
+                         total_chunk_size / (1024.0 * 1024.0),
+                         end_time - start_time,
+                         speed)
+
         connection.close()
-        logging.info('Connection closed')
         return filename
 
     def get_workflow(self, workflow_name):
