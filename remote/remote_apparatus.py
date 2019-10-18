@@ -376,7 +376,7 @@ def run_validation_matrix(config, cpus):
     log_file = open("validation_matrix.log", "w")
     for category in config.get('categories', []):
         category_name = category['name']
-        hlt = category['HLT']
+        hlt = category['hlt']
         logging.info('Category: %s' % (category_name))
         logging.info('HLT: %s' % (hlt))
         reference_list, target_list = get_dataset_lists(category)
