@@ -7,6 +7,8 @@ class FileCreator(object):
     # GRID key file
     __grid_key = '/afs/cern.ch/user/j/jrumsevi/private/user.key.pem'
 
+    __cookie_url = 'https://cms-pdmv.cern.ch/mcm'
+
     def __init__(self, remote_location, web_location):
         self.remote_location = remote_location
         self.web_location = web_location
@@ -25,7 +27,7 @@ class FileCreator(object):
             # Clone the relmon service
             'git clone https://github.com/justinasr/relmonservice2.git',
             # Make a cookie for callbacks about progress
-            'cern-get-sso-cookie -u https://cms-pdmv.cern.ch/mcm -o cookie.txt',
+            'cern-get-sso-cookie -u %s -o cookie.txt' % (self.__cookie_url),
             'mv cookie.txt relmonservice2',
             # CMSSW environment setup
             'scramv1 project CMSSW CMSSW_10_4_0',

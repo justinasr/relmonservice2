@@ -19,7 +19,7 @@ from difflib import SequenceMatcher
 from cmswebwrapper import CMSWebWrapper
 
 
-__CALLBACK_URL = 'http://instance3.cern.ch/relmonsvc/update'
+__CALLBACK_URL = 'http://instance3.cern.ch/relmonsvc/api/update'
 
 
 def get_workflow(workflow_name, cmsweb):
@@ -314,7 +314,7 @@ def get_dataset_lists(category):
 
             if not target_list[i]['file_name']:
                 logging.error('Downloaded file name is missing for %s, will not compare this workflow',
-                              reference_list[i]['name'])
+                              target_list[i]['name'])
 
     return reference_dataset_list, target_dataset_list
 
@@ -382,13 +382,18 @@ def run_validation_matrix(config, cpus):
         reference_list, target_list = get_dataset_lists(category)
         category['status'] = 'comparing'
         notify(config)
-        if hlt == 'only' or hlt == 'both':
-            # Run with HLT
-            compare_compress_move(category_name, True, reference_list, target_list, log_file, cpus)
+        if len(reference_list) > 0 and len(target_list) > 0:
+            if hlt == 'only' or hlt == 'both':
+                # Run with HLT
+                compare_compress_move(category_name, True, reference_list, target_list, log_file, cpus)
 
-        if hlt == 'no' or hlt == 'both' and category_name.lower() != 'generator':
-            # Run without HLT for everything, except generator
-            compare_compress_move(category_name, False, reference_list, target_list, log_file, cpus)
+            if hlt == 'no' or hlt == 'both' and category_name.lower() != 'generator':
+                # Run without HLT for everything, except generator
+                compare_compress_move(category_name, False, reference_list, target_list, log_file, cpus)
+        else:
+            logging.error('There are no references or targets. References - %s, targets - %s',
+                          len(reference_list),
+                          len(target_list))
 
         category['status'] = 'done'
         notify(config)

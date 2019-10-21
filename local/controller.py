@@ -130,7 +130,17 @@ class Controller(object):
         TODO: To be documented...
         """
         relmon = RelMon(relmon_data)
+        relmon_id = relmon.get_id()
+        if not relmon_id:
+            self.logger.error('Relmon does not have an ID')
+            return
+
+        if not self.db.get_relmon(relmon_id):
+            self.logger.error('Cannot update relmon that is not in the database')
+            return
+
         self.db.update_relmon(relmon)
+        self.add_to_reset_list(relmon_id)
         self.logger.info('Relmon %s was edited', relmon)
 
     def __submit_to_condor(self, relmon):

@@ -25,7 +25,7 @@ def index():
     db = Database()
     data = db.get_relmons(include_docs=True)
     for relmon in data:
-        relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(relmon.get('last_update', 0)))
+        relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M', time.localtime(relmon.get('last_update', 0)))
         relmon['done_size'] = 0
         relmon['total_size'] = 0
         relmon['downloaded_relvals'] = 0
@@ -116,15 +116,89 @@ def delete_relmon():
     return output_text({'message': 'No ID'})
 
 
+@app.route('/get_relmons')
+def get_relmons():
+    db = Database()
+    data = db.get_relmons(include_docs=True)
+    for relmon in data:
+        relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M', time.localtime(relmon.get('last_update', 0)))
+        relmon['done_size'] = 0
+        relmon['total_size'] = 0
+        relmon['downloaded_relvals'] = 0
+        relmon['total_relvals'] = 0
+        for category in relmon.get('categories'):
+            category['reference'] = [{'name': (x.get('name', '')),
+                                      'file_name': x.get('file_name', ''),
+                                      'file_url': x.get('file_url', ''),
+                                      'file_size': x.get('file_size', 0),
+                                      'status': x.get('status', ''),
+                                      'versioned': x.get('versioned', False)} for x in category['reference']]
+
+            category['reference_status'] = {}
+            category['reference_total_size'] = 0
+            relmon['total_relvals'] = relmon['total_relvals'] + len(category['reference']) + len(category['target'])
+            for relval in category['reference']:
+                category['reference_total_size'] += relval.get('file_size', 0)
+                relmon_status = relval['status']
+                if relmon_status not in category['reference_status']:
+                    category['reference_status'][relmon_status] = 0
+
+                if relmon_status != 'initial':
+                    relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
+
+                if category['status'] == 'done':
+                    relmon['done_size'] += relval.get('file_size', 0)
+
+                category['reference_status'][relmon_status] = category['reference_status'][relmon_status] + 1
+
+            category['target'] = [{'name': (x.get('name', '')),
+                                   'file_name': x.get('file_name', ''),
+                                   'file_url': x.get('file_url', ''),
+                                   'file_size': x.get('file_size', 0),
+                                   'status': x.get('status', ''),
+                                   'versioned': x.get('versioned', False)} for x in category['target']]
+
+            category['target_status'] = {}
+            category['target_total_size'] = 0
+            for relval in category['target']:
+                category['target_total_size'] += relval.get('file_size', 0)
+                relmon_status = relval['status']
+                if relmon_status not in category['target_status']:
+                    category['target_status'][relmon_status] = 0
+
+                if relmon_status != 'initial':
+                    relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
+
+                if category['status'] == 'done':
+                    relmon['done_size'] += relval.get('file_size', 0)
+
+                category['target_status'][relmon_status] = category['target_status'][relmon_status] + 1
+
+            relmon['total_size'] += category['reference_total_size'] + category['target_total_size']
+
+        relmon['total_size'] = max(relmon['total_size'], 0.001)
+
+    data.sort(key=lambda x: x.get('id', -1))
+    return output_text({'data': data})
+
+
 def output_text(data, code=200, headers=None):
     """
     Makes a Flask response with a plain text encoded body
     """
-    resp = make_response(json.dumps(data, indent=2, sort_keys=True), code)
+    resp = make_response(json.dumps(data, indent=1, sort_keys=True), code)
     resp.headers.extend(headers or {})
     resp.headers['Content-Type'] = 'application/json'
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
+
+
+@app.route('/edit', methods=['POST'])
+def edit_relmon():
+    relmon = json.loads(request.data.decode('utf-8'))
+    controller.edit_relmon(relmon)
+    controller_tick()
+    return output_text({'message': 'OK'})
 
 
 @app.route('/update', methods=['POST'])

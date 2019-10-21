@@ -29,10 +29,10 @@ class RelMon(object):
         return self.data
 
     def get_id(self):
-        return self.data['id']
+        return self.data.get('id')
 
     def get_name(self):
-        return self.data['name']
+        return self.data.get('name')
 
     def get_cpu(self):
         number_of_relvals = 0
