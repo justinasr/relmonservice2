@@ -60,6 +60,10 @@ def get_root_file_path_for_dataset(dqmio_dataset, cmsweb, category_name):
     hyperlink_regex = re.compile("href=['\"]([-\._a-zA-Z/\d]*)['\"]")
     hyperlinks = hyperlink_regex.findall(response)[1:]
     hyperlinks = list(hyperlinks)
+    logging.info('Substring to look for: %s. Total links in page: %s. Looking in %s',
+                 dataset_part,
+                 len(hyperlinks),
+                 cmsweb_dqm_dir_link)
     hyperlinks = [x for x in hyperlinks if dataset_part in x]
     hyperlinks = sorted(hyperlinks)
     logging.info('Selected hyperlinks %s', json.dumps(hyperlinks, indent=2))
