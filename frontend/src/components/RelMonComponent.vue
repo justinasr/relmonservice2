@@ -1,35 +1,62 @@
 <template>
   <v-row>
-    <v-col class="elevation-3 pa-2 mb-2" style="background: white; position: relative;">
-      <span class="font-weight-light">RelMon</span> {{relmonData.name}}
+    <v-col class="elevation-3 pa-4 mb-2" style="background: white; position: relative;">
+      <span class="font-weight-light bigger-text">RelMon</span> <span class="ml-2 bigger-text">{{relmonData.name}}</span>
       <v-row>
-        <v-col>
+        <v-col cols=5>
           Job information
           <ul>
-            <li><small>ID:</small> {{relmonData.id}}</li>
-            <li><small>Status:</small> {{relmonData.status}}</li>
-            <li><small>HTCondor job status:</small> {{relmonData.condor_status}}</li>
-            <li><small>HTCondor job ID:</small> {{relmonData.condor_id}}</li>
-            <li><small>Last update:</small> {{relmonData.last_update}}</li>
+            <li><span class="font-weight-light">ID:</span> {{relmonData.id}}</li>
+            <li><span class="font-weight-light">Status:</span> {{relmonData.status}} <span v-if="relmonData.status == 'done'">
+              | <a target="_blank" :href="'http://pdmv-new-relmon.web.cern.ch/pdmv-new-relmon#' + relmonData.name">open reports</a>
+            </span></li>
+            <li><span class="font-weight-light">HTCondor job status:</span> {{relmonData.condor_status}}</li>
+            <li><span class="font-weight-light">HTCondor job ID:</span> {{relmonData.condor_id}}</li>
+            <li><span class="font-weight-light">Last update:</span> {{relmonData.last_update}}</li>
           </ul>
+          Progress
+          <ul>
+            <li><span class="font-weight-light">Download:</span>
+              <v-progress-linear :value="relmonData.downloaded_relvals / relmonData.total_relvals * 100"
+                                 color="success"
+                                 height="16"
+                                 class="elevation-1"
+                                 style="max-width: 250px; color: white; border-radius: 4px">
+                <small><strong>{{ Math.ceil(relmonData.downloaded_relvals / relmonData.total_relvals * 100) }}%</strong></small>
+              </v-progress-linear>
+            </li>
+            <li><span class="font-weight-light">Comparison:</span>
+              <v-progress-linear :value="relmonData.done_size / relmonData.total_size * 100"
+                                 color="primary"
+                                 height="16"
+                                 class="elevation-1"
+                                 style="max-width: 250px; color: white; border-radius: 4px">
+                <small><strong>{{ Math.ceil(relmonData.done_size / relmonData.total_size * 100) }}%</strong></small>
+              </v-progress-linear>
+            </li>
+          </ul>
+          Actions
+          <br>
           <v-btn small class="ma-1" color="primary" @click="editRelmon(relmonData)">Edit</v-btn>
           <v-btn small class="ma-1" color="error" @click="resetOverlay = true">Reset</v-btn>
           <v-btn small class="ma-1" color="error" @click="deleteOverlay = true">Delete</v-btn>
         </v-col>
-        <v-col>
+        <v-col cols=7>
           Categories
           <ul>
-            <li v-for="category in relmonData.categories">{{category.name}} <small>(HLT: {{category.hlt}}, pairing: {{category.automatic_pairing ? 'auto' : 'manual'}})</small>
+            <li v-for="category in relmonData.categories"><span class="font-weight-light">{{category.name}}</span> - {{category.status}} <span class="font-weight-light">| HLT:</span> {{category.hlt}} <span class="font-weight-light">| pairing:</span> {{category.automatic_pairing ? 'auto' : 'manual'}}
               <ul>
-                <li>References <small>({{category.reference.length}} | {{Math.round((category.reference_total_size / 1024.0 / 1024.0) * 10) / 10}}MB)</small>
-                  <ul>
-                    <li v-for="value, key in category.reference_status">{{key}}: {{value}}</li>
-                  </ul>
+                <li>
+                  <span class="font-weight-light">References</span>
+                  <span class="font-weight-light"> - total:</span> {{category.reference.length}}
+                  <!-- <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.reference_total_size / 1024.0 / 1024.0) * 10) / 10}}MB -->
+                  <span v-for="value, key in category.reference_status"><span class="font-weight-light"> | {{key}}:&nbsp;</span>{{value}}</span>
                 </li>
-                <li>Targets <small>({{category.target.length}} | {{Math.round((category.target_total_size / 1024.0 / 1024.0) * 10) / 10}}MB)</small>
-                  <ul>
-                    <li v-for="value, key in category.target_status">{{key}}: {{value}}</li>
-                  </ul>
+                <li>
+                  <span class="font-weight-light">Targets</span>
+                  <span class="font-weight-light"> - total:</span> {{category.target.length}}
+                  <!-- <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.target_total_size / 1024.0 / 1024.0) * 10) / 10}}MB -->
+                  <span v-for="value, key in category.target_status"><span class="font-weight-light"> | {{key}}:&nbsp;</span>{{value}}</span>
                 </li>
               </ul>
             </li>
@@ -127,4 +154,11 @@ export default {
 </script>
 
 <style scoped>
+.bigger-text {
+  font-size: 1.5rem;
+}
+
+li {
+  padding-bottom: 4px;
+}
 </style>

@@ -4,10 +4,21 @@ import os
 class RelMon(object):
 
     def __init__(self, data):
-        self.data = data
+        self.data = self.__remove_empty_categories(data)
         relmon_path = 'relmons/%s/' % (self.get_id())
         if not os.path.isdir(relmon_path):
             os.mkdir(relmon_path)
+
+    def __remove_empty_categories(self, data):
+        non_empty_categories = []
+        for category in data.get('categories', []):
+            reference_length = len(category['reference'])
+            target_length = len(category['target'])
+            if reference_length > 0 and target_length > 0:
+                non_empty_categories.append(category)
+
+        data['categories'] = non_empty_categories
+        return data
 
     def reset(self):
         self.set_status('new')
@@ -40,21 +51,28 @@ class RelMon(object):
             number_of_relvals += len(category['reference'])
             number_of_relvals += len(category['target'])
 
+        # Comparisons CPU
+        #  0- 10     -  1
+        # 11- 25     -  2
+        # 26- 60     -  4
+        # 61-150     -  8
+        # 151+       - 16
+
         cpus = 1
-        if number_of_relvals <= 10:
-            # Max 5 vs 5
+        if number_of_relvals <= 20:
+            # Max 10 vs 10
             cpus = 1
-        elif number_of_relvals <= 30:
-            # Max 15 vs 15
-            cpus = 2
         elif number_of_relvals <= 50:
             # Max 25 vs 25
+            cpus = 2
+        elif number_of_relvals <= 120:
+            # Max 60 vs 60
             cpus = 4
-        elif number_of_relvals <= 150:
-            # Max 75 vs 75
+        elif number_of_relvals <= 300:
+            # Max 150 vs 150
             cpus = 8
         else:
-            # > 75 vs 75
+            # > 150 vs 150
             cpus = 16
 
         return cpus

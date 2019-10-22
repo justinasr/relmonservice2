@@ -127,18 +127,29 @@ class Controller(object):
 
     def edit_relmon(self, relmon_data):
         """
-        TODO: To be documented...
+        Update relmon categories
         """
-        relmon = RelMon(relmon_data)
-        relmon_id = relmon.get_id()
+        relmon_id = relmon_data.get('id')
         if not relmon_id:
             self.logger.error('Relmon does not have an ID')
             return
 
-        if not self.db.get_relmon(relmon_id):
+        old_relmon = self.db.get_relmon(relmon_id)
+        if not old_relmon:
             self.logger.error('Cannot update relmon that is not in the database')
             return
 
+        for category in relmon_data.get('categories', []):
+            category['reference'] = [
+                {'name': x.strip() if isinstance(x, str) else x['name'].strip()} for x in category.get('reference', [])
+            ]
+            category['target'] = [
+                {'name': x.strip() if isinstance(x, str) else x['name'].strip()} for x in category.get('target', [])
+            ]
+
+        # Update only categories, do not allow to update anything else
+        old_relmon['categories'] = relmon_data.get('categories', [])
+        relmon = RelMon(old_relmon)
         self.db.update_relmon(relmon)
         self.add_to_reset_list(relmon_id)
         self.logger.info('Relmon %s was edited', relmon)
@@ -245,6 +256,7 @@ class Controller(object):
                               stdout,
                               stderr)
 
+        relmon = RelMon(self.db.get_relmon(relmon.get_id()))
         self.logger.info('Saving %s condor status as %s', relmon, new_condor_status)
         relmon.set_condor_status(new_condor_status)
         self.db.update_relmon(relmon)

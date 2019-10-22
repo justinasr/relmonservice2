@@ -73,7 +73,7 @@
             <v-row>
               <v-col>
                 <v-btn v-if="!isEditing" small class="ma-1" color="primary" @click="createRelmon()">Create</v-btn>
-                <v-btn v-if="isEditing" small class="ma-1" color="primary" @click="editRelmon()">Save</v-btn>
+                <v-btn v-if="isEditing" small class="ma-1" color="primary" @click="editOverlay = true">Save</v-btn>
                 <v-btn small class="ma-1" color="error" @click="cancelCreation()">Cancel</v-btn>
               </v-col>
             </v-row>
@@ -81,6 +81,25 @@
         </v-expansion-panel>
       </v-expansion-panels>
     </v-col>
+
+    <v-overlay :absolute="false"
+               :opacity="0.95"
+               :z-index="3"
+               :value="editOverlay"
+               style="text-align: center">
+      This will reset {{relmonWrapper.relmon.name}}. All progress will be lost. Are you sure you want to update {{relmonWrapper.relmon.name}}?<br>
+      <v-btn color="error"
+             class="ma-1"
+             @click="editRelmon()">
+        Yes
+      </v-btn>
+      <v-btn color="primary"
+             class="ma-1"
+             @click="editOverlay = false">
+        No
+      </v-btn>
+    </v-overlay>
+
   </v-row>
 </template>
 
@@ -94,6 +113,7 @@ export default {
       overlay: [],
       relmonWrapper: {'relmon': {}},
       isEditing: false,
+      editOverlay: false,
       name: ''
     }
   },
@@ -118,7 +138,6 @@ export default {
       })
       axios.post('/relmonsvc/api/create', relmonClone).then(response => {
         console.log(response.data);
-        this.resetOverlay = true;
         this.isEditing = false
         this.relmonWrapper['relmon'] = this.createEmptyRelmon();
         this.overlay = [];
@@ -133,10 +152,10 @@ export default {
       })
       axios.post('/relmonsvc/api/edit', relmonClone).then(response => {
         console.log(response.data);
-        this.resetOverlay = true;
         this.isEditing = false
         this.relmonWrapper['relmon'] = this.createEmptyRelmon();
         this.overlay = [];
+        this.editOverlay = false;
       });
     },
     cancelCreation() {
@@ -155,6 +174,7 @@ export default {
         this.isEditing = true;
         this.relmonWrapper.relmon = this.addMissingCategories(relmonClone);
         this.overlay = [0];
+        window.scrollTo(0,0);
       } else {
         this.isEditing = false
         this.relmonWrapper['relmon'] = this.createEmptyRelmon();
