@@ -1,8 +1,8 @@
 <template>
   <v-app>
     <v-container>
-      <CreateNewRelMonComponent ref="createNewRelMonComponent"></CreateNewRelMonComponent>
-      <RelMonComponent @editRelmon="editRelmon" v-for="relmonData in fetchedData" :key="relmonData.name" :relmonData="relmonData"></RelMonComponent>
+      <CreateNewRelMonComponent @refetchRelmons="refetchRelmons" ref="createNewRelMonComponent"></CreateNewRelMonComponent>
+      <RelMonComponent @editRelmon="editRelmon" @refetchRelmons="refetchRelmons" v-for="relmonData in fetchedData" :key="relmonData.name" :relmonData="relmonData"></RelMonComponent>
     </v-container>
   </v-app>
 </template>
@@ -16,14 +16,11 @@ export default {
   name: 'MainComponent',
   data () {
     return {
-      fetchedData: {},
-      editingRelmon: undefined
+      fetchedData: {}
     }
   },
   created () {
-    axios.get('/relmonsvc/api/get_relmons').then(response => {
-      this.fetchedData = response.data.data;
-    });
+    this.refetchRelmons()
   },
   watch: {
   },
@@ -34,6 +31,11 @@ export default {
   methods: {
     editRelmon(relmon) {
       this.$refs.createNewRelMonComponent.startEditing(relmon)
+    },
+    refetchRelmons() {
+      axios.get('/relmonsvc/api/get_relmons').then(response => {
+        this.fetchedData = response.data.data;
+      });
     }
   }
 }

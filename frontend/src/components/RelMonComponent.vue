@@ -63,7 +63,7 @@
           </ul>
         </v-col>
 
-        <v-overlay :absolute="true"
+        <v-overlay :absolute="false"
                    :opacity="0.95"
                    :z-index="3"
                    :value="resetOverlay"
@@ -71,17 +71,24 @@
           Reset {{relmonData.name}}?<br>
           <v-btn color="error"
                  class="ma-1"
+                 small
+                 v-if="!isRefreshing"
                  @click="resetRelmon(relmonData)">
             Reset
           </v-btn>
           <v-btn color="primary"
                  class="ma-1"
+                 small
+                 v-if="!isRefreshing"
                  @click="resetOverlay = false">
             Cancel
           </v-btn>
+          <v-progress-circular indeterminate
+                               v-if="isRefreshing"
+                               color="primary"></v-progress-circular>
         </v-overlay>
 
-        <v-overlay :absolute="true"
+        <v-overlay :absolute="false"
                    :opacity="0.95"
                    :z-index="3"
                    :value="deleteOverlay"
@@ -89,14 +96,21 @@
           Delete {{relmonData.name}}?<br>
           <v-btn color="error"
                  class="ma-1"
+                 small
+                 v-if="!isRefreshing"
                  @click="deleteRelmon(relmonData)">
             Delete
           </v-btn>
           <v-btn color="primary"
                  class="ma-1"
+                 small
+                 v-if="!isRefreshing"
                  @click="deleteOverlay = false">
             Cancel
           </v-btn>
+          <v-progress-circular indeterminate
+                               v-if="isRefreshing"
+                               color="primary"></v-progress-circular>
         </v-overlay>
       </v-row>
     </v-col>
@@ -111,6 +125,7 @@ export default {
     return {
       resetOverlay: false,
       deleteOverlay: false,
+      isRefreshing: false
     }
   },
   created () {
@@ -131,23 +146,34 @@ export default {
       this.$emit('editRelmon', relmon)
     },
     resetRelmon(relmon) {
-      let component = this
+      let component = this;
+      component.isRefreshing = true;
       axios.post('/relmonsvc/api/reset', {
         'id': component.relmonData.id
       }).then(response => {
-        console.log(response.data);
-        component.resetOverlay = false;
+        setTimeout(function(){
+          component.refetchRelmons();
+          component.resetOverlay = false;
+          component.isRefreshing = false;
+        }, 5000);
       });
     },
     deleteRelmon(relmon) {
-      let component = this
-      axios.delete('/relmonsvc/api/delete', {data:{
+      let component = this;
+      component.isRefreshing = true;
+      axios.delete('/relmonsvc/api/delete', { data:{
         'id': component.relmonData.id
       }
       }).then(response => {
-        console.log(response.data);
-        component.deleteOverlay = false;
+        setTimeout(function(){
+          component.refetchRelmons();
+          component.deleteOverlay = false;
+          component.isRefreshing = false;
+        }, 5000);
       });
+    },
+    refetchRelmons() {
+      this.$emit('refetchRelmons')
     }
   }
 }
