@@ -13,80 +13,18 @@ from local.relmon import RelMon
 
 
 app = Flask(__name__,
-            static_folder="./html/static",
-            template_folder="./html")
+            static_folder="./frontend/dist/static",
+            template_folder="./frontend/dist")
 api = Api(app)
 scheduler = BackgroundScheduler()
 controller = None
 
 
 @app.route('/')
-def index():
-    db = Database()
-    data = db.get_relmons(include_docs=True)
-    for relmon in data:
-        relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M', time.localtime(relmon.get('last_update', 0)))
-        relmon['done_size'] = 0
-        relmon['total_size'] = 0
-        relmon['downloaded_relvals'] = 0
-        relmon['total_relvals'] = 0
-        for category in relmon.get('categories'):
-            category['reference'] = [{'name': (x.get('name', '')),
-                                      'file_name': x.get('file_name', ''),
-                                      'file_url': x.get('file_url', ''),
-                                      'file_size': x.get('file_size', 0),
-                                      'status': x.get('status', ''),
-                                      'versioned': x.get('versioned', False)} for x in category['reference']]
+def index_page():
+    return render_template('index.html')
 
-            category['reference_status'] = {}
-            category['reference_total_size'] = 0
-            relmon['total_relvals'] = relmon['total_relvals'] + len(category['reference']) + len(category['target'])
-            for relval in category['reference']:
-                category['reference_total_size'] += relval.get('file_size', 0)
-                relmon_status = relval['status']
-                if relmon_status not in category['reference_status']:
-                    category['reference_status'][relmon_status] = 0
-
-                if relmon_status != 'initial':
-                    relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
-
-                if category['status'] == 'done':
-                    relmon['done_size'] += relval.get('file_size', 0)
-
-                category['reference_status'][relmon_status] = category['reference_status'][relmon_status] + 1
-
-            category['target'] = [{'name': (x.get('name', '')),
-                                   'file_name': x.get('file_name', ''),
-                                   'file_url': x.get('file_url', ''),
-                                   'file_size': x.get('file_size', 0),
-                                   'status': x.get('status', ''),
-                                   'versioned': x.get('versioned', False)} for x in category['target']]
-
-            category['target_status'] = {}
-            category['target_total_size'] = 0
-            for relval in category['target']:
-                category['target_total_size'] += relval.get('file_size', 0)
-                relmon_status = relval['status']
-                if relmon_status not in category['target_status']:
-                    category['target_status'][relmon_status] = 0
-
-                if relmon_status != 'initial':
-                    relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
-
-                if category['status'] == 'done':
-                    relmon['done_size'] += relval.get('file_size', 0)
-
-                category['target_status'][relmon_status] = category['target_status'][relmon_status] + 1
-
-            relmon['total_size'] += category['reference_total_size'] + category['target_total_size']
-
-        relmon['total_size'] = max(relmon['total_size'], 0.001)
-
-    data.sort(key=lambda x: x.get('id', -1))
-    return render_template('index.html', data=data)
-
-
-@app.route('/create', methods=['POST'])
+@app.route('/api/create', methods=['POST'])
 def add_relmon():
     relmon = json.loads(request.data.decode('utf-8'))
     controller.create_relmon(relmon)
@@ -94,7 +32,7 @@ def add_relmon():
     return output_text({'message': 'OK'})
 
 
-@app.route('/reset', methods=['POST'])
+@app.route('/api/reset', methods=['POST'])
 def reset_relmon():
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
@@ -105,7 +43,7 @@ def reset_relmon():
     return output_text({'message': 'No ID'})
 
 
-@app.route('/delete', methods=['DELETE'])
+@app.route('/api/delete', methods=['DELETE'])
 def delete_relmon():
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
@@ -116,7 +54,7 @@ def delete_relmon():
     return output_text({'message': 'No ID'})
 
 
-@app.route('/get_relmons')
+@app.route('/api/get_relmons')
 def get_relmons():
     db = Database()
     data = db.get_relmons(include_docs=True)
@@ -193,7 +131,7 @@ def output_text(data, code=200, headers=None):
     return resp
 
 
-@app.route('/edit', methods=['POST'])
+@app.route('/api/edit', methods=['POST'])
 def edit_relmon():
     relmon = json.loads(request.data.decode('utf-8'))
     controller.edit_relmon(relmon)
@@ -201,7 +139,7 @@ def edit_relmon():
     return output_text({'message': 'OK'})
 
 
-@app.route('/update', methods=['POST'])
+@app.route('/api/update', methods=['POST'])
 def update_info():
     data = json.loads(request.data.decode('utf-8'))
     db = Database()
@@ -227,7 +165,7 @@ def update_info():
     return output_text({'message': 'OK'})
 
 
-@app.route('/tick')
+@app.route('/api/tick')
 def controller_tick():
     for job in scheduler.get_jobs():
         job.modify(next_run_time=datetime.now())

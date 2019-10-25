@@ -158,7 +158,7 @@ export default {
         item['reference'] = item['reference'].split('\n').filter(Boolean)
         item['target'] = item['target'].split('\n').filter(Boolean)
       })
-      axios.post('/relmonsvc/api/' + action, relmonClone).then(response => {
+      axios.post('api/' + action, relmonClone).then(response => {
         setTimeout(function(){
           component.refetchRelmons();
           component.cleanup();
@@ -211,7 +211,7 @@ export default {
     },
     forceRefresh() {
       let component = this;
-      axios.get('/relmonsvc/api/tick').then(response => {
+      axios.get('api/tick').then(response => {
         setTimeout(function(){ component.refetchRelmons() }, 5000);
       });
     },
