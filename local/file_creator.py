@@ -111,6 +111,7 @@ class FileCreator(object):
             'request_memory          = %s' % (memory),
             'request_disk            = %s' % (disk),
             '+JobFlavour             = "tomorrow"',
+            '+JobPrio                = 1',
             'requirements            = (OpSysAndVer =?= "SLCern6")',
             # Leave in queue when status is DONE for two hours - 7200 seconds
             'leave_in_queue          = JobStatus == 4 && (CompletionDate =?= UNDEFINED'
