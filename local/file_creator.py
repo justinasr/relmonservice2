@@ -7,7 +7,7 @@ class FileCreator(object):
     # GRID key file
     __grid_key = '/afs/cern.ch/user/j/jrumsevi/private/user.key.pem'
 
-    __cookie_url = 'https://cms-pdmv.cern.ch/mcm'
+    __cookie_url = 'https://cms-pdmv-dev.cern.ch/relmonsvc'
 
     def __init__(self, remote_location, web_location):
         self.remote_location = remote_location
@@ -76,7 +76,7 @@ class FileCreator(object):
             'echo "Integrity check:"',
             'echo "PRAGMA integrity_check" | sqlite3 %s' % (web_sqlite_path),
             'cd $DIR',
-            'cern-get-sso-cookie -u https://cms-pdmv.cern.ch/mcm -o cookie.txt',
+            'cern-get-sso-cookie -u %s -o cookie.txt' % (self.__cookie_url),
             'mv cookie.txt relmonservice2',
             'python3 relmonservice2/remote/remote_apparatus.py --relmon %s.json --notifyfinished' % (relmon_id)
         ]

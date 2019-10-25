@@ -19,7 +19,7 @@ from difflib import SequenceMatcher
 from cmswebwrapper import CMSWebWrapper
 
 
-__CALLBACK_URL = 'http://instance3.cern.ch/relmonsvc/api/update'
+__CALLBACK_URL = 'https://cms-pdmv-dev.cern.ch/relmonsvc/api/update'
 
 
 def get_workflow(workflow_name, cmsweb):
