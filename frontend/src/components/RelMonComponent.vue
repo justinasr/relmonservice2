@@ -148,7 +148,7 @@ export default {
     resetRelmon(relmon) {
       let component = this;
       component.isRefreshing = true;
-      axios.post('api/reset', {
+      axios.post('relmonsvc/api/reset', {
         'id': component.relmonData.id
       }).then(response => {
         setTimeout(function(){
@@ -161,7 +161,7 @@ export default {
     deleteRelmon(relmon) {
       let component = this;
       component.isRefreshing = true;
-      axios.delete('api/delete', { data:{
+      axios.delete('relmonsvc/api/delete', { data:{
         'id': component.relmonData.id
       }
       }).then(response => {

@@ -33,7 +33,7 @@ export default {
       this.$refs.createNewRelMonComponent.startEditing(relmon)
     },
     refetchRelmons() {
-      axios.get('api/get_relmons').then(response => {
+      axios.get('relmonsvc/api/get_relmons').then(response => {
         this.fetchedData = response.data.data;
       });
     }
