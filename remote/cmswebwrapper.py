@@ -9,7 +9,7 @@ import time
 import http.client
 
 
-class CMSWebWrapper(object):
+class CMSWebWrapper():
     """
     CMSWebWrapper handles all communication with cmsweb
     It requires paths to grid user certificate and grid user key files
