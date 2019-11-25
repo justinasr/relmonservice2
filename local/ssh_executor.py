@@ -1,20 +1,23 @@
-import paramiko
-import logging
+"""
+Module that handles all SSH operations - both ssh and ftp
+"""
 import json
+import logging
 import time
+import paramiko
 
 
 class SSHExecutor():
+    """
+    SSH executor allows to perform remote commands and upload/download files
+    """
 
-    # Path to credentials, used to connect to lxplus
-    __credentials_file_path = '/home/jrumsevi/auth.txt'
-    # lxplus host name
-    __remote_host = 'lxplus.cern.ch'
-
-    def __init__(self):
+    def __init__(self, config):
         self.ssh_client = None
         self.ftp_client = None
         self.logger = logging.getLogger('logger')
+        self.remote_host = config['submission_host']
+        self.credentials_file_path = config['ssh_credentials_json']
 
     def setup_ssh(self):
         """
@@ -24,13 +27,13 @@ class SSHExecutor():
         if self.ssh_client:
             self.close_connections()
 
-        with open(self.__credentials_file_path) as json_file:
+        with open(self.credentials_file_path) as json_file:
             credentials = json.load(json_file)
 
-        self.logger.info('Credentials loaded successfully: %s' % (credentials['username']))
+        self.logger.info('Credentials loaded successfully: %s', credentials['username'])
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.ssh_client.connect(self.__remote_host,
+        self.ssh_client.connect(self.remote_host,
                                 username=credentials["username"],
                                 password=credentials["password"],
                                 timeout=30)
@@ -61,9 +64,9 @@ class SSHExecutor():
         if isinstance(command, list):
             command = '; '.join(command)
 
-        self.logger.info('Executing %s' % (command))
+        self.logger.info('Executing %s', command)
         (_, stdout, stderr) = self.ssh_client.exec_command(command)
-        self.logger.info('Executed %s. Reading response' % (command))
+        self.logger.info('Executed %s. Reading response', command)
         # Close channel after minute of waiting for EOF
         # This timeouts and closes channel if nothing was received
         stdout_timeout = time.time() + 60
@@ -85,10 +88,10 @@ class SSHExecutor():
         stderr = stderr.read().decode('utf-8').strip()
         # Read output from stdout and stderr streams
         if stdout:
-            self.logger.info("STDOUT (%s): %s" % (command, stdout))
+            self.logger.info('STDOUT (%s): %s', command, stdout)
 
         if stderr:
-            self.logger.error("STDERR (%s): %s" % (command, stderr))
+            self.logger.error('STDERR (%s): %s', command, stderr)
 
         return stdout, stderr
 
@@ -96,29 +99,29 @@ class SSHExecutor():
         """
         Upload a file
         """
-        self.logger.info('Will upload file %s to %s' % (copy_from, copy_to))
+        self.logger.info('Will upload file %s to %s', copy_from, copy_to)
         if not self.ftp_client:
             self.setup_ftp()
 
         try:
             self.ftp_client.put(copy_from, copy_to)
-            self.logger.info('Uploaded file to %s' % copy_to)
+            self.logger.info('Uploaded file to %s', copy_to)
         except Exception as ex:
-            self.logger.error('Error uploading file from %s to %s. %s' % (copy_from, copy_to, ex))
+            self.logger.error('Error uploading file from %s to %s. %s', copy_from, copy_to, ex)
 
     def download_file(self, copy_from, copy_to):
         """
         Download file from remote host
         """
-        self.logger.info('Will download file %s to %s' % (copy_from, copy_to))
+        self.logger.info('Will download file %s to %s', copy_from, copy_to)
         if not self.ftp_client:
             self.setup_ftp()
 
         try:
             self.ftp_client.get(copy_from, copy_to)
-            self.logger.info('Downloaded file to %s' % copy_to)
+            self.logger.info('Downloaded file to %s', copy_to)
         except Exception as ex:
-            self.logger.error('Error downloading file from %s to %s. %s' % (copy_from, copy_to, ex))
+            self.logger.error('Error downloading file from %s to %s. %s', copy_from, copy_to, ex)
 
     def close_connections(self):
         """

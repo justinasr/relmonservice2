@@ -1,37 +1,47 @@
+"""
+Module for RelMon class
+"""
 import os
 
 
-class RelMon(object):
+class RelMon():
+    """
+    This class represents a single RelMon object and has some convenience methods
+    such as required resources and reset
+    """
 
     def __init__(self, data):
-        self.data = self.__remove_empty_categories(data)
+        self.data = data
+        self.__remove_empty_categories()
         relmon_path = 'relmons/%s/' % (self.get_id())
         if not os.path.isdir(relmon_path):
             os.mkdir(relmon_path)
 
-    def __remove_empty_categories(self, data):
+    def __remove_empty_categories(self):
         non_empty_categories = []
-        for category in data.get('categories', []):
+        for category in self.data.get('categories', []):
             reference_length = len(category['reference'])
             target_length = len(category['target'])
             if reference_length > 0 and target_length > 0:
                 non_empty_categories.append(category)
 
-        data['categories'] = non_empty_categories
-        return data
+        self.data['categories'] = non_empty_categories
 
     def reset(self):
+        """
+        Reset relmon and zero-out references and targets
+        """
         self.set_status('new')
         self.set_condor_status('<unknown>')
         self.set_condor_id(0)
         for category in self.data['categories']:
             category['status'] = 'initial'
-            category['reference'] = [{'name': x.strip() if isinstance(x, str) else x['name'].strip(),
+            category['reference'] = [{'name': (x if isinstance(x, str) else x['name']).strip(),
                                       'file_name': '',
                                       'file_url': '',
                                       'file_size': 0,
                                       'status': 'initial'} for x in category['reference']]
-            category['target'] = [{'name': x.strip() if isinstance(x, str) else x['name'].strip(),
+            category['target'] = [{'name': (x if isinstance(x, str) else x['name']).strip(),
                                    'file_name': '',
                                    'file_url': '',
                                    'file_size': 0,
@@ -40,12 +50,21 @@ class RelMon(object):
         return self.data
 
     def get_id(self):
+        """
+        Getter for id
+        """
         return self.data.get('id')
 
     def get_name(self):
+        """
+        Getter for name
+        """
         return self.data.get('name')
 
     def get_cpu(self):
+        """
+        Return number of CPUs required based on number of references and targets
+        """
         number_of_relvals = 0
         for category in self.data['categories']:
             number_of_relvals += len(category['reference'])
@@ -78,10 +97,16 @@ class RelMon(object):
         return cpus
 
     def get_memory(self):
+        """
+        Return amount of memory required based on number of CPUs
+        """
         memory = str(self.get_cpu() * 2) + 'G'
         return memory
 
     def get_disk(self):
+        """
+        Return amount of disk space reuired based on number of references and targets
+        """
         number_of_relvals = 0
         for category in self.data['categories']:
             number_of_relvals += len(category['reference'])
@@ -91,28 +116,49 @@ class RelMon(object):
         return disk
 
     def get_json(self):
+        """
+        Return object's dictionary
+        """
         return self.data
 
     def get_status(self):
+        """
+        Getter for status
+        """
         return self.data['status']
 
     def get_condor_status(self):
+        """
+        Getter for condor status
+        """
         return self.data.get('condor_status', '')
 
     def get_condor_id(self):
+        """
+        Getter for condor id
+        """
         return self.data.get('condor_id', 0)
 
     def set_status(self, status):
+        """
+        Setter for status
+        """
         self.data['status'] = status
 
     def set_condor_status(self, condor_status):
+        """
+        Setter for condor status
+        """
         self.data['condor_status'] = condor_status
 
     def set_condor_id(self, condor_id):
+        """
+        Setter for condor id
+        """
         self.data['condor_id'] = condor_id
 
     def __str__(self):
         return '%s (%s)' % (self.get_name(), self.get_id())
 
     def __repr__(self):
-        return '%s (%s)' % (self.get_name(), self.get_id())
+        return str(self)

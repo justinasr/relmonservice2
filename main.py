@@ -7,6 +7,7 @@ import argparse
 import logging
 import json
 import time
+import configparser
 from local.controller import Controller
 from couchdb_database import Database
 from local.relmon import RelMon
@@ -23,6 +24,7 @@ controller = None
 @app.route('/')
 def index_page():
     return render_template('index.html')
+
 
 @app.route('/api/create', methods=['POST'])
 def add_relmon():
@@ -149,10 +151,6 @@ def update_info():
 
     logger = logging.getLogger('logger')
     old_status = relmon.get('status')
-    # if old_status not in ['submitted', 'running', 'finishing']:
-    #     logger.error('Bad status %s' % (old_status))
-    #     return output_text({'message': 'Bad status %s' % (old_status)})
-
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
     logger.info('Update for %s (%s). Status is %s' % (relmon['name'],
@@ -178,7 +176,7 @@ def tick():
 
 
 def setup_console_logging():
-    logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
+    logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.DEBUG)
 
 
 def setup_logging():
@@ -199,35 +197,36 @@ def setup_logging():
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Stats2')
-    parser.add_argument('--port',
-                        help='Port, default is 8001')
-    parser.add_argument('--host',
-                        help='Host IP, default is 127.0.0.1')
+    parser = argparse.ArgumentParser(description='RelMon Service')
+    parser.add_argument('--mode',
+                        choices=['prod', 'test', 'dev'],
+                        required=True,
+                        help='Production (prod), development (dev) or testing (test) mode')
     parser.add_argument('--debug',
                         help='Debug mode',
                         action='store_true')
     args = vars(parser.parse_args())
-    port = args.get('port', None)
-    host = args.get('host', None)
     debug = args.get('debug', False)
     if debug:
         setup_console_logging()
     else:
         setup_logging()
 
-    controller = Controller()
+    logger = logging.getLogger('logger')
+    mode = args.get('mode', 'development').lower()
+    config = configparser.ConfigParser()
+    config.read('config.cfg')
+    config = dict(config.items(mode))
+    logger.info('Mode if "%s"', mode)
+    controller = Controller(config)
     scheduler.add_executor('processpool')
     scheduler.add_job(tick, 'interval', seconds=600, max_instances=1)
     scheduler.start()
-    if not port:
-        port = 8001
-
-    if not host:
-        host = '127.0.0.1'
-
+    port = int(config.get('port', 8001))
+    host = config.get('host', '127.0.0.1')
+    logger.info('Will run on %s:%s', host, port)
     app.run(host=host,
-            port=int(port),
+            port=port,
             debug=debug,
             threaded=True)
     scheduler.shutdown()

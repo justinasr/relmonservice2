@@ -19,14 +19,6 @@ from difflib import SequenceMatcher
 from cmswebwrapper import CMSWebWrapper
 
 
-def get_workflow(workflow_name):
-    """
-    Get workflow from cmsweb
-    """
-    workflow = CMSWEB.get_workflow(workflow_name)
-    return workflow
-
-
 def get_dqmio_dataset(workflow):
     """
     Given a workflow dictionary, return first occurence of DQMIO string
@@ -40,7 +32,7 @@ def get_dqmio_dataset(workflow):
     return None
 
 
-def get_root_file_path_for_dataset(dqmio_dataset, category_name):
+def get_root_file_path_for_dataset(cmsweb, dqmio_dataset, category_name):
     """
     Get list of URLs for given dataset
     """
@@ -58,7 +50,7 @@ def get_root_file_path_for_dataset(dqmio_dataset, category_name):
         cmsweb_dqm_dir_link = '/dqm/relval/data/browse/ROOT/RelVal/'
 
     cmsweb_dqm_dir_link += '_'.join(cmssw.split('_')[:3]) + '_x/'
-    response = CMSWEB.get(cmsweb_dqm_dir_link)
+    response = cmsweb.get(cmsweb_dqm_dir_link)
     hyperlink_regex = re.compile("href=['\"]([-\\._a-zA-Z/\\d]*)['\"]")
     hyperlinks = hyperlink_regex.findall(response)[1:]
     hyperlinks = list(hyperlinks)
@@ -72,21 +64,19 @@ def get_root_file_path_for_dataset(dqmio_dataset, category_name):
     return hyperlinks
 
 
-def notify():
+def notify(relmon, callback_url):
     """
     Send a notification about progress back to RelMon service
     """
-    if not CALLBACK_URL:
-        return
 
     with open('notify_data.json', 'w') as json_file:
-        json.dump(RELMON, json_file, indent=2, sort_keys=True)
+        json.dump(relmon, json_file, indent=2, sort_keys=True)
 
     command = ['curl',
                '-X',
                'POST',
                '--cookie cookie.txt',
-               CALLBACK_URL,
+               callback_url,
                '-s',
                '-k',
                '-L',
@@ -107,35 +97,35 @@ def notify():
     time.sleep(0.05)
 
 
-def download_root_files():
+def download_root_files(relmon, cmsweb, callback_url):
     """
     Download all files needed for comparison and fill relmon dictionary
     """
-    for category in RELMON.get('categories', []):
+    for category in relmon.get('categories', []):
         category_name = category['name']
         reference_list = category.get('reference', [])
         target_list = category.get('target', [])
         for item in reference_list + target_list:
-            workflow = get_workflow(item['name'])
+            workflow = cmsweb.get_workflow(item['name'])
             if not workflow:
                 item['status'] = 'no_workflow'
-                notify()
+                notify(relmon, callback_url)
                 logging.warning('Could not find workflow %s in ReqMgr2', item['name'])
                 continue
 
             dqmio_dataset = get_dqmio_dataset(workflow)
             if not dqmio_dataset:
                 item['status'] = 'no_dqmio'
-                notify()
+                notify(relmon, callback_url)
                 logging.warning('Could not find DQMIO dataset in %s. Datasets: %s',
                                 item['name'],
                                 ', '.join(workflow.get('OutputDatasets', [])))
                 continue
 
-            file_urls = get_root_file_path_for_dataset(dqmio_dataset, category_name)
+            file_urls = get_root_file_path_for_dataset(cmsweb, dqmio_dataset, category_name)
             if not file_urls:
                 item['status'] = 'no_root'
-                notify()
+                notify(relmon, callback_url)
                 logging.warning('Could not get root file path for %s dataset of %s workflow',
                                 dqmio_dataset,
                                 item['name'])
@@ -149,9 +139,9 @@ def download_root_files():
             item['file_size'] = 0
             item['status'] = 'downloading'
             item['file_name'] = item['file_url'].split('/')[-1]
-            notify()
+            notify(relmon, callback_url)
             try:
-                item['file_name'] = CMSWEB.get_big_file(item['file_url'])
+                item['file_name'] = cmsweb.get_big_file(item['file_url'])
                 item['status'] = 'downloaded'
                 item['file_size'] = os.path.getsize(item['file_name'])
                 logging.info('Downloaded %s. Size %.2f MB',
@@ -162,7 +152,7 @@ def download_root_files():
                 logging.error('Error getting %s for %s', item['file_url'], item['name'])
                 item['status'] = 'failed'
 
-            notify()
+            notify(relmon, callback_url)
 
 
 def get_local_subreport_path(category_name, hlt):
@@ -339,7 +329,7 @@ def get_dataset_lists(category):
     return reference_dataset_list, target_dataset_list
 
 
-def compare_compress_move(category_name, hlt, reference_list, target_list):
+def compare_compress_move(category_name, hlt, reference_list, target_list, cpus, log_file):
     """
     The main function that compares, compresses and moves reports to Reports directory
     """
@@ -351,7 +341,7 @@ def compare_compress_move(category_name, hlt, reference_list, target_list):
                                    ','.join(target_list),
                                    '-o',
                                    subreport_path,
-                                   '-N %s' % (CPUS),
+                                   '-N %s' % (cpus),
                                    '--hash_name',
                                    '--HLT' if hlt else ''])
 
@@ -362,69 +352,76 @@ def compare_compress_move(category_name, hlt, reference_list, target_list):
 
     logging.info('ValidationMatrix command: %s', comparison_command)
     proc = subprocess.Popen(comparison_command,
-                            stdout=VALIDATION_MATRIX_LOG_FILE,
-                            stderr=VALIDATION_MATRIX_LOG_FILE,
+                            stdout=log_file,
+                            stderr=log_file,
                             shell=True)
     proc.communicate()
 
     logging.info('Path fix command: %s', path_fix_command)
     proc = subprocess.Popen(path_fix_command,
-                            stdout=VALIDATION_MATRIX_LOG_FILE,
-                            stderr=VALIDATION_MATRIX_LOG_FILE,
+                            stdout=log_file,
+                            stderr=log_file,
                             shell=True)
     proc.communicate()
 
     logging.info('Compression command: %s', compression_command)
     proc = subprocess.Popen(compression_command,
-                            stdout=VALIDATION_MATRIX_LOG_FILE,
-                            stderr=VALIDATION_MATRIX_LOG_FILE,
+                            stdout=log_file,
+                            stderr=log_file,
                             shell=True)
     proc.communicate()
 
     logging.info('Move command: %s', move_command)
     proc = subprocess.Popen(move_command,
-                            stdout=VALIDATION_MATRIX_LOG_FILE,
-                            stderr=VALIDATION_MATRIX_LOG_FILE,
+                            stdout=log_file,
+                            stderr=log_file,
                             shell=True)
     proc.communicate()
 
 
-def run_validation_matrix():
+def run_validation_matrix(relmon, cpus, callback_url):
     """
     Iterate through categories and start comparison process
     """
-    for category in RELMON.get('categories', []):
+    log_file = open("validation_matrix.log", "w")
+    for category in relmon.get('categories', []):
         category_name = category['name']
         hlt = category['hlt']
         logging.info('Category: %s', category_name)
         logging.info('HLT: %s', hlt)
         reference_list, target_list = get_dataset_lists(category)
         category['status'] = 'comparing'
-        notify()
+        notify(relmon, callback_url)
         if reference_list and target_list:
             if hlt in ('only', 'both'):
                 # Run with HLT
                 compare_compress_move(category_name,
                                       True,
                                       reference_list,
-                                      target_list)
+                                      target_list,
+                                      cpus,
+                                      log_file)
 
             if hlt == 'no' or hlt == 'both' and category_name.lower() != 'generator':
                 # Run without HLT for everything, except generator
                 compare_compress_move(category_name,
                                       False,
                                       reference_list,
-                                      target_list)
+                                      target_list,
+                                      cpus,
+                                      log_file)
         else:
             logging.error('There are no references or targets. References - %s, targets - %s',
                           len(reference_list),
                           len(target_list))
 
         category['status'] = 'done'
-        notify()
+        notify(relmon, callback_url)
+
+    log_file.close()
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description='ROOT file downloader and ValidationMatrix runner')
     parser.add_argument('--relmon',
                         '-r',
@@ -456,40 +453,42 @@ if __name__ == '__main__':
                         format='[%(asctime)s][%(levelname)s] %(message)s',
                         level=logging.INFO)
 
-    CERT_FILE = args.get('cert')
-    KEY_FILE = args.get('key')
-    RELMON_FILENAME = args.get('relmon')
-    CPUS = args.get('cpus', 1)
-    CALLBACK_URL = args.get('callback')
-    NOTIFY_FINISHED = bool(args.get('notifyfinished'))
+    cert_file = args.get('cert')
+    key_file = args.get('key')
+    relmon_filename = args.get('relmon')
+    cpus = args.get('cpus', 1)
+    callback_url = args.get('callback')
+    notify_finished = bool(args.get('notifyfinished'))
     logging.info('Arguments: relmon %s; cert %s; key %s; cpus %s; callback %s; notify %s',
-                 RELMON_FILENAME,
-                 CERT_FILE,
-                 KEY_FILE,
-                 CPUS,
-                 CALLBACK_URL,
-                 'YES' if NOTIFY_FINISHED else 'NO')
+                 relmon_filename,
+                 cert_file,
+                 key_file,
+                 cpus,
+                 callback_url,
+                 'YES' if notify_finished else 'NO')
+
+    with open(relmon_filename) as relmon_file:
+        relmon = json.load(relmon_file)
 
     try:
-        with open(RELMON_FILENAME) as relmon_file:
-            RELMON = json.load(relmon_file)
-
-        if NOTIFY_FINISHED and RELMON['status'] != 'failed':
-            RELMON['status'] = 'finished'
+        if notify_finished and relmon['status'] != 'failed':
+            relmon['status'] = 'finished'
         else:
-            VALIDATION_MATRIX_LOG_FILE = open("validation_matrix.log", "w")
-            CMSWEB = CMSWebWrapper(CERT_FILE, KEY_FILE)
-            RELMON['status'] = 'running'
-            notify()
-            download_root_files()
-            run_validation_matrix()
-            RELMON['status'] = 'finishing'
-            with open(RELMON_FILENAME, 'w') as relmon_file:
-                json.dump(RELMON, relmon_file, indent=2, sort_keys=True)
+            cmsweb = CMSWebWrapper(cert_file, key_file)
+            relmon['status'] = 'running'
+            notify(relmon, callback_url)
+            download_root_files(relmon, cmsweb, callback_url)
+            run_validation_matrix(relmon, cpus, callback_url)
+            relmon['status'] = 'finishing'
+            with open(relmon_filename, 'w') as relmon_file:
+                json.dump(relmon, relmon_file, indent=2, sort_keys=True)
 
-            VALIDATION_MATRIX_LOG_FILE.close()
     except Exception as ex:
         logging.error(ex)
-        RELMON['status'] = 'failed'
+        relmon['status'] = 'failed'
 
-    notify()
+    notify(relmon, callback_url)
+
+
+if __name__ == '__main__':
+    main()
