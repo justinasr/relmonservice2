@@ -5,9 +5,9 @@
       <v-btn small color="primary" v-if="!expandedPanels.length" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]">
         Create New RelMon
       </v-btn>
-<!--       <v-btn small color="primary" v-if="!expandedPanels.length" class="ma-1" @click="forceRefresh()">
+      <v-btn small color="primary" v-if="!expandedPanels.length" class="ma-1" @click="forceRefresh()">
         Force Refresh
-      </v-btn> -->
+      </v-btn>
       <v-expansion-panels multiple v-model="expandedPanels">
         <v-expansion-panel :key="0" class="elevation-0">
           <v-expansion-panel-content>
@@ -158,7 +158,7 @@ export default {
         item['reference'] = item['reference'].split('\n').filter(Boolean)
         item['target'] = item['target'].split('\n').filter(Boolean)
       })
-      axios.post('relmonsvc/api/' + action, relmonClone).then(response => {
+      axios.post('api/' + action, relmonClone).then(response => {
         setTimeout(function(){
           component.refetchRelmons();
           component.cleanup();
@@ -211,7 +211,7 @@ export default {
     },
     forceRefresh() {
       let component = this;
-      axios.get('relmonsvc/api/tick').then(response => {
+      axios.get('api/tick').then(response => {
         setTimeout(function(){ component.refetchRelmons() }, 5000);
       });
     },

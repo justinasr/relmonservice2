@@ -1,0 +1,7 @@
+RewriteEngine on
+
+RewriteRule "^.*fancy-type/screen.css$" "fancy-type-screen.css" [L]
+RewriteRule "^.*/(.*).css$" "$1.css" [L]
+
+RewriteRule "^(.*).html$" "index.php/$1.htmlgz" [L]
+RewriteRule "^(.*).png$" "index.php/$1.pnggz" [L]

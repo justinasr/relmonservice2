@@ -194,7 +194,7 @@ class Controller():
             self.ssh_executor.upload_file(f'{local_relmon_directory}/{relmon_id}.sub',
                                           f'{remote_relmon_directory}/{relmon_id}.sub')
             self.ssh_executor.upload_file(f'{local_relmon_directory}/{relmon_id}.sh',
-                                          f'{remote_relmon_directory}RELMON_{relmon_id}.sh')
+                                          f'{remote_relmon_directory}/RELMON_{relmon_id}.sh')
 
             self.logger.info('Will try to submit %s', relmon)
             # Run condor_submit

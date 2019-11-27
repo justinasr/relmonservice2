@@ -53,7 +53,7 @@ class FileCreator():
             f'-r {relmon_id}.json '
             f'-c {self.grid_cert_file} '
             f'-k {self.grid_key_file} '
-            f'--cpus {cpus}'
+            f'--cpus {cpus} '
             f'--callback {self.callback_url}',
             # Close scope for CMSSW
             ')',
@@ -93,7 +93,7 @@ class FileCreator():
             'cp cookie.txt relmonservice2/remote',
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
             f'-r {relmon_id}.json '
-            f'--callback {self.callback_url}'
+            f'--callback {self.callback_url} '
             '--notifyfinished'
         ]
 

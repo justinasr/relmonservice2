@@ -118,7 +118,7 @@ def get_relmons():
 
         relmon['total_size'] = max(relmon['total_size'], 0.001)
 
-    data.sort(key=lambda x: x.get('id', -1))
+    data.sort(key=lambda x: x.get('id', -1), reverse=True)
     return output_text({'data': data})
 
 
@@ -176,7 +176,7 @@ def tick():
 
 
 def setup_console_logging():
-    logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.DEBUG)
+    logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
 
 
 def setup_logging():
