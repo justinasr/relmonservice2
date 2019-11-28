@@ -50,7 +50,7 @@ class FileCreator():
             'mkdir -p Reports',
             # Run the remote apparatus
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
-            f'-r {relmon_id}.json '
+            f'-r RELMON_{relmon_id}.json '
             f'-c {self.grid_cert_file} '
             f'-k {self.grid_key_file} '
             f'--cpus {cpus} '
@@ -92,7 +92,7 @@ class FileCreator():
             f'cern-get-sso-cookie -u {self.cookie_url} -o cookie.txt',
             'cp cookie.txt relmonservice2/remote',
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
-            f'-r {relmon_id}.json '
+            f'-r RELMON_{relmon_id}.json '
             f'--callback {self.callback_url} '
             '--notifyfinished'
         ]
@@ -108,7 +108,7 @@ class FileCreator():
         """
         relmon_id = relmon.get_id()
         relmon_data = relmon.get_json()
-        relmon_file_name = f'relmons/{relmon_id}/{relmon_id}.json'
+        relmon_file_name = f'relmons/{relmon_id}/RELMON_{relmon_id}.json'
         with open(relmon_file_name, 'w') as output_file:
             json.dump(relmon_data, output_file, indent=2, sort_keys=True)
 
@@ -120,13 +120,13 @@ class FileCreator():
         cpus = relmon.get_cpu()
         memory = relmon.get_memory()
         disk = relmon.get_disk()
-        condor_file_name = f'relmons/{relmon_id}/{relmon_id}.sub'
+        condor_file_name = f'relmons/{relmon_id}/RELMON_{relmon_id}.sub'
         condor_file_content = [
             f'executable            = RELMON_{relmon_id}.sh',
-            f'output                = {relmon_id}.out',
-            f'error                 = {relmon_id}.err',
-            f'log                   = {relmon_id}.log',
-            f'transfer_input_files  = {relmon_id}.json,{self.grid_cert_path},{self.grid_key_path}',
+            f'output                = RELMON_{relmon_id}.out',
+            f'error                 = RELMON_{relmon_id}.err',
+            f'log                   = RELMON_{relmon_id}.log',
+            f'transfer_input_files  = RELMON_{relmon_id}.json,{self.grid_cert_path},{self.grid_key_path}',
             'when_to_transfer_output = on_exit',
             f'request_cpus          = {cpus}',
             f'request_memory        = {memory}',

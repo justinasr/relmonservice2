@@ -183,18 +183,20 @@ class Controller():
             self.logger.info('Will prepare remote directory for %s', relmon)
             # Prepare remote directory. Delete old one and create a new one
             self.ssh_executor.execute_command([
-                'rm -rf %s' % (remote_relmon_directory),
-                'mkdir -p %s' % (remote_relmon_directory)
+                f'rm -rf {remote_relmon_directory}',
+                f'mkdir -p {remote_relmon_directory}'
             ])
 
             self.logger.info('Will upload files for %s', relmon)
             # Upload relmon json, submit file and script to run
-            self.ssh_executor.upload_file(f'{local_relmon_directory}/{relmon_id}.json',
-                                          f'{remote_relmon_directory}/{relmon_id}.json')
-            self.ssh_executor.upload_file(f'{local_relmon_directory}/{relmon_id}.sub',
-                                          f'{remote_relmon_directory}/{relmon_id}.sub')
-            self.ssh_executor.upload_file(f'{local_relmon_directory}/{relmon_id}.sh',
-                                          f'{remote_relmon_directory}/RELMON_{relmon_id}.sh')
+            local_name = f'{local_relmon_directory}/RELMON_{relmon_id}'
+            remote_name = f'{remote_relmon_directory}/RELMON_{relmon_id}'
+            self.ssh_executor.upload_file(f'{local_name}.json',
+                                          f'{remote_name}.json')
+            self.ssh_executor.upload_file(f'{local_name}.sub',
+                                          f'{remote_name}.sub')
+            self.ssh_executor.upload_file(f'{local_name}.sh',
+                                          f'{remote_name}.sh')
 
             self.logger.info('Will try to submit %s', relmon)
             # Run condor_submit
@@ -202,7 +204,7 @@ class Controller():
             # It is easier to ssh to lxplus than set up condor locally
             stdout, stderr = self.ssh_executor.execute_command([
                 f'cd {remote_relmon_directory}',
-                f'condor_submit {relmon_id}.sub'
+                f'condor_submit RELMON_{relmon_id}.sub'
             ])
             # Parse result of condor_submit
             if not stderr and '1 job(s) submitted to cluster' in stdout:
@@ -273,17 +275,19 @@ class Controller():
             f'{remote_relmon_directory}/validation_matrix.log',
             f'{local_relmon_directory}/validation_matrix.log'
         )
+        remote_name = f'{remote_relmon_directory}/{relmon_id}'
+        local_name = f'{local_relmon_directory}/{relmon_id}'
         self.ssh_executor.download_file(
-            f'{remote_relmon_directory}/{relmon_id}.out',
-            f'{local_relmon_directory}/{relmon_id}.out'
+            f'{remote_name}.out',
+            f'{local_name}.out'
         )
         self.ssh_executor.download_file(
-            f'{remote_relmon_directory}/{relmon_id}.log',
-            f'{local_relmon_directory}/{relmon_id}.log'
+            f'{remote_name}.log',
+            f'{local_name}.log'
         )
         self.ssh_executor.download_file(
-            f'{remote_relmon_directory}/{relmon_id}.err',
-            f'{local_relmon_directory}/{relmon_id}.err'
+            f'{remote_name}.err',
+            f'{local_name}.err'
         )
 
         _, _ = self.ssh_executor.execute_command([
