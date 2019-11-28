@@ -29,7 +29,7 @@ class FileCreator():
         relmon_id = relmon.get_id()
         cpus = relmon.get_cpu()
         relmon_name = relmon.get_name()
-        script_file_name = f'relmons/{relmon_id}/{relmon_id}.sh'
+        script_file_name = f'relmons/{relmon_id}/RELMON_{relmon_id}.sh'
         web_sqlite_path = f'"{self.web_location}/{relmon_name}.sqlite"'
         script_file_content = [
             '#!/bin/bash',
