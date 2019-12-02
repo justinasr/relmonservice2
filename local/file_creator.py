@@ -50,11 +50,7 @@ class FileCreator():
             'mkdir -p Reports',
             # Run the remote apparatus
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
-            '-r RELMON_%s.json ' % (relmon_id)
-            '-c %s ' % (self.grid_cert_file)
-            '-k %s ' % (self.grid_key_file)
-            '--cpus %s ' % (cpus)
-            '--callback %s' % (self.callback_url),
+            '-r RELMON_%s.json -c %s -k %s --cpus %s --callback %s' % (relmon_id, self.grid_cert_file, self.grid_key_file, cpus, self.callback_url),
             # Close scope for CMSSW
             ')',
             'cd $DIR',
@@ -92,8 +88,7 @@ class FileCreator():
             'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
             'cp cookie.txt relmonservice2/remote',
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
-            '-r RELMON_%s.json ' % (relmon_id)
-            '--callback %s ' % (self.callback_url)
+            '-r RELMON_%s.json --callback %s ' % (relmon_id, self.callback_url),
             '--notifyfinished'
         ]
 
