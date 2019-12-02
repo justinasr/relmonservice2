@@ -29,15 +29,15 @@ class FileCreator():
         relmon_id = relmon.get_id()
         cpus = relmon.get_cpu()
         relmon_name = relmon.get_name()
-        script_file_name = f'relmons/{relmon_id}/RELMON_{relmon_id}.sh'
-        web_sqlite_path = f'"{self.web_location}/{relmon_name}.sqlite"'
+        script_file_name = 'relmons/%s/RELMON_%s.sh' % (relmon_id, relmon_id)
+        web_sqlite_path = '"%s/%s.sqlite"' % (self.web_location, relmon_name)
         script_file_content = [
             '#!/bin/bash',
             'DIR=$(pwd)',
             # Clone the relmon service
             'git clone https://github.com/justinasr/relmonservice2.git',
             # Make a cookie for callbacks about progress
-            f'cern-get-sso-cookie -u {self.cookie_url} -o cookie.txt',
+            'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
             'cp cookie.txt relmonservice2/remote',
             # CMSSW environment setup
             'scramv1 project CMSSW CMSSW_10_4_0',
@@ -50,11 +50,11 @@ class FileCreator():
             'mkdir -p Reports',
             # Run the remote apparatus
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
-            f'-r RELMON_{relmon_id}.json '
-            f'-c {self.grid_cert_file} '
-            f'-k {self.grid_key_file} '
-            f'--cpus {cpus} '
-            f'--callback {self.callback_url}',
+            '-r RELMON_%s.json ' % (relmon_id)
+            '-c %s ' % (self.grid_cert_file)
+            '-k %s ' % (self.grid_key_file)
+            '--cpus %s ' % (cpus)
+            '--callback %s' % (self.callback_url),
             # Close scope for CMSSW
             ')',
             'cd $DIR',
@@ -76,24 +76,24 @@ class FileCreator():
             'echo "Integrity check:"',
             'echo "PRAGMA integrity_check" | sqlite3 reports.sqlite',
             # Remove sql file from web path
-            f'rm -rf {web_sqlite_path}',
+            'rm -rf %s' % (web_sqlite_path),
             # Copy reports sqlite to web path
-            f'time rsync -v reports.sqlite {web_sqlite_path}',
+            'time rsync -v reports.sqlite %s' % (web_sqlite_path),
             # Checksum for created sqlite
             'echo "EOS space"',
             'echo "MD5 Sum"',
-            f'md5sum {web_sqlite_path}',
+            'md5sum %s' % (web_sqlite_path),
             # List sizes
-            f'ls -l {web_sqlite_path}',
+            'ls -l %s' % (web_sqlite_path),
             # Do integrity check
             'echo "Integrity check:"',
-            f'echo "PRAGMA integrity_check" | sqlite3 {web_sqlite_path}',
+            'echo "PRAGMA integrity_check" | sqlite3 %s' % (web_sqlite_path),
             'cd $DIR',
-            f'cern-get-sso-cookie -u {self.cookie_url} -o cookie.txt',
+            'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
             'cp cookie.txt relmonservice2/remote',
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
-            f'-r RELMON_{relmon_id}.json '
-            f'--callback {self.callback_url} '
+            '-r RELMON_%s.json ' % (relmon_id)
+            '--callback %s ' % (self.callback_url)
             '--notifyfinished'
         ]
 
@@ -108,7 +108,7 @@ class FileCreator():
         """
         relmon_id = relmon.get_id()
         relmon_data = relmon.get_json()
-        relmon_file_name = f'relmons/{relmon_id}/RELMON_{relmon_id}.json'
+        relmon_file_name = 'relmons/%s/RELMON_%s.json' % (relmon_id, relmon_id)
         with open(relmon_file_name, 'w') as output_file:
             json.dump(relmon_data, output_file, indent=2, sort_keys=True)
 
@@ -120,17 +120,17 @@ class FileCreator():
         cpus = relmon.get_cpu()
         memory = relmon.get_memory()
         disk = relmon.get_disk()
-        condor_file_name = f'relmons/{relmon_id}/RELMON_{relmon_id}.sub'
+        condor_file_name = 'relmons/%s/RELMON_%s.sub' % (relmon_id, relmon_id)
         condor_file_content = [
-            f'executable            = RELMON_{relmon_id}.sh',
-            f'output                = RELMON_{relmon_id}.out',
-            f'error                 = RELMON_{relmon_id}.err',
-            f'log                   = RELMON_{relmon_id}.log',
-            f'transfer_input_files  = RELMON_{relmon_id}.json,{self.grid_cert_path},{self.grid_key_path}',
+            'executable             = RELMON_%s.sh' % (relmon_id),
+            'output                 = RELMON_%s.out' % (relmon_id),
+            'error                  = RELMON_%s.err' % (relmon_id),
+            'log                    = RELMON_%s.log' % (relmon_id),
+            'transfer_input_files   = RELMON_%s.json,%s,%s' % (relmon_id, self.grid_cert_path, self.grid_key_path),
             'when_to_transfer_output = on_exit',
-            f'request_cpus          = {cpus}',
-            f'request_memory        = {memory}',
-            f'request_disk          = {disk}',
+            'request_cpus           = %s' % (cpus),
+            'request_memory         = %s' % (memory),
+            'request_disk           = %s' % (disk),
             '+JobFlavour            = "tomorrow"',
             '+JobPrio               = 1',
             'requirements           = (OpSysAndVer =?= "SLCern6")',

@@ -156,8 +156,8 @@ class Controller():
         Take relmon object and submit it to HTCondor
         """
         relmon_id = relmon.get_id()
-        local_relmon_directory = f'relmons/{relmon_id}'
-        remote_relmon_directory = f'{self.remote_directory}/{relmon_id}'
+        local_relmon_directory = 'relmons/%s' % (relmon_id)
+        remote_relmon_directory = '%s/%s' % (self.remote_directory, relmon_id)
         self.logger.info('Will submit %s to HTCondor', relmon)
         self.logger.info('Remote directory of %s is %s', relmon, remote_relmon_directory)
         self.logger.info('Resetting %s before submission', relmon)
@@ -183,28 +183,28 @@ class Controller():
             self.logger.info('Will prepare remote directory for %s', relmon)
             # Prepare remote directory. Delete old one and create a new one
             self.ssh_executor.execute_command([
-                f'rm -rf {remote_relmon_directory}',
-                f'mkdir -p {remote_relmon_directory}'
+                'rm -rf' % (remote_relmon_directory),
+                'mkdir -p' % (remote_relmon_directory)
             ])
 
             self.logger.info('Will upload files for %s', relmon)
             # Upload relmon json, submit file and script to run
-            local_name = f'{local_relmon_directory}/RELMON_{relmon_id}'
-            remote_name = f'{remote_relmon_directory}/RELMON_{relmon_id}'
-            self.ssh_executor.upload_file(f'{local_name}.json',
-                                          f'{remote_name}.json')
-            self.ssh_executor.upload_file(f'{local_name}.sub',
-                                          f'{remote_name}.sub')
-            self.ssh_executor.upload_file(f'{local_name}.sh',
-                                          f'{remote_name}.sh')
+            local_name = '%s/RELMON_%s' % (local_relmon_directory, relmon_id)
+            remote_name = '%s/RELMON_%s' % (remote_relmon_directory, relmon_id)
+            self.ssh_executor.upload_file('%s.json' % (local_name),
+                                          '%s.json' % (remote_name))
+            self.ssh_executor.upload_file('%s.sub' % (local_name),
+                                          '%s.sub' % (remote_name))
+            self.ssh_executor.upload_file('%s.sh' % (local_name),
+                                          '%s.sh' % (remote_name))
 
             self.logger.info('Will try to submit %s', relmon)
             # Run condor_submit
             # Submission happens through lxplus as condor is not available on website machine
             # It is easier to ssh to lxplus than set up condor locally
             stdout, stderr = self.ssh_executor.execute_command([
-                f'cd {remote_relmon_directory}',
-                f'condor_submit RELMON_{relmon_id}.sub'
+                'cd %s' % (remote_relmon_directory),
+                'condor_submit RELMON_%s.sub' % (relmon_id)
             ])
             # Parse result of condor_submit
             if not stderr and '1 job(s) submitted to cluster' in stdout:
@@ -234,7 +234,7 @@ class Controller():
                          relmon,
                          relmon_condor_id)
         stdout, stderr = self.ssh_executor.execute_command(
-            f'condor_q -af:h ClusterId JobStatus | grep {relmon_condor_id}'
+            'condor_q -af:h ClusterId JobStatus | grep %s' % (relmon_condor_id)
         )
         new_condor_status = '<unknown>'
         if stdout and not stderr:
@@ -268,32 +268,32 @@ class Controller():
 
         logging.info('Collecting output for %s', relmon)
         relmon_id = relmon.get_id()
-        remote_relmon_directory = f'{self.remote_directory}/{relmon_id}'
-        local_relmon_directory = f'relmons/{relmon_id}'
+        remote_relmon_directory = '%s/%s' % (self.remote_directory, relmon_id)
+        local_relmon_directory = 'relmons/%s' % (relmon_id)
 
         self.ssh_executor.download_file(
-            f'{remote_relmon_directory}/validation_matrix.log',
-            f'{local_relmon_directory}/validation_matrix.log'
+            '%s/validation_matrix.log' % (remote_relmon_directory),
+            '%s/validation_matrix.log' % (local_relmon_directory)
         )
-        remote_name = f'{remote_relmon_directory}/{relmon_id}'
-        local_name = f'{local_relmon_directory}/{relmon_id}'
+        remote_name = '%s/%s' % (remote_relmon_directory, relmon_id)
+        local_name = '%s/%s' % (local_relmon_directory, relmon_id)
         self.ssh_executor.download_file(
-            f'{remote_name}.out',
-            f'{local_name}.out'
-        )
-        self.ssh_executor.download_file(
-            f'{remote_name}.log',
-            f'{local_name}.log'
+            '%s.out' % (remote_name),
+            '%s.out' % (local_name)
         )
         self.ssh_executor.download_file(
-            f'{remote_name}.err',
-            f'{local_name}.err'
+            '%s.log' % (remote_name),
+            '%s.log' % (local_name)
+        )
+        self.ssh_executor.download_file(
+            '%s.err' % (remote_name),
+            '%s.err' % (local_name)
         )
 
         _, _ = self.ssh_executor.execute_command([
-            f'cd {remote_relmon_directory}',
+            'cd %s' % (remote_relmon_directory),
             'cd ..',
-            f'rm -r {relmon_id}'
+            'rm -r %s' % (relmon_id)
         ])
         if relmon.get_status() != 'failed':
             relmon.set_status('done')
@@ -317,7 +317,7 @@ class Controller():
         self.logger.info('Trying to terminate %s', relmon)
         condor_id = relmon.get_condor_id()
         if condor_id > 0:
-            self.ssh_executor.execute_command(f'condor_rm {condor_id}')
+            self.ssh_executor.execute_command('condor_rm %s' % (condor_id))
         else:
             self.logger.info('Relmon %s HTCondor id is not valid: %s', relmon, condor_id)
 
