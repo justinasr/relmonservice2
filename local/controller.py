@@ -183,8 +183,8 @@ class Controller():
             self.logger.info('Will prepare remote directory for %s', relmon)
             # Prepare remote directory. Delete old one and create a new one
             self.ssh_executor.execute_command([
-                'rm -rf' % (remote_relmon_directory),
-                'mkdir -p' % (remote_relmon_directory)
+                'rm -rf %s' % (remote_relmon_directory),
+                'mkdir -p %s' % (remote_relmon_directory)
             ])
 
             self.logger.info('Will upload files for %s', relmon)
