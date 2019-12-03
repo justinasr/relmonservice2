@@ -3,12 +3,12 @@
     <v-col class="elevation-3 pa-4 mb-2" style="background: white; position: relative;">
       <span class="font-weight-light bigger-text">RelMon</span> <span class="ml-2 bigger-text">{{relmonData.name}}</span>
       <v-row>
-        <v-col cols=5>
+        <v-col :lg="5" :md="6" :sm="6" :cols="12">
           Job information
           <ul>
             <li><span class="font-weight-light">ID:</span> {{relmonData.id}}</li>
             <li><span class="font-weight-light">Status:</span> {{relmonData.status}} <span v-if="relmonData.status == 'done'">
-              | <a target="_blank" :href="'http://pdmv-new-relmon.web.cern.ch/pdmv-new-relmon#' + relmonData.name">open reports</a>
+              | <a target="_blank" :href="'http://pdmv-new-relmon.web.cern.ch/pdmv-new-relmon#' + relmonData.name">go to reports</a>
             </span></li>
             <li><span class="font-weight-light">HTCondor job status:</span> {{relmonData.condor_status}}</li>
             <li><span class="font-weight-light">HTCondor job ID:</span> {{relmonData.condor_id}}</li>
@@ -41,7 +41,7 @@
           <v-btn small class="ma-1" color="error" @click="resetOverlay = true">Reset</v-btn>
           <v-btn small class="ma-1" color="error" @click="deleteOverlay = true">Delete</v-btn>
         </v-col>
-        <v-col cols=7>
+        <v-col :lg="7" :md="6" :sm="6" :cols="12">
           Categories
           <ul>
             <li v-for="category in relmonData.categories"><span class="font-weight-light">{{category.name}}</span> - {{category.status}} <span class="font-weight-light">| HLT:</span> {{category.hlt}} <span class="font-weight-light">| pairing:</span> {{category.automatic_pairing ? 'auto' : 'manual'}}
@@ -61,6 +61,7 @@
               </ul>
             </li>
           </ul>
+          <v-btn small class="ma-1" color="primary" @click="detailedView = true">Open detailed view</v-btn>
         </v-col>
 
         <v-overlay :absolute="false"
@@ -114,6 +115,45 @@
         </v-overlay>
       </v-row>
     </v-col>
+    <v-dialog v-model="detailedView">
+      <v-card class="pa-4" >
+        <span class="font-weight-light bigger-text">Categories of</span> <span class="ml-2 bigger-text">{{relmonData.name}}</span>
+        <div v-for="category in relmonData.categories">
+          <span class="font-weight-light bigger-text">{{category.name}}</span>
+          <ul>
+            <li><span class="font-weight-light">Status:</span> {{category.status}}</li>
+            <li><span class="font-weight-light">HLT:</span> {{category.hlt}}</li>
+            <li><span class="font-weight-light">Pairing:</span> {{category.automatic_pairing ? 'auto' : 'manual'}}</li>
+            <li>
+              <span class="font-weight-light">References</span>
+              <span class="font-weight-light"> - total:</span> {{category.reference.length}}
+              <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.reference_total_size / 1024.0 / 1024.0) * 10) / 10}}MB
+              <span v-for="value, key in category.reference_status"><span class="font-weight-light"> | {{key}}:&nbsp;</span>{{value}}</span>
+              <ul>
+                <li v-for="reference in category.reference">
+                  <span class="font-weight-light">Name:</span> {{reference.name}} | <span class="font-weight-light">Status:</span> <span :class="reference.status | statusToColor">{{reference.status}}</span> <span class="font-weight-light"> | Size:</span> {{Math.round((reference.file_size / 1024.0 / 1024.0) * 10) / 10}}MB
+                </li>
+              </ul>
+            </li>
+            <li>
+              <span class="font-weight-light">Targets</span>
+              <span class="font-weight-light"> - total:</span> {{category.target.length}}
+              <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.target_total_size / 1024.0 / 1024.0) * 10) / 10}}MB
+              <span v-for="value, key in category.target_status"><span class="font-weight-light"> | {{key}}:&nbsp;</span>{{value}}</span>
+              <ul>
+                <li v-for="target in category.target">
+                  <span class="font-weight-light">Name:</span> {{target.name}} | <span class="font-weight-light">Status:</span> <span :class="target.status | statusToColor">{{target.status}}</span> <span class="font-weight-light"> | Size:</span> {{Math.round((target.file_size / 1024.0 / 1024.0) * 10) / 10}}MB
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn small class="ma-1" color="primary" @click="detailedView = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-row>
 </template>
 
@@ -125,13 +165,22 @@ export default {
     return {
       resetOverlay: false,
       deleteOverlay: false,
-      isRefreshing: false
+      isRefreshing: false,
+      detailedView: false
     }
   },
   created () {
 
   },
   watch: {
+  },
+  filters: {
+    statusToColor (status) {
+      if (status.startsWith("no_")) {
+        return "red-text";
+      }
+      return "";
+    }
   },
   props: {
     relmonData: {
@@ -182,9 +231,14 @@ export default {
 <style scoped>
 .bigger-text {
   font-size: 1.5rem;
+  word-break: break-all;
 }
 
 li {
   padding-bottom: 4px;
+}
+
+.red-text {
+  color: red;
 }
 </style>
