@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <v-app-bar app>
-      <v-toolbar-title class="headline text-uppercase">
+      <v-toolbar-title class="headline">
         <span>RelMon</span>
         <span class="font-weight-light">Service</span>
       </v-toolbar-title>

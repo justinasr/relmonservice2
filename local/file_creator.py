@@ -88,8 +88,7 @@ class FileCreator():
             'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
             'cp cookie.txt relmonservice2/remote',
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
-            '-r RELMON_%s.json --callback %s ' % (relmon_id, self.callback_url),
-            '--notifyfinished'
+            '-r RELMON_%s.json --callback %s --notifyfinished' % (relmon_id, self.callback_url)
         ]
 
         script_file_content_string = '\n'.join(script_file_content)

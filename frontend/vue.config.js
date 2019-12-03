@@ -4,7 +4,7 @@ module.exports = {
   ],
   assetsDir: 'static/',
   publicPath: process.env.NODE_ENV !== 'production'
-    ? '/relmonsvc'
+    ? ''
     : '/relmonsvc',
   devServer: {
     logLevel: 'debug'

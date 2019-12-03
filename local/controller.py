@@ -268,7 +268,7 @@ class Controller():
 
         logging.info('Collecting output for %s', relmon)
         relmon_id = relmon.get_id()
-        remote_relmon_directory = '%s/%s' % (self.remote_directory, relmon_id)
+        remote_relmon_directory = '%s/RELMON_%s' % (self.remote_directory, relmon_id)
         local_relmon_directory = 'relmons/%s' % (relmon_id)
 
         self.ssh_executor.download_file(
