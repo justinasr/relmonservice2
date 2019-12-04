@@ -480,12 +480,12 @@ def main():
             download_root_files(relmon, cmsweb, callback_url)
             run_validation_matrix(relmon, cpus, callback_url)
             relmon['status'] = 'finishing'
-            with open(relmon_filename, 'w') as relmon_file:
-                json.dump(relmon, relmon_file, indent=2, sort_keys=True)
-
     except Exception as ex:
         logging.error(ex)
         relmon['status'] = 'failed'
+    finally:
+        with open(relmon_filename, 'w') as relmon_file:
+            json.dump(relmon, relmon_file, indent=2, sort_keys=True)
 
     notify(relmon, callback_url)
 
