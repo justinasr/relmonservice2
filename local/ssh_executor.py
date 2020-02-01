@@ -31,6 +31,7 @@ class SSHExecutor():
             with open(self.credentials) as json_file:
                 credentials = json.load(json_file)
         else:
+            credentials = {}
             credentials['username'] = self.credentials.split('@')[0]
             credentials['password'] = self.credentials.split('@')[1]
 

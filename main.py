@@ -203,7 +203,10 @@ def get_config(mode):
 
     logging.info('Config values:')
     for key, value in config.items():
-        logging.info('%s %s', key, value)
+        if key == 'ssh_credentials':
+            logging.info('%s ***')
+        else:
+            logging.info('%s %s', key, value)
 
     return config
 
