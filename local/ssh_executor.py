@@ -17,7 +17,7 @@ class SSHExecutor():
         self.ftp_client = None
         self.logger = logging.getLogger('logger')
         self.remote_host = config['submission_host']
-        self.credentials_file_path = config['ssh_credentials_json']
+        self.credentials = config['ssh_credentials']
 
     def setup_ssh(self):
         """
@@ -27,15 +27,19 @@ class SSHExecutor():
         if self.ssh_client:
             self.close_connections()
 
-        with open(self.credentials_file_path) as json_file:
-            credentials = json.load(json_file)
+        if '@' not in self.credentials:
+            with open(self.credentials) as json_file:
+                credentials = json.load(json_file)
+        else:
+            credentials['username'] = self.credentials.split('@')[0]
+            credentials['password'] = self.credentials.split('@')[1]
 
         self.logger.info('Credentials loaded successfully: %s', credentials['username'])
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh_client.connect(self.remote_host,
-                                username=credentials["username"],
-                                password=credentials["password"],
+                                username=credentials['username'],
+                                password=credentials['password'],
                                 timeout=30)
         self.logger.info('Done setting up ssh')
 

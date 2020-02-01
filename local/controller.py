@@ -6,7 +6,7 @@ Runs main loop that checks status and acts accordingly
 import logging
 import time
 from multiprocessing import Manager
-from couchdb_database import Database
+from mongodb_database import Database
 from local.ssh_executor import SSHExecutor
 from local.relmon import RelMon
 from local.file_creator import FileCreator
@@ -17,7 +17,6 @@ class Controller():
         self.logger = logging.getLogger('logger')
         self.logger.info('***** Creating a controller! *****')
         self.is_tick_running = False
-        self.database = Database()
         self.remote_directory = config['remote_directory']
         if self.remote_directory[-1] == '/':
             self.remote_directory = self.remote_directory[:-1]
@@ -42,6 +41,7 @@ class Controller():
         * Check running relmons
         * Submit new relmons
         """
+        database = Database()
         self.logger.info('Controller will tick')
         tick_start = time.time()
         # Delete relmons
@@ -49,7 +49,7 @@ class Controller():
                          len(self.relmons_to_delete),
                          ','.join(self.relmons_to_delete))
         for relmon_id in self.relmons_to_delete:
-            self.__delete_relmon(relmon_id)
+            self.__delete_relmon(relmon_id, database)
             self.relmons_to_delete.remove(relmon_id)
 
         # Reset relmons
@@ -57,28 +57,28 @@ class Controller():
                          len(self.relmons_to_reset),
                          ', '.join(self.relmons_to_reset))
         for relmon_id in self.relmons_to_reset:
-            self.__reset_relmon(relmon_id)
+            self.__reset_relmon(relmon_id, database)
             self.relmons_to_reset.remove(relmon_id)
 
         # Check relmons
-        relmons_to_check = self.database.get_relmons_with_status('submitted', include_docs=True)
-        relmons_to_check.extend(self.database.get_relmons_with_status('running', include_docs=True))
-        relmons_to_check.extend(self.database.get_relmons_with_status('finishing', include_docs=True))
-        relmons_to_check.extend(self.database.get_relmons_with_status('finished', include_docs=True))
+        relmons_to_check = database.get_relmons_with_status('submitted', include_docs=True)
+        relmons_to_check.extend(database.get_relmons_with_status('running', include_docs=True))
+        relmons_to_check.extend(database.get_relmons_with_status('finishing', include_docs=True))
+        relmons_to_check.extend(database.get_relmons_with_status('finished', include_docs=True))
         self.logger.info('Relmons to check (%s): %s.',
                          len(relmons_to_check),
                          ', '.join(r.get('id') for r in relmons_to_check))
         for relmon_json in relmons_to_check:
             relmon = RelMon(relmon_json)
-            self.__check_if_running(relmon)
+            self.__check_if_running(relmon, database)
             condor_status = relmon.get_condor_status()
             if condor_status in ['DONE', 'REMOVED']:
                 # Refetch after check if running save
-                relmon = RelMon(self.database.get_relmon(relmon.get_id()))
-                self.__collect_output(relmon)
+                relmon = RelMon(database.get_relmon(relmon.get_id()))
+                self.__collect_output(relmon, database)
 
         # Submit relmons
-        relmons_to_submit = self.database.get_relmons_with_status('new', include_docs=True)
+        relmons_to_submit = database.get_relmons_with_status('new', include_docs=True)
         self.logger.info('Relmons to submit (%s): %s.',
                          len(relmons_to_submit),
                          ', '.join(r.get('id') for r in relmons_to_submit))
@@ -87,7 +87,7 @@ class Controller():
             status = relmon.get_status()
             if status == 'new':
                 # Double check and if it is new, submit it
-                self.__submit_to_condor(relmon)
+                self.__submit_to_condor(relmon, database)
 
         self.ssh_executor.close_connections()
         tick_end = time.time()
@@ -112,17 +112,17 @@ class Controller():
             self.logger.info('Added %s to delete list', relmon_id)
             self.relmons_to_delete.append(str(relmon_id))
 
-    def create_relmon(self, relmon_data):
+    def create_relmon(self, relmon_data, database):
         """
         Create relmon from the supplied dictionary
         """
         relmon_data['id'] = str(int(time.time()))
         relmon = RelMon(relmon_data)
         relmon.reset()
-        self.database.update_relmon(relmon)
+        database.create_relmon(relmon)
         self.logger.info('Relmon %s was created', relmon)
 
-    def edit_relmon(self, relmon_data):
+    def edit_relmon(self, relmon_data, database):
         """
         Update relmon categories
         """
@@ -131,7 +131,7 @@ class Controller():
             self.logger.error('Relmon does not have an ID')
             return
 
-        old_relmon = self.database.get_relmon(relmon_id)
+        old_relmon = database.get_relmon(relmon_id)
         if not old_relmon:
             self.logger.error('Cannot update relmon that is not in the database')
             return
@@ -147,11 +147,11 @@ class Controller():
         # Update only categories, do not allow to update anything else
         old_relmon['categories'] = relmon_data.get('categories', [])
         relmon = RelMon(old_relmon)
-        self.database.update_relmon(relmon)
+        database.update_relmon(relmon)
         self.add_to_reset_list(relmon_id)
         self.logger.info('Relmon %s was edited', relmon)
 
-    def __submit_to_condor(self, relmon):
+    def __submit_to_condor(self, relmon, database):
         """
         Take relmon object and submit it to HTCondor
         """
@@ -163,9 +163,9 @@ class Controller():
         self.logger.info('Resetting %s before submission', relmon)
         relmon.reset()
         self.logger.info('Saving %s to database', relmon)
-        self.database.update_relmon(relmon)
+        database.update_relmon(relmon)
         # Refetch after update
-        relmon = RelMon(self.database.get_relmon(relmon_id))
+        relmon = RelMon(database.get_relmon(relmon_id))
         self.logger.info('Resources for %s: CPU: %s, memory: %s, disk %s',
                          relmon,
                          relmon.get_cpu(),
@@ -226,9 +226,9 @@ class Controller():
             self.logger.error('Exception while trying to submit %s: %s', relmon, str(ex))
 
         self.logger.info('%s status is %s', relmon, relmon.get_status())
-        self.database.update_relmon(relmon)
+        database.update_relmon(relmon)
 
-    def __check_if_running(self, relmon):
+    def __check_if_running(self, relmon, database):
         relmon_condor_id = relmon.get_condor_id()
         self.logger.info('Will check if %s is running in HTCondor, id: %s',
                          relmon,
@@ -255,12 +255,12 @@ class Controller():
                               stdout,
                               stderr)
 
-        relmon = RelMon(self.database.get_relmon(relmon.get_id()))
+        relmon = RelMon(database.get_relmon(relmon.get_id()))
         self.logger.info('Saving %s condor status as %s', relmon, new_condor_status)
         relmon.set_condor_status(new_condor_status)
-        self.database.update_relmon(relmon)
+        database.update_relmon(relmon)
 
-    def __collect_output(self, relmon):
+    def __collect_output(self, relmon, database):
         condor_status = relmon.get_condor_status()
         if condor_status not in ['DONE', 'REMOVED']:
             self.logger.info('%s status is not DONE or REMOVED, it is %s', relmon, condor_status)
@@ -298,20 +298,20 @@ class Controller():
         if relmon.get_status() != 'failed':
             relmon.set_status('done')
 
-        self.database.update_relmon(relmon)
+        database.update_relmon(relmon)
 
-    def __reset_relmon(self, relmon_id):
-        relmon_json = self.database.get_relmon(relmon_id)
+    def __reset_relmon(self, relmon_id, database):
+        relmon_json = database.get_relmon(relmon_id)
         relmon = RelMon(relmon_json)
         self.__terminate_relmon(relmon)
         relmon.reset()
-        self.database.update_relmon(relmon)
+        database.update_relmon(relmon)
 
-    def __delete_relmon(self, relmon_id):
-        relmon_json = self.database.get_relmon(relmon_id)
+    def __delete_relmon(self, relmon_id, database):
+        relmon_json = database.get_relmon(relmon_id)
         relmon = RelMon(relmon_json)
         self.__terminate_relmon(relmon)
-        self.database.delete_relmon(relmon)
+        database.delete_relmon(relmon)
 
     def __terminate_relmon(self, relmon):
         self.logger.info('Trying to terminate %s', relmon)

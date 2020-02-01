@@ -8,8 +8,9 @@ import logging
 import json
 import time
 import configparser
+import os
 from local.controller import Controller
-from couchdb_database import Database
+from mongodb_database import Database
 from local.relmon import RelMon
 
 
@@ -29,7 +30,7 @@ def index_page():
 @app.route('/api/create', methods=['POST'])
 def add_relmon():
     relmon = json.loads(request.data.decode('utf-8'))
-    controller.create_relmon(relmon)
+    controller.create_relmon(relmon, Database())
     controller_tick()
     return output_text({'message': 'OK'})
 
@@ -136,7 +137,7 @@ def output_text(data, code=200, headers=None):
 @app.route('/api/edit', methods=['POST'])
 def edit_relmon():
     relmon = json.loads(request.data.decode('utf-8'))
-    controller.edit_relmon(relmon)
+    controller.edit_relmon(relmon, Database())
     controller_tick()
     return output_text({'message': 'OK'})
 
@@ -179,45 +180,50 @@ def setup_console_logging():
     logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
 
 
-def setup_logging():
-    # Max log file size - 5Mb
-    max_log_file_size = 1024 * 1024 * 5
-    max_log_file_count = 10
-    log_file_name = 'logs/log.log'
-    logger = logging.getLogger('logger')
-    logger.setLevel(logging.INFO)
-    handler = handlers.RotatingFileHandler(log_file_name,
-                                           'a',
-                                           max_log_file_size,
-                                           max_log_file_count)
-    formatter = logging.Formatter(fmt='[%(asctime)s][%(levelname)s] %(message)s',
-                                  datefmt='%d/%b/%Y:%H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+def get_config(mode):
+    if mode == 'env':
+        keys = ['callback_url',
+                'cookie_url',
+                'grid_certificate',
+                'grid_key',
+                'host',
+                'port',
+                'submission_host',
+                'remote_directory',
+                'ssh_credentials',
+                'web_location']
+        config = {}
+        for key in keys:
+            config[key] = os.environ.get(key.upper())
+
+    else:
+        config = configparser.ConfigParser()
+        config.read('config.cfg')
+        config = dict(config.items(mode))
+
+    logging.info('Config values:')
+    for key, value in config.items():
+        logging.info('%s %s', key, value)
+
+    return config
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='RelMon Service')
     parser.add_argument('--mode',
-                        choices=['prod', 'test', 'dev'],
+                        choices=['prod', 'dev', 'env'],
                         required=True,
-                        help='Production (prod), development (dev) or testing (test) mode')
+                        help='Production (prod) or development (dev) mode from config file or environment variables (env) mode')
     parser.add_argument('--debug',
                         help='Debug mode',
                         action='store_true')
     args = vars(parser.parse_args())
     debug = args.get('debug', False)
-    if debug:
-        setup_console_logging()
-    else:
-        setup_logging()
-
+    setup_console_logging()
     logger = logging.getLogger('logger')
-    mode = args.get('mode', 'development').lower()
-    config = configparser.ConfigParser()
-    config.read('config.cfg')
-    config = dict(config.items(mode))
-    logger.info('Mode if "%s"', mode)
+    mode = args.get('mode', 'dev').lower()
+    logger.info('Mode is "%s"', mode)
+    config = get_config(mode)
     controller = Controller(config)
     scheduler.add_executor('processpool')
     scheduler.add_job(tick, 'interval', seconds=600, max_instances=1)
