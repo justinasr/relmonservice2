@@ -27,13 +27,13 @@ class SSHExecutor():
         if self.ssh_client:
             self.close_connections()
 
-        if '@' not in self.credentials:
+        if ':' not in self.credentials:
             with open(self.credentials) as json_file:
                 credentials = json.load(json_file)
         else:
             credentials = {}
-            credentials['username'] = self.credentials.split('@')[0]
-            credentials['password'] = self.credentials.split('@')[1]
+            credentials['username'] = self.credentials.split(':')[0]
+            credentials['password'] = self.credentials.split(':')[1]
 
         self.logger.info('Credentials loaded successfully: %s', credentials['username'])
         self.ssh_client = paramiko.SSHClient()

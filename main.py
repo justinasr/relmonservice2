@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, make_response
 from flask_restful import Api
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
-from logging import handlers
 import argparse
 import logging
 import json
@@ -29,6 +28,9 @@ def index_page():
 
 @app.route('/api/create', methods=['POST'])
 def add_relmon():
+    if not is_user_authorized():
+        return output_text({'message': 'Unauthorized'}, code=403)
+
     relmon = json.loads(request.data.decode('utf-8'))
     controller.create_relmon(relmon, Database())
     controller_tick()
@@ -37,6 +39,9 @@ def add_relmon():
 
 @app.route('/api/reset', methods=['POST'])
 def reset_relmon():
+    if not is_user_authorized():
+        return output_text({'message': 'Unauthorized'}, code=403)
+
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
         controller.add_to_reset_list(str(int(data['id'])))
@@ -48,6 +53,9 @@ def reset_relmon():
 
 @app.route('/api/delete', methods=['DELETE'])
 def delete_relmon():
+    if not is_user_authorized():
+        return output_text({'message': 'Unauthorized'}, code=403)
+
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
         controller.add_to_delete_list(str(int(data['id'])))
@@ -136,6 +144,9 @@ def output_text(data, code=200, headers=None):
 
 @app.route('/api/edit', methods=['POST'])
 def edit_relmon():
+    if not is_user_authorized():
+        return output_text({'message': 'Unauthorized'}, code=403)
+
     relmon = json.loads(request.data.decode('utf-8'))
     controller.edit_relmon(relmon, Database())
     controller_tick()
@@ -144,6 +155,10 @@ def edit_relmon():
 
 @app.route('/api/update', methods=['POST'])
 def update_info():
+    user_info = user_info()
+    if user_info.get('login') != 'pdmvserv':
+        return output_text({'message': 'Unauthorized'}, code=403)
+
     data = json.loads(request.data.decode('utf-8'))
     db = Database()
     relmon = db.get_relmon(data['id'])
@@ -166,10 +181,28 @@ def update_info():
 
 @app.route('/api/tick')
 def controller_tick():
+    if not is_user_authorized():
+        return output_text({'message': 'Unauthorized'}, code=403)
+
     for job in scheduler.get_jobs():
         job.modify(next_run_time=datetime.now())
 
     return output_text({'message': 'OK'})
+
+
+@app.route('/api/user')
+def user_info():
+    fullname = request.headers.get('Adfs-Fullname', '???')
+    login = request.headers.get('Adfs-Login', '???')
+    authorized_user = is_user_authorized()
+    return output_text({'login': login,
+                        'authorized_user': authorized_user,
+                        'fullname': fullname})
+
+
+def is_user_authorized():
+    groups = [x.strip().lower() for x in request.headers.get('Adfs-Group', '???').split(';')]
+    return 'cms-ppd-pdmv-val-admin-pdmv' in groups
 
 
 def tick():
@@ -204,7 +237,7 @@ def get_config(mode):
     logging.info('Config values:')
     for key, value in config.items():
         if key == 'ssh_credentials':
-            logging.info('%s ***')
+            logging.info('%s ******', key)
         else:
             logging.info('%s %s', key, value)
 

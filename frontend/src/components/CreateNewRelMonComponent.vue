@@ -2,12 +2,16 @@
   <v-row>
     <v-col class="elevation-3 pa-2 mb-2" style="background: white">
       <!-- <pre>{{relmonWrapper.relmon}}</pre> -->
-      <v-btn small color="primary" v-if="!expandedPanels.length" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]">
+      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]">
         Create New RelMon
       </v-btn>
-      <v-btn small color="primary" v-if="!expandedPanels.length" class="ma-1" @click="forceRefresh()">
+      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="forceRefresh()">
         Force Refresh
       </v-btn>
+      <div style="float: right; line-height: 36px;">
+        <span class="font-weight-light">Logged in as</span> {{userInfo.name}}
+        <span v-if="userInfo.authorized">&#11088;</span>
+      </div>
       <v-expansion-panels multiple v-model="expandedPanels">
         <v-expansion-panel :key="0" class="elevation-0">
           <v-expansion-panel-content>
@@ -131,17 +135,20 @@ export default {
       isEditing: false,
       editOverlay: false,
       creatingOverlay: false,
-      isRefreshing: false
+      isRefreshing: false,
     }
   },
   created () {
-    this.cleanup()
+    this.cleanup();
   },
   watch: {
 
   },
   props: {
-
+    userInfo: {
+      type: Object,
+      default: function () { return { 'name': '', 'authorized': false }; }
+    }
   },
   components: {
   },

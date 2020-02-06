@@ -35,11 +35,13 @@
               </v-progress-linear>
             </li>
           </ul>
-          Actions
-          <br>
-          <v-btn small class="ma-1" color="primary" @click="editRelmon(relmonData)">Edit</v-btn>
-          <v-btn small class="ma-1" color="error" @click="resetOverlay = true">Reset</v-btn>
-          <v-btn small class="ma-1" color="error" @click="deleteOverlay = true">Delete</v-btn>
+          <div v-if="userInfo.authorized">
+            Actions
+            <br>
+            <v-btn small class="ma-1" color="primary" @click="editRelmon(relmonData)">Edit</v-btn>
+            <v-btn small class="ma-1" color="error" @click="resetOverlay = true">Reset</v-btn>
+            <v-btn small class="ma-1" color="error" @click="deleteOverlay = true">Delete</v-btn>
+          </div>
         </v-col>
         <v-col :lg="7" :md="6" :sm="6" :cols="12">
           Categories
@@ -186,6 +188,10 @@ export default {
     relmonData: {
       type: Object,
       default: () => {}
+    },
+    userInfo: {
+      type: Object,
+      default: function () { return { 'name': '', 'authorized': false }; }
     }
   },
   components: {
