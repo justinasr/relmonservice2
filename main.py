@@ -155,8 +155,7 @@ def edit_relmon():
 
 @app.route('/api/update', methods=['POST'])
 def update_info():
-    user_info = user_info()
-    if user_info.get('login') != 'pdmvserv':
+    if user_info().get('login') != 'pdmvserv':
         return output_text({'message': 'Unauthorized'}, code=403)
 
     data = json.loads(request.data.decode('utf-8'))
