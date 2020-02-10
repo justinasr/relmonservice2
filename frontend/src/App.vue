@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar app>
+    <v-app-bar app style="background-color: white;">
       <v-toolbar-title class="headline">
         <span>RelMon</span>
         <span class="font-weight-light">Service</span>

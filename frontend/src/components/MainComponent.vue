@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app style="background-color: #fafafa">
     <v-container>
       <CreateNewRelMonComponent @refetchRelmons="refetchRelmons" :userInfo="userInfo" ref="createNewRelMonComponent"></CreateNewRelMonComponent>
       <RelMonComponent @editRelmon="editRelmon" @refetchRelmons="refetchRelmons" v-for="relmonData in fetchedData" :key="relmonData.name" :relmonData="relmonData" :userInfo="userInfo"></RelMonComponent>
