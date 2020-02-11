@@ -12,7 +12,7 @@
             </span></li>
             <li><span class="font-weight-light">HTCondor job status:</span> {{relmonData.condor_status}}</li>
             <li><span class="font-weight-light">HTCondor job ID:</span> {{relmonData.condor_id}}</li>
-            <li><span class="font-weight-light">Last update:</span> {{relmonData.last_update}}</li>
+            <li><span class="font-weight-light">Last update:</span> {{niceDate(relmonData.last_update)}}</li>
           </ul>
           Progress
           <ul>
@@ -160,7 +160,10 @@
 </template>
 
 <script>
+
 import axios from 'axios'
+import dateFormat from 'dateformat'
+
 export default {
   name: 'RelMonComponent',
   data () {
@@ -229,6 +232,9 @@ export default {
     },
     refetchRelmons() {
       this.$emit('refetchRelmons')
+    },
+    niceDate: function (time) {
+      return dateFormat(new Date(time * 1000), 'yyyy-mm-dd HH:MM')
     }
   }
 }
