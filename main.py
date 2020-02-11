@@ -5,7 +5,6 @@ from datetime import datetime
 import argparse
 import logging
 import json
-import time
 import configparser
 import os
 from local.controller import Controller
@@ -68,24 +67,23 @@ def delete_relmon():
 @app.route('/api/get_relmons')
 def get_relmons():
     db = Database()
-    data = db.get_relmons(include_docs=True)
+    args = request.args.to_dict()
+    if args is None:
+        args = {}
+
+    page = int(args.get('page', 0))
+    limit = int(args.get('limit', db.PAGE_SIZE))
+
+    data, total_rows = db.get_relmons(include_docs=True, page=page, page_size=limit)
     for relmon in data:
-        relmon['last_update'] = time.strftime('%Y-%m-%d %H:%M', time.localtime(relmon.get('last_update', 0)))
         relmon['done_size'] = 0
         relmon['total_size'] = 0
         relmon['downloaded_relvals'] = 0
         relmon['total_relvals'] = 0
         for category in relmon.get('categories'):
-            category['reference'] = [{'name': (x.get('name', '')),
-                                      'file_name': x.get('file_name', ''),
-                                      'file_url': x.get('file_url', ''),
-                                      'file_size': x.get('file_size', 0),
-                                      'status': x.get('status', ''),
-                                      'versioned': x.get('versioned', False)} for x in category['reference']]
-
+            relmon['total_relvals'] += len(category['reference']) + len(category['target'])
             category['reference_status'] = {}
             category['reference_total_size'] = 0
-            relmon['total_relvals'] = relmon['total_relvals'] + len(category['reference']) + len(category['target'])
             for relval in category['reference']:
                 category['reference_total_size'] += relval.get('file_size', 0)
                 relmon_status = relval['status']
@@ -99,13 +97,6 @@ def get_relmons():
                     relmon['done_size'] += relval.get('file_size', 0)
 
                 category['reference_status'][relmon_status] = category['reference_status'][relmon_status] + 1
-
-            category['target'] = [{'name': (x.get('name', '')),
-                                   'file_name': x.get('file_name', ''),
-                                   'file_url': x.get('file_url', ''),
-                                   'file_size': x.get('file_size', 0),
-                                   'status': x.get('status', ''),
-                                   'versioned': x.get('versioned', False)} for x in category['target']]
 
             category['target_status'] = {}
             category['target_total_size'] = 0
@@ -127,8 +118,7 @@ def get_relmons():
 
         relmon['total_size'] = max(relmon['total_size'], 0.001)
 
-    data.sort(key=lambda x: x.get('id', -1), reverse=True)
-    return output_text({'data': data})
+    return output_text({'data': data, 'total_rows': total_rows, 'page_size': limit})
 
 
 def output_text(data, code=200, headers=None):
