@@ -13,6 +13,17 @@ if (!isset($_SERVER["PATH_INFO"])) {
       <!-- Bootstrap CSS -->
       <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
       <link rel="stylesheet" type="text/css" href="style.css">
+      <script  src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+      <script>
+        function deleteRelmon(name){
+          if (confirm("Are you sure you want to delete " + name + "?")) {
+            $.post("delete.php", { "name": name },function(data, status) {
+              alert("Status: " + status);
+              location.reload();
+            });
+          }
+        }
+      </script>
       <title>RelMon Reports</title>
     </head>
     <body>
@@ -37,6 +48,7 @@ if (!isset($_SERVER["PATH_INFO"])) {
   <?php
         $relmons = glob('./*.sqlite');
         usort($relmons, function($a, $b) { return filemtime($a) < filemtime($b); });
+        $authorizedUser = in_array('cms-ppd-pdmv-val-admin-pdmv', explode(';', strtolower($_SERVER['ADFS_GROUP'])));
         foreach($relmons as $relmon) {
   ?>
           <div class="row card mt-2 elevation-3">
@@ -49,7 +61,12 @@ if (!isset($_SERVER["PATH_INFO"])) {
                   $size = round($stat['size'] / (1024.0 * 1024.0), 2);
                   $relmonName = str_replace("./", "", $relmon);
                   $relmonName = str_replace(".sqlite", "", $relmonName);
-                  print("<span class=\"bigger-text\" id=\"$relmonName\">$relmonName</span><br><span class=\"font-weight-light\">Created:</span> $lastModified</span><br><span class=\"font-weight-light\">Size:</span> $size MB");
+                  print("<span class=\"bigger-text\" id=\"$relmonName\">$relmonName</span><br>");
+                  print("<span class=\"font-weight-light\">Created:</span> $lastModified</span><br>");
+                  print("<span class=\"font-weight-light\">Size:</span> $size MB");
+                  if ($authorizedUser) {
+                    print("<br><br><a href=\"#\" onclick=\"deleteRelmon('$relmonName')\">Delete report</a>");
+                  }
   ?>
                 </div>
                 <div class="col-sm-12 col-md-4">
