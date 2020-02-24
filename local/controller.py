@@ -268,14 +268,14 @@ class Controller():
 
         logging.info('Collecting output for %s', relmon)
         relmon_id = relmon.get_id()
-        remote_relmon_directory = '%s/RELMON_%s' % (self.remote_directory, relmon_id)
+        remote_relmon_directory = '%s/%s' % (self.remote_directory, relmon_id)
         local_relmon_directory = 'relmons/%s' % (relmon_id)
 
         self.ssh_executor.download_file(
             '%s/validation_matrix.log' % (remote_relmon_directory),
             '%s/validation_matrix.log' % (local_relmon_directory)
         )
-        remote_name = '%s/%s' % (remote_relmon_directory, relmon_id)
+        remote_name = '%s/%s/RELMON_%s' % (remote_relmon_directory, relmon_id, relmon_id)
         local_name = '%s/%s' % (local_relmon_directory, relmon_id)
         self.ssh_executor.download_file(
             '%s.out' % (remote_name),

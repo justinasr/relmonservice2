@@ -277,17 +277,21 @@ def pair_references_with_targets(category):
                         targets_in_run.remove(reference_target_ratio[1])
                         selected_pairs.append((reference_name, target_name))
 
+    # Delete empty items wo there would be less to print
+    clean_file_tree(reference_tree)
+    clean_file_tree(target_tree)
+    for _, reference_runs in reference_tree.items():
+        for _, references_in_run in reference_runs.items():
             for reference in references_in_run:
                 if reference['status'] == 'downloaded':
                     reference['status'] = 'no_match'
 
+    for _, target_runs in target_tree.items():
+        for _, targets_in_run in target_runs.items():
             for target in targets_in_run:
                 if target['status'] == 'downloaded':
                     target['status'] = 'no_match'
 
-    # Delete empty items wo there would be less to print
-    clean_file_tree(reference_tree)
-    clean_file_tree(target_tree)
     logging.info('References leftovers tree: %s',
                  json.dumps(reference_tree, indent=2, sort_keys=True))
     logging.info('Targets leftovers tree: %s',
