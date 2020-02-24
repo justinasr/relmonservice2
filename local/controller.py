@@ -290,11 +290,11 @@ class Controller():
             '%s.err' % (local_name)
         )
 
-        _, _ = self.ssh_executor.execute_command([
-            'cd %s' % (remote_relmon_directory),
-            'cd ..',
-            'rm -r %s' % (relmon_id)
-        ])
+        # _, _ = self.ssh_executor.execute_command([
+        #     'cd %s' % (remote_relmon_directory),
+        #     'cd ..',
+        #     'rm -r %s' % (relmon_id)
+        # ])
         if relmon.get_status() != 'failed':
             relmon.set_status('done')
 

@@ -7,11 +7,9 @@
           Job information
           <ul>
             <li><span class="font-weight-light">ID:</span> {{relmonData.id}}</li>
-            <li><span class="font-weight-light">Status:</span> {{relmonData.status}} <span v-if="relmonData.status == 'done'">
+            <li><span class="font-weight-light">Status:</span> <span :title="'HTCondor Status: ' + relmonData.condor_status + '\nHTCondor ID: ' + relmonData.condor_id">{{relmonData.status}}</span> <span v-if="relmonData.status == 'done'">
               | <a target="_blank" :href="'http://pdmv-new-relmon.web.cern.ch/pdmv-new-relmon#' + relmonData.name">go to reports</a>
             </span></li>
-            <li><span class="font-weight-light">HTCondor job status:</span> {{relmonData.condor_status}}</li>
-            <li><span class="font-weight-light">HTCondor job ID:</span> {{relmonData.condor_id}}</li>
             <li><span class="font-weight-light">Last update:</span> {{niceDate(relmonData.last_update)}}</li>
           </ul>
           Progress
@@ -39,8 +37,8 @@
             Actions
             <br>
             <v-btn small class="ma-1" color="primary" @click="editRelmon(relmonData)">Edit</v-btn>
-            <v-btn small class="ma-1" color="error" @click="resetOverlay = true">Reset</v-btn>
-            <v-btn small class="ma-1" color="error" @click="deleteOverlay = true">Delete</v-btn>
+            <v-btn small class="ma-1" color="error" @click="resetConformationOverlay = true">Reset</v-btn>
+            <v-btn small class="ma-1" color="error" @click="deleteConformationOverlay = true">Delete</v-btn>
           </div>
         </v-col>
         <v-col :lg="7" :md="6" :sm="6" :cols="12">
@@ -52,13 +50,17 @@
                   <span class="font-weight-light">References</span>
                   <span class="font-weight-light"> - total:</span> {{category.reference.length}}
                   <!-- <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.reference_total_size / 1024.0 / 1024.0) * 10) / 10}}MB -->
-                  <span v-for="value, key in category.reference_status"><span class="font-weight-light"> | {{key}}:&nbsp;</span>{{value}}</span>
+                  <span v-for="value, key in category.reference_status">
+                    <span class="font-weight-light">|</span> <span class="font-weight-light" :class="key | statusToColor"> {{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span>
+                  </span>
                 </li>
                 <li>
                   <span class="font-weight-light">Targets</span>
                   <span class="font-weight-light"> - total:</span> {{category.target.length}}
                   <!-- <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.target_total_size / 1024.0 / 1024.0) * 10) / 10}}MB -->
-                  <span v-for="value, key in category.target_status"><span class="font-weight-light"> | {{key}}:&nbsp;</span>{{value}}</span>
+                  <span v-for="value, key in category.target_status">
+                    <span class="font-weight-light">|</span> <span class="font-weight-light" :class="key | statusToColor"> {{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span>
+                  </span>
                 </li>
               </ul>
             </li>
@@ -69,9 +71,9 @@
         <v-overlay :absolute="false"
                    :opacity="0.95"
                    :z-index="3"
-                   :value="resetOverlay"
+                   :value="resetConformationOverlay"
                    style="text-align: center">
-          Reset {{relmonData.name}}?<br>
+          This will reset {{relmonData.name}}. All progress will be lost and RelMon will be redone from scratch. Are you sure you want to reset {{relmonData.name}}?<br>
           <v-btn color="error"
                  class="ma-1"
                  small
@@ -83,7 +85,7 @@
                  class="ma-1"
                  small
                  v-if="!isRefreshing"
-                 @click="resetOverlay = false">
+                 @click="resetConformationOverlay = false">
             Cancel
           </v-btn>
           <v-progress-circular indeterminate
@@ -94,9 +96,9 @@
         <v-overlay :absolute="false"
                    :opacity="0.95"
                    :z-index="3"
-                   :value="deleteOverlay"
+                   :value="deleteConformationOverlay"
                    style="text-align: center">
-          Delete {{relmonData.name}}?<br>
+          This will delete {{relmonData.name}}. Generated reports will stay unaffected, but RelMon will be forever removed from RelMon Service. Are you sure you want to delete {{relmonData.name}}?<br>
           <v-btn color="error"
                  class="ma-1"
                  small
@@ -108,7 +110,7 @@
                  class="ma-1"
                  small
                  v-if="!isRefreshing"
-                 @click="deleteOverlay = false">
+                 @click="deleteConformationOverlay = false">
             Cancel
           </v-btn>
           <v-progress-circular indeterminate
@@ -168,8 +170,8 @@ export default {
   name: 'RelMonComponent',
   data () {
     return {
-      resetOverlay: false,
-      deleteOverlay: false,
+      resetConformationOverlay: false,
+      deleteConformationOverlay: false,
       isRefreshing: false,
       detailedView: false
     }
@@ -211,7 +213,7 @@ export default {
       }).then(response => {
         setTimeout(function(){
           component.refetchRelmons();
-          component.resetOverlay = false;
+          component.resetConformationOverlay = false;
           component.isRefreshing = false;
         }, 5000);
       });
@@ -225,7 +227,7 @@ export default {
       }).then(response => {
         setTimeout(function(){
           component.refetchRelmons();
-          component.deleteOverlay = false;
+          component.deleteConformationOverlay = false;
           component.isRefreshing = false;
         }, 5000);
       });

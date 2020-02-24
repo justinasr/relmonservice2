@@ -6,7 +6,7 @@ import os
 
 
 class Database:
-    PAGE_SIZE = 25
+    PAGE_SIZE = 10
 
     def __init__(self):
         db_host = os.environ.get('DB_HOST', 'localhost')

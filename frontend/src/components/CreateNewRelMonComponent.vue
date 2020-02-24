@@ -2,11 +2,11 @@
   <v-row>
     <v-col class="elevation-3 pa-2 mb-2" style="background: white">
       <!-- <pre>{{relmonWrapper.relmon}}</pre> -->
-      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]">
+      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]" title="Create a new RelMon">
         Create New RelMon
       </v-btn>
-      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="forceRefresh()">
-        Force Refresh
+      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="forceRefresh()" title="Trigger RelMon Service to check RelMon progress in HTCondor. Usually this happens automatically every 15 minutes">
+        Trigger a Refresh
       </v-btn>
       <div style="float: right; line-height: 36px;">
         <span class="font-weight-light">Logged in as</span> {{userInfo.name}}
@@ -34,7 +34,7 @@
                 <v-tabs :grow="true" :centered="true">
                   <v-tabs-slider></v-tabs-slider>
                   <v-tab v-for="category in relmonWrapper.relmon.categories" :key="category.name" :href="`#tab-${category.name}`">
-                    {{ category.name }}
+                    {{ category.name }} ({{listLength(category.reference)}}-{{listLength(category.target)}})</span>
                   </v-tab>
                   <v-tab-item v-for="category in relmonWrapper.relmon.categories" :key="category.name" :value="'tab-' + category.name">
                     <v-row>
@@ -76,8 +76,8 @@
             </v-row>
             <v-row>
               <v-col>
-                <v-btn v-if="!isEditing" small class="ma-1" color="primary" @click="updateRelmon('create')">Create</v-btn>
-                <v-btn v-if="isEditing" small class="ma-1" color="primary" @click="editOverlay = true">Save</v-btn>
+                <v-btn v-if="!isEditing" small class="ma-1" color="primary" :disabled="!relmonWrapper.relmon.name" @click="updateRelmon('create')">Create</v-btn>
+                <v-btn v-if="isEditing" small class="ma-1" color="primary" :disabled="!relmonWrapper.relmon.name" @click="editOverlay = true">Save</v-btn>
                 <v-btn small class="ma-1" color="error" @click="cleanup()">Cancel</v-btn>
               </v-col>
             </v-row>
@@ -91,7 +91,7 @@
                :z-index="3"
                :value="editOverlay"
                style="text-align: center">
-      This will reset {{relmonWrapper.relmon.name}}. All progress will be lost. Are you sure you want to update {{relmonWrapper.relmon.name}}?<br>
+      This will update and reset {{relmonWrapper.relmon.name}}. All progress will be lost and RelMon will be redone from scratch. Are you sure you want to update {{relmonWrapper.relmon.name}}?<br>
       <v-btn color="error"
              class="ma-1"
              small
@@ -120,6 +120,20 @@
       <v-progress-circular indeterminate
                      color="primary"></v-progress-circular>
     </v-overlay>
+
+    <v-overlay :absolute="false"
+               :opacity="0.95"
+               :z-index="3"
+               :value="forceRefreshOverlay"
+               style="text-align: center">
+      Refresh has been triggered. RelMon Service will now check how submitted RelMons are progressing in HTCondor. This may take a few minutes. This refresh happens automatically on it's own every 15 minutes.<br>
+      <v-btn color="primary"
+             class="ma-1"
+             small
+             @click="forceRefreshOverlay = false; refetchRelmons();">
+        Close
+      </v-btn>
+    </v-overlay>
   </v-row>
 </template>
 
@@ -136,6 +150,7 @@ export default {
       editOverlay: false,
       creatingOverlay: false,
       isRefreshing: false,
+      forceRefreshOverlay: false,
     }
   },
   created () {
@@ -197,6 +212,9 @@ export default {
         this.cleanup()
       }
     },
+    listLength(l) {
+      return l.split('\n').filter(Boolean).length;
+    },
     createEmptyRelmon() {
       return {'name': '',
               'categories': this.addMissingCategories([])}
@@ -219,7 +237,7 @@ export default {
     forceRefresh() {
       let component = this;
       axios.get('api/tick').then(response => {
-        setTimeout(function(){ component.refetchRelmons() }, 5000);
+        component.forceRefreshOverlay = true;
       });
     },
     refetchRelmons() {

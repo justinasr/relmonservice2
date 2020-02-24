@@ -6,8 +6,12 @@
       <v-row style="line-height: 36px; text-align: center;">
         <v-col class="elevation-3 pa-2 mb-2" style="background: white">
           <v-btn small color="primary" style="float: left" class="ma-1" v-if="page > 0" @click="previousPage()">Previous Page</v-btn>
-          <span class="font-weight-light">Page:</span> {{page}}
-          <v-btn small color="primary" style="float: right" class="ma-1" v-if="page * pageSize < totalRows" @click="nextPage()">Next Page</v-btn>
+          <span class="font-weight-light">Pages:</span>
+          <span v-for="(p, i) in totalPages()" class="ml-1">
+            <a v-if="i !== page" :href="'?page=' + i" style="text-decoration: none">{{i}}</a>
+            <b v-if="i === page">{{i}}</b>
+          </span>
+          <v-btn small color="primary" style="float: right" class="ma-1" v-if="(page + 1) * pageSize < totalRows" @click="nextPage()">Next Page</v-btn>
         </v-col>
       </v-row>
     </v-container>
@@ -82,6 +86,9 @@ export default {
       this.updateURLParams();
       this.refetchRelmons();
     },
+    totalPages() {
+      return Math.ceil(this.totalRows / Math.max(1, this.pageSize));
+    }
   }
 }
 </script>

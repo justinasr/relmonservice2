@@ -31,6 +31,9 @@ def add_relmon():
         return output_text({'message': 'Unauthorized'}, code=403)
 
     relmon = json.loads(request.data.decode('utf-8'))
+    if not relmon.get('name'):
+        return output_text({'message': 'No name'}, code=400)
+
     controller.create_relmon(relmon, Database())
     controller_tick()
     return output_text({'message': 'OK'})
@@ -86,7 +89,7 @@ def get_relmons():
             category['reference_total_size'] = 0
             for relval in category['reference']:
                 category['reference_total_size'] += relval.get('file_size', 0)
-                relmon_status = relval['status']
+                relmon_status = relval.get('status', 'initial')
                 if relmon_status not in category['reference_status']:
                     category['reference_status'][relmon_status] = 0
 
