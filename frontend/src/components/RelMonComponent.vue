@@ -50,17 +50,13 @@
                   <span class="font-weight-light">References</span>
                   <span class="font-weight-light"> - total:</span> {{category.reference.length}}
                   <!-- <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.reference_total_size / 1024.0 / 1024.0) * 10) / 10}}MB -->
-                  <span v-for="value, key in category.reference_status">
-                    <span class="font-weight-light">|</span> <span class="font-weight-light" :class="key | statusToColor"> {{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span>
-                  </span>
+                  <span v-for="value, key in category.reference_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
                 </li>
                 <li>
                   <span class="font-weight-light">Targets</span>
                   <span class="font-weight-light"> - total:</span> {{category.target.length}}
                   <!-- <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.target_total_size / 1024.0 / 1024.0) * 10) / 10}}MB -->
-                  <span v-for="value, key in category.target_status">
-                    <span class="font-weight-light">|</span> <span class="font-weight-light" :class="key | statusToColor"> {{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span>
-                  </span>
+                  <span v-for="value, key in category.reference_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
                 </li>
               </ul>
             </li>
