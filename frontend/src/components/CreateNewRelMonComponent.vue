@@ -5,7 +5,7 @@
       <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]" title="Create a new RelMon">
         Create New RelMon
       </v-btn>
-      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="forceRefresh()" title="Trigger RelMon Service to check RelMon progress in HTCondor. Usually this happens automatically every 15 minutes">
+      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="forceRefresh()" title="Trigger RelMon Service to check RelMon progress in HTCondor. This happens automatically every 10 minutes">
         Trigger a Refresh
       </v-btn>
       <div style="float: right; line-height: 36px;">
@@ -126,7 +126,7 @@
                :z-index="3"
                :value="forceRefreshOverlay"
                style="text-align: center">
-      Refresh has been triggered. RelMon Service will now check how submitted RelMons are progressing in HTCondor. This may take a few minutes. This refresh happens automatically on it's own every 15 minutes.<br>
+      Refresh has been triggered. RelMon Service will now check how submitted RelMons are progressing in HTCondor. This may take a few minutes. This refresh happens automatically on it's own every 10 minutes.<br>
       <v-btn color="primary"
              class="ma-1"
              small
