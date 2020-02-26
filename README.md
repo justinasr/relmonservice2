@@ -18,7 +18,7 @@ Items in references and targets lists are workflow names from ReqMgr2, e.g. `pdm
 Items in references and targets lists can be paired either automatically or manually. Manual pairing compares first item in references list to first item in target list, second item to second item, etc. In this case it is up to a user to put them in correct order. In automatic pairing dataset names will be used to automatically make pairs based on run number (Data category only) and dataset name and processing string. Datasets with identical run numbers and datasets and most similar processing strings will be paired.
 
 #### HLT
-There are three options for HLT: No HLT, Only HLT and Both. This option controls `--HLT` flag of `runTheMatrix.py`. "No HLT" will run `runTheMatrix.py` only once for that category without `--HLT` flag. "Only HLT" will run only once for that category with the flag. "Both" will run `runTheMatrix.py` twice for that category. Once with `--HLT` flag and then without it.
+There are three options for HLT: No HLT, Only HLT and Both. This option controls `--HLT` flag of `ValidationMatrix.py`. "No HLT" will run `ValidationMatrix.py` only once for that category without `--HLT` flag. "Only HLT" will run only once for that category with the flag. "Both" will run `ValidationMatrix.py` twice for that category. Once with `--HLT` flag and then without it.
 
 #### Other attributes
 Each RelMon has few more attributes that could not be edited by a user.
@@ -27,8 +27,8 @@ Each RelMon has few more attributes that could not be edited by a user.
     * `new` - RelMon is new and will soon be submitted to HTCondor for comparison
     * `submitting` - RelMon is being submitted to HTCondor. This should not take more than few minutes
     * `submitted` - RelMon was successfully submitted to HTCondor and is waiting for resources to start running. Time in this status depends on RelMon size and load of HTCondor system
-    * `running` - RelMon got resources in HTCondor and now is downloading files or running the `runTheMatrix.py`. Time in this status depends on RelMon size
-    * `finished` - RelMon finished running all `runTheMatrix.py` commands and now is packing and transferring reports to reports website
+    * `running` - RelMon got resources in HTCondor and now is downloading files or running the `ValidationMatrix.py`. Time in this status depends on RelMon size
+    * `finished` - RelMon finished running all `ValidationMatrix.py` commands and now is packing and transferring reports to reports website
     * `done` - RelMon is done, reports are available
     * `failed` - RelMon submission or job at HTCondor failed. Carefully inspect workflow names, reset the RelMon or contact an administrator for more help
   * **HTCondor job status** - Status of HTCondor job. Usually it is one of these:
@@ -39,11 +39,11 @@ Each RelMon has few more attributes that could not be edited by a user.
   * **HTCondor job ID** - job identifier in HTCondor. This is used mostly for debug purposes
   * **Last update** - when was the last time this RelMon received updates about itself like **Status*, **HTCondor job status** or **Progress**.
   * **Download progress** - how many DQMIO dataset files are downloaded
-  * **Comparison progress** - rough estimate on `runTheMatrix.py` progress based on number of categories and input file size
+  * **Comparison progress** - rough estimate on `ValidationMatrix.py` progress based on number of categories and input file size
   * **Category status** - current status of this category. Can be one of these:
-    * `initial` - category is waiting to be ran using `runTheMatrix.py`
+    * `initial` - category is waiting to be ran using `ValidationMatrix.py`
     * `comparing` - category is being compared at the moment
-    * `done` - category is done being compared using `runTheMatrix.py`
+    * `done` - category is done being compared using `ValidationMatrix.py`
   * **References and targets status in categories** - status of each workflow and it's dataset. Can be one of these:
     * `initial` - workflow is waiting to have it's dataset downloaded
     * `downloading` - DQMIO dataset of this workflow is being currently downloaded
