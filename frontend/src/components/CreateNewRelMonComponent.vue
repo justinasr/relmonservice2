@@ -23,7 +23,7 @@
                 <span class="bigger-text font-weight-light">Editing</span> <span class="bigger-text ml-2">{{relmonWrapper.relmon.name}}</span>
               </v-col>
               <v-col cols=12 sm=12 md=8 lg=8>
-                <span class="font-weight-light">Name:</span><input type="text" :disabled="isEditing" style="width: 100%" v-model="relmonWrapper.relmon.name">
+                <span class="font-weight-light">Name:</span><input type="text" style="width: 100%" v-model="relmonWrapper.relmon.name">
               </v-col>
               <v-col v-if="isEditing" cols=12 sm=12 md=4 lg=4>
                 <span class="font-weight-light">ID:</span><input type="text" :disabled="true" style="width: 100%" v-model="relmonWrapper.relmon.id">
@@ -34,7 +34,14 @@
                 <v-tabs :grow="true" :centered="true">
                   <v-tabs-slider></v-tabs-slider>
                   <v-tab v-for="category in relmonWrapper.relmon.categories" :key="category.name" :href="`#tab-${category.name}`">
-                    {{ category.name }} ({{listLength(category.reference)}}-{{listLength(category.target)}})</span>
+                    <div>
+                      <div>
+                        {{ category.name }}
+                      </div>
+                      <small>
+                        {{listLength(category.reference)}} vs. {{listLength(category.target)}}
+                      </small>
+                    </div>
                   </v-tab>
                   <v-tab-item v-for="category in relmonWrapper.relmon.categories" :key="category.name" :value="'tab-' + category.name">
                     <v-row>
@@ -91,7 +98,9 @@
                :z-index="3"
                :value="editOverlay"
                style="text-align: center">
-      This will update and reset {{relmonWrapper.relmon.name}}. All progress will be lost and RelMon will be redone from scratch. Are you sure you want to update {{relmonWrapper.relmon.name}}?<br>
+      <span v-if="relmonWrapper.relmon.status == 'done'">This will update {{relmonWrapper.relmon.name}}. All progress of changed categories will be lost and these categories will be redone from scratch.</span>
+      <span v-if="relmonWrapper.relmon.status != 'done'">This will update and reset {{relmonWrapper.relmon.name}}. All progress will be lost and RelMon will be redone from scratch.</span>
+      <br>Are you sure you want to update {{relmonWrapper.relmon.name}}?<br>
       <v-btn color="error"
              class="ma-1"
              small

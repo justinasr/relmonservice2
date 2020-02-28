@@ -12,10 +12,76 @@ class RelMon():
 
     def __init__(self, data):
         self.data = data
-        self.__remove_empty_categories()
         relmon_path = 'relmons/%s/' % (self.get_id())
         if not os.path.isdir(relmon_path):
             os.mkdir(relmon_path)
+
+        for category in self.data.get('categories', []):
+            category['status'] = category.get('status', 'initial')
+            new_references = []
+            for old_reference in category['reference']:
+                if isinstance(old_reference, str):
+                    new_references.append({'name': old_reference,
+                                           'file_name': '',
+                                           'file_url': '',
+                                           'file_size': 0,
+                                           'status': 'initial'})
+                else:
+                    new_references.append({'name': old_reference['name'],
+                                           'file_name': old_reference.get('file_name', ''),
+                                           'file_url': old_reference.get('file_url', ''),
+                                           'file_size': old_reference.get('file_size', 0),
+                                           'status': old_reference.get('status', 'initial')})
+
+            new_targets = []
+            for old_target in category['target']:
+                if isinstance(old_target, str):
+                    new_targets.append({'name': old_target,
+                                        'file_name': '',
+                                        'file_url': '',
+                                        'file_size': 0,
+                                        'status': 'initial'})
+                else:
+                    new_targets.append({'name': old_target['name'],
+                                        'file_name': old_target.get('file_name', ''),
+                                        'file_url': old_target.get('file_url', ''),
+                                        'file_size': old_target.get('file_size', 0),
+                                        'status': old_target.get('status', 'initial')})
+
+            category['reference'] = new_references
+            category['target'] = new_targets
+
+    def reset_category(self, category_name):
+        category = self.get_category(category_name)
+        category['status'] = 'initial'
+        new_references = []
+        for old_reference in category['reference']:
+            if isinstance(old_reference, str):
+                name = old_reference
+            else:
+                name = old_reference['name']
+
+            new_references.append({'name': name,
+                                   'file_name': '',
+                                   'file_url': '',
+                                   'file_size': 0,
+                                   'status': 'initial'})
+
+        new_targets = []
+        for old_target in category['target']:
+            if isinstance(old_target, str):
+                name = old_target
+            else:
+                name = old_target['name']
+
+            new_targets.append({'name': name,
+                                'file_name': '',
+                                'file_url': '',
+                                'file_size': 0,
+                                'status': 'initial'})
+
+        category['reference'] = new_references
+        category['target'] = new_targets
 
     def __remove_empty_categories(self):
         non_empty_categories = []
@@ -35,17 +101,7 @@ class RelMon():
         self.set_condor_status('<unknown>')
         self.set_condor_id(0)
         for category in self.data['categories']:
-            category['status'] = 'initial'
-            category['reference'] = [{'name': (x if isinstance(x, str) else x['name']).strip(),
-                                      'file_name': '',
-                                      'file_url': '',
-                                      'file_size': 0,
-                                      'status': 'initial'} for x in category['reference']]
-            category['target'] = [{'name': (x if isinstance(x, str) else x['name']).strip(),
-                                   'file_name': '',
-                                   'file_url': '',
-                                   'file_size': 0,
-                                   'status': 'initial'} for x in category['target']]
+            self.reset_category(category['name'])
 
         return self.data
 
@@ -67,6 +123,9 @@ class RelMon():
         """
         number_of_relvals = 0
         for category in self.data['categories']:
+            if category['status'] != 'initial':
+                continue
+
             number_of_relvals += len(category['reference'])
             number_of_relvals += len(category['target'])
 
@@ -156,6 +215,16 @@ class RelMon():
         Setter for condor id
         """
         self.data['condor_id'] = condor_id
+
+    def get_category(self, category_name):
+        """
+        Get a category dictionary
+        """
+        for category in self.data.get('categories', []):
+            if category['name'] == category_name:
+                return category
+
+        return {}
 
     def __str__(self):
         return '%s (%s)' % (self.get_name(), self.get_id())

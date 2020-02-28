@@ -44,7 +44,7 @@
         <v-col :lg="7" :md="6" :sm="6" :cols="12">
           Categories
           <ul>
-            <li v-for="category in relmonData.categories"><span class="font-weight-light">{{category.name}}</span> - {{category.status}} <span class="font-weight-light">| HLT:</span> {{category.hlt}} <span class="font-weight-light">| pairing:</span> {{category.automatic_pairing ? 'auto' : 'manual'}}
+            <li v-for="category in relmonData.categories" v-if="category.reference.length || category.target.length"><span class="font-weight-light">{{category.name}}</span> - {{category.status}} <span class="font-weight-light">| HLT:</span> {{category.hlt}} <span class="font-weight-light">| pairing:</span> {{category.automatic_pairing ? 'auto' : 'manual'}}
               <ul>
                 <li>
                   <span class="font-weight-light">References</span>
@@ -69,7 +69,7 @@
                    :z-index="3"
                    :value="resetConformationOverlay"
                    style="text-align: center">
-          This will reset {{relmonData.name}}. All progress will be lost and RelMon will be redone from scratch. Are you sure you want to reset {{relmonData.name}}?<br>
+          This will reset {{relmonData.name}}. All progress will be lost and RelMon will be redone from scratch.<br>Are you sure you want to reset {{relmonData.name}}?<br>
           <v-btn color="error"
                  class="ma-1"
                  small
@@ -94,7 +94,7 @@
                    :z-index="3"
                    :value="deleteConformationOverlay"
                    style="text-align: center">
-          This will delete {{relmonData.name}}. Generated reports will stay unaffected, but RelMon will be forever removed from RelMon Service. Are you sure you want to delete {{relmonData.name}}?<br>
+          This will delete {{relmonData.name}}. Generated reports will stay unaffected, but RelMon will be forever removed from RelMon Service.<br>Are you sure you want to delete {{relmonData.name}}?<br>
           <v-btn color="error"
                  class="ma-1"
                  small
@@ -118,7 +118,7 @@
     <v-dialog v-model="detailedView">
       <v-card class="pa-4" >
         <span class="font-weight-light bigger-text">Categories of</span> <span class="ml-2 bigger-text">{{relmonData.name}}</span>
-        <div v-for="category in relmonData.categories">
+        <div v-for="category in relmonData.categories" v-if="category.reference.length || category.target.length">
           <span class="font-weight-light bigger-text">{{category.name}}</span>
           <ul>
             <li><span class="font-weight-light">Status:</span> {{category.status}}</li>

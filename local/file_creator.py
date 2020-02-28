@@ -30,15 +30,15 @@ class FileCreator():
         cpus = relmon.get_cpu()
         relmon_name = relmon.get_name()
         script_file_name = 'relmons/%s/RELMON_%s.sh' % (relmon_id, relmon_id)
-        web_sqlite_path = '"%s/%s.sqlite"' % (self.web_location, relmon_name)
+        old_web_sqlite_path = '%s/%s*.sqlite' % (self.web_location, relmon_id)
+        web_sqlite_path = '"%s/%s___%s.sqlite"' % (self.web_location, relmon_id, relmon_name)
         script_file_content = [
             '#!/bin/bash',
             'DIR=$(pwd)',
             # Clone the relmon service
             'git clone https://github.com/justinasr/relmonservice2.git',
             # Make a cookie for callbacks about progress
-            'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
-            'cp cookie.txt relmonservice2/remote',
+            'cern-get-sso-cookie -u %s -o relmonservice2/remote/cookie.txt' % (self.cookie_url),
             # CMSSW environment setup
             'scramv1 project CMSSW CMSSW_10_4_0',
             'cd CMSSW_10_4_0/src',
@@ -60,6 +60,12 @@ class FileCreator():
             'cp relmonservice2/remote/sqltify.py Reports/sqltify.py',
             # Go to reports directory
             'cd Reports',
+            # Try to copy existing reports file
+            'EXISTING_REPORT=$(ls -1 %s | head -n 1)' % (old_web_sqlite_path),
+            'echo "Existing file name: $EXISTING_REPORT"',
+            'if [ ! -z "$EXISTING_REPORT" ]; then',
+            '  time rsync -v $EXISTING_REPORT reports.sqlite',
+            'fi',
             # Run sqltify
             'python3 sqltify.py',
             # Checksum for created sqlite
@@ -70,7 +76,7 @@ class FileCreator():
             'ls -l reports.sqlite',
             # Do integrity check
             'echo "Integrity check:"',
-            'echo "PRAGMA integrity_check" | sqlite3 reports.sqlite',
+            'echo "PRAGMA integrity_check;" | sqlite3 reports.sqlite',
             # Remove sql file from web path
             'rm -rf %s' % (web_sqlite_path),
             # Copy reports sqlite to web path
@@ -83,10 +89,9 @@ class FileCreator():
             'ls -l %s' % (web_sqlite_path),
             # Do integrity check
             'echo "Integrity check:"',
-            'echo "PRAGMA integrity_check" | sqlite3 %s' % (web_sqlite_path),
+            'echo "PRAGMA integrity_check;" | sqlite3 %s' % (web_sqlite_path),
             'cd $DIR',
-            'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
-            'cp cookie.txt relmonservice2/remote',
+            'cern-get-sso-cookie -u %s -o relmonservice2/remote/cookie.txt' % (self.cookie_url),
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
             '-r RELMON_%s.json --callback %s --notifyfinished' % (relmon_id, self.callback_url)
         ]

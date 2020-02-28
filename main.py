@@ -88,7 +88,7 @@ def get_relmons():
             category['reference_status'] = {}
             category['reference_total_size'] = 0
             for relval in category['reference']:
-                category['reference_total_size'] += relval.get('file_size', 0)
+                category['reference_total_size'] += 1
                 relmon_status = relval.get('status', 'initial')
                 if relmon_status not in category['reference_status']:
                     category['reference_status'][relmon_status] = 0
@@ -97,14 +97,14 @@ def get_relmons():
                     relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
 
                 if category['status'] == 'done':
-                    relmon['done_size'] += relval.get('file_size', 0)
+                    relmon['done_size'] += 1
 
                 category['reference_status'][relmon_status] = category['reference_status'][relmon_status] + 1
 
             category['target_status'] = {}
             category['target_total_size'] = 0
             for relval in category['target']:
-                category['target_total_size'] += relval.get('file_size', 0)
+                category['target_total_size'] += 1
                 relmon_status = relval['status']
                 if relmon_status not in category['target_status']:
                     category['target_status'][relmon_status] = 0
@@ -113,7 +113,7 @@ def get_relmons():
                     relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
 
                 if category['status'] == 'done':
-                    relmon['done_size'] += relval.get('file_size', 0)
+                    relmon['done_size'] += 1
 
                 category['target_status'][relmon_status] = category['target_status'][relmon_status] + 1
 
@@ -149,7 +149,9 @@ def edit_relmon():
 @app.route('/api/update', methods=['POST'])
 def update_info():
     login = request.headers.get('Adfs-Login', '???')
-    if login != 'pdmvserv':
+    logger = logging.getLogger('logger')
+    if login not in ('pdmvserv', 'jrumsevi'):
+        logger.warning('Not letting through user "%s" to do update', login)
         return output_text({'message': 'Unauthorized'}, code=403)
 
     data = json.loads(request.data.decode('utf-8'))
@@ -158,7 +160,6 @@ def update_info():
     if not relmon:
         return output_text({'message', 'Could not find'})
 
-    logger = logging.getLogger('logger')
     old_status = relmon.get('status')
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
@@ -253,9 +254,11 @@ if __name__ == '__main__':
     mode = args.get('mode', 'dev').lower()
     logger.info('Mode is "%s"', mode)
     config = get_config(mode)
-    controller = Controller(config)
     scheduler.add_executor('processpool')
-    scheduler.add_job(tick, 'interval', seconds=600, max_instances=1)
+    if not debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        controller = Controller(config)
+        scheduler.add_job(tick, 'interval', seconds=300, max_instances=1)
+
     scheduler.start()
     port = int(config.get('port', 8001))
     host = config.get('host', '127.0.0.1')

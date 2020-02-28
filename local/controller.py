@@ -131,25 +131,67 @@ class Controller():
             self.logger.error('Relmon does not have an ID')
             return
 
-        old_relmon = database.get_relmon(relmon_id)
-        if not old_relmon:
+        old_relmon_data = database.get_relmon(relmon_id)
+        if not old_relmon_data:
             self.logger.error('Cannot update relmon that is not in the database')
             return
 
-        for category in relmon_data.get('categories', []):
-            category['reference'] = [
-                {'name': x.strip() if isinstance(x, str) else x['name'].strip()} for x in category.get('reference', [])
-            ]
-            category['target'] = [
-                {'name': x.strip() if isinstance(x, str) else x['name'].strip()} for x in category.get('target', [])
-            ]
+        old_relmon = RelMon(old_relmon_data)
+        new_relmon = RelMon(relmon_data)
+        if old_relmon.get_status() == 'done':
+            self.logger.info('Relmon %s is done, will try to do smart edit', old_relmon)
+            new_category_names = [x['name'] for x in new_relmon.get_json().get('categories')]
+            old_category_names = [x['name'] for x in old_relmon.get_json().get('categories')]
+            self.logger.info('Relmon %s had these categories: %s', old_relmon, old_category_names)
+            self.logger.info('Relmon %s have these categories: %s', new_relmon, new_category_names)
+            relmon_changed = False
+            for category_name in set(new_category_names + old_category_names):
+                old_category = old_relmon.get_category(category_name)
+                new_category = new_relmon.get_category(category_name)
+                old_category_references = [x['name'] for x in old_category.get('reference', [])]
+                new_category_references = [x['name'] for x in new_category.get('reference', [])]
+                old_category_targets = [x['name'] for x in old_category.get('target', [])]
+                new_category_targets = [x['name'] for x in new_category.get('target', [])]
+                old_category_pairing = old_category.get('automatic_pairing')
+                new_category_pairing = new_category.get('automatic_pairing')
+                old_category_hlt = old_category.get('hlt')
+                new_category_hlt = new_category.get('hlt')
+                changed = False
+                changed = changed or old_category_references != new_category_references
+                changed = changed or old_category_targets != new_category_targets
+                changed = changed or old_category_pairing != new_category_pairing
+                changed = changed or old_category_hlt != new_category_hlt
+                relmon_changed = relmon_changed or changed
+                if changed:
+                    self.logger.info('Category %s of %s changed', category_name, old_relmon)
+                    old_category['reference'] = new_category_references
+                    old_category['target'] = new_category_targets
+                    old_category['automatic_pairing'] = new_category_pairing
+                    old_category['hlt'] = new_category_hlt
+                    old_relmon.reset_category(category_name)
+                else:
+                    self.logger.info('Category %s of %s did not change', category_name, old_relmon)
 
-        # Update only categories, do not allow to update anything else
-        old_relmon['categories'] = relmon_data.get('categories', [])
-        relmon = RelMon(old_relmon)
-        database.update_relmon(relmon)
-        self.add_to_reset_list(relmon_id)
-        self.logger.info('Relmon %s was edited', relmon)
+            if old_relmon.get_name() != new_relmon.get_name():
+                relmon_changed = True
+                old_relmon.get_json()['name'] = relmon_data['name']
+
+            if relmon_changed:
+                old_relmon.set_status('new')
+                old_relmon.set_condor_id(0)
+                old_relmon.set_condor_status('<unknown>')
+                database.update_relmon(old_relmon)
+
+        else:
+            self.logger.info('Relmon %s is not yet done, will edit and reset')
+            old_relmon.get_json()['name'] = relmon_data['name']
+            old_relmon.get_json()['categories'] = new_relmon.get_json().get('categories', [])
+            # Update only name and categories, do not allow to update anything else
+            old_relmon.reset()
+            database.update_relmon(old_relmon)
+            self.add_to_reset_list(relmon_id)
+
+        self.logger.info('Relmon %s was edited', old_relmon)
 
     def __submit_to_condor(self, relmon, database):
         """
@@ -160,8 +202,6 @@ class Controller():
         remote_relmon_directory = '%s/%s' % (self.remote_directory, relmon_id)
         self.logger.info('Will submit %s to HTCondor', relmon)
         self.logger.info('Remote directory of %s is %s', relmon, remote_relmon_directory)
-        self.logger.info('Resetting %s before submission', relmon)
-        relmon.reset()
         self.logger.info('Saving %s to database', relmon)
         database.update_relmon(relmon)
         # Refetch after update
@@ -290,11 +330,6 @@ class Controller():
             '%s.err' % (local_name)
         )
 
-        # _, _ = self.ssh_executor.execute_command([
-        #     'cd %s' % (remote_relmon_directory),
-        #     'cd ..',
-        #     'rm -r %s' % (relmon_id)
-        # ])
         if relmon.get_status() != 'failed':
             relmon.set_status('done')
 
