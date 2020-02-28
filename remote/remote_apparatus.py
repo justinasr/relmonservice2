@@ -396,6 +396,10 @@ def run_validation_matrix(relmon, cpus, callback_url):
             continue
 
         category_name = category['name']
+        subreport_path_hlt = get_local_subreport_path(category_name, True)
+        subreport_path_no_hlt = get_local_subreport_path(category_name, False)
+        os.makedirs('Reports/' + subreport_path_hlt)
+        os.makedirs('Reports/' + subreport_path_no_hlt)
         hlt = category['hlt']
         logging.info('Category: %s', category_name)
         logging.info('HLT: %s', hlt)
@@ -420,11 +424,6 @@ def run_validation_matrix(relmon, cpus, callback_url):
                                       target_list,
                                       cpus,
                                       log_file)
-        else:
-            subreport_path_hlt = get_local_subreport_path(category_name, True)
-            subreport_path_no_hlt = get_local_subreport_path(category_name, False)
-            os.makedirs('Reports/' + subreport_path_hlt)
-            os.makedirs('Reports/' + subreport_path_no_hlt)
 
         category['status'] = 'done'
         notify(relmon, callback_url)
