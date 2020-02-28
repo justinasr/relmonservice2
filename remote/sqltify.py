@@ -5,16 +5,16 @@ import sqlite3
 import os
 
 
-if os.path.exists('reports.sqlite'):
-    os.remove('reports.sqlite')
+categories = [entry for entry in os.listdir('.') if os.path.isdir(os.path.join('.', entry))]
+db_connection = sqlite3.connect('reports.sqlite')
+db_cursor = db_connection.cursor()
+indexes_to_create = []
 
-CATEGORIES = [entry for entry in os.listdir('.') if os.path.isdir(os.path.join('.', entry))]
-DB_CONNECTION = sqlite3.connect('reports.sqlite')
-DB_CURSOR = DB_CONNECTION.cursor()
-for category in CATEGORIES:
+for category in categories:
     # Create tables
     print('Creating table for %s' % (category))
-    DB_CURSOR.execute('CREATE TABLE %s (path text, htmlgz blob);' % (category))
+    db_cursor.execute('DROP TABLE IF EXISTS %s;' % (category))
+    db_cursor.execute('CREATE TABLE %s (path text, htmlgz blob);' % (category))
     # Walk through files and add to database
     for root, dirs, files in os.walk(category, topdown=False):
         files_inserted = 0
@@ -23,19 +23,26 @@ for category in CATEGORIES:
             with open(file_path, 'rb') as f:
                 ablob = f.read()
 
-            DB_CURSOR.execute("INSERT INTO %s VALUES (?, ?)" % (category), [file_path, ablob])
+            db_cursor.execute("INSERT INTO %s VALUES (?, ?)" % (category), [file_path, ablob])
             files_inserted += 1
             if files_inserted % 1000 == 0:
                 print('Commit after %s inserted files for %s' % (files_inserted, category))
-                DB_CONNECTION.commit()
+                db_connection.commit()
 
         print('Commit after %s inserted files for %s' % (files_inserted, category))
-        DB_CONNECTION.commit()
+        db_connection.commit()
+
+    if files_inserted == 0:
+        print('No files were inserted for %s, dropping empty table' % (category))
+        db_cursor.execute('DROP TABLE IF EXISTS %s;' % (category))
+        db_connection.commit()
+    else:
+        indexes_to_create.append(category)
 
 # Create index
-for category in CATEGORIES:
+for category in indexes_to_create:
     print('Creating index for %s' % (category))
-    DB_CURSOR.execute('CREATE INDEX %sIndex ON %s(path)' % (category, category))
+    db_cursor.execute('CREATE INDEX %sIndex ON %s(path)' % (category, category))
 
-DB_CONNECTION.commit()
-DB_CONNECTION.close()
+db_connection.commit()
+db_connection.close()

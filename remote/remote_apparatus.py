@@ -102,6 +102,9 @@ def download_root_files(relmon, cmsweb, callback_url):
     Download all files needed for comparison and fill relmon dictionary
     """
     for category in relmon.get('categories', []):
+        if category['status'] != 'initial':
+            continue
+
         category_name = category['name']
         reference_list = category.get('reference', [])
         target_list = category.get('target', [])
@@ -389,6 +392,9 @@ def run_validation_matrix(relmon, cpus, callback_url):
     """
     log_file = open("validation_matrix.log", "w")
     for category in relmon.get('categories', []):
+        if category['status'] != 'initial':
+            continue
+
         category_name = category['name']
         hlt = category['hlt']
         logging.info('Category: %s', category_name)
@@ -415,9 +421,10 @@ def run_validation_matrix(relmon, cpus, callback_url):
                                       cpus,
                                       log_file)
         else:
-            logging.error('There are no references or targets. References - %s, targets - %s',
-                          len(reference_list),
-                          len(target_list))
+            subreport_path_hlt = get_local_subreport_path(category_name, True)
+            subreport_path_no_hlt = get_local_subreport_path(category_name, False)
+            os.makedirs('Reports/' + subreport_path_hlt)
+            os.makedirs('Reports/' + subreport_path_no_hlt)
 
         category['status'] = 'done'
         notify(relmon, callback_url)
