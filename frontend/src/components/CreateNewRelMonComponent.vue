@@ -65,10 +65,10 @@
                       <v-col cols=6>
                         <span class="font-weight-light">HLT:</span>
                         <v-btn-toggle mandatory v-model="category.hlt">
-                          <v-btn small :value="'no'" :disabled="category.name === 'Generator'">
+                          <v-btn small :value="'no'">
                             No HLT
                           </v-btn>
-                          <v-btn small :value="'only'">
+                          <v-btn small :value="'only'" :disabled="category.name === 'Generator'">
                             Only HLT
                           </v-btn>
                           <v-btn small :value="'both'" :disabled="category.name === 'Generator'">

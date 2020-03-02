@@ -35,9 +35,10 @@ for category in categories:
     if files_inserted == 0:
         print('No files were inserted for %s, dropping empty table' % (category))
         db_cursor.execute('DROP TABLE IF EXISTS %s;' % (category))
-        db_connection.commit()
     else:
         indexes_to_create.append(category)
+
+    db_connection.commit()
 
 # Create index
 for category in indexes_to_create:

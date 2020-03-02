@@ -396,10 +396,12 @@ def run_validation_matrix(relmon, cpus, callback_url):
             continue
 
         category_name = category['name']
-        subreport_path_hlt = get_local_subreport_path(category_name, True)
         subreport_path_no_hlt = get_local_subreport_path(category_name, False)
-        os.makedirs('Reports/' + subreport_path_hlt)
         os.makedirs('Reports/' + subreport_path_no_hlt)
+        if category_name.lower() != 'generator':
+            subreport_path_hlt = get_local_subreport_path(category_name, True)
+            os.makedirs('Reports/' + subreport_path_hlt)
+
         hlt = category['hlt']
         logging.info('Category: %s', category_name)
         logging.info('HLT: %s', hlt)
@@ -407,8 +409,11 @@ def run_validation_matrix(relmon, cpus, callback_url):
         category['status'] = 'comparing'
         notify(relmon, callback_url)
         if reference_list and target_list:
-            if hlt in ('only', 'both'):
+            # Run Generator without HLT
+            # Do not run Generator with HLT
+            if hlt in ('only', 'both') and category_name.lower() != 'generator':
                 # Run with HLT
+                # Do not run generator with HLT
                 compare_compress_move(category_name,
                                       True,
                                       reference_list,
@@ -416,8 +421,9 @@ def run_validation_matrix(relmon, cpus, callback_url):
                                       cpus,
                                       log_file)
 
-            if hlt == 'no' or hlt == 'both' and category_name.lower() != 'generator':
-                # Run without HLT for everything, except generator
+            if hlt in ('no', 'both') or category_name.lower() == 'generator':
+                # Run without HLT
+                # Run Generator without HLT
                 compare_compress_move(category_name,
                                       False,
                                       reference_list,

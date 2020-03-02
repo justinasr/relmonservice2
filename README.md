@@ -9,7 +9,7 @@ RelMonService2 is a service that takes user given workflow names (ReqMgr2 reques
 One RelMon is one comparison job that can have multiple categories and multiple datasets to be compared. RelMon name should reflect what is being compared as this name will be used in reports page.
 
 #### Categories
-Categories in RelMon are the following: Data, FullSim, FastSim, Generator, FullSim PU, FastSim PU. All categories except Generator are treated the same. Generator has only "Only HLT" option. Categories are a convenient way to group comparisons in RelMon Service and reports pages. Each category has a list of references and targets.
+Categories in RelMon are the following: Data, FullSim, FastSim, Generator, FullSim PU, FastSim PU. All categories except Generator are treated the same. Generator has only "No HLT" option. Categories are a convenient way to group comparisons in RelMon Service and reports pages. Each category has a list of references and targets.
 
 #### References and targets
 Items in references and targets lists are workflow names from ReqMgr2, e.g. `pdmvserv_RVCMSSW_11_0_0_..._190915_164000_1993`. Number of items must be equal in references and targets lists of the same category. If there are no references and targets in a category, it will be ignored.
