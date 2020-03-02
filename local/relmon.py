@@ -224,7 +224,9 @@ class RelMon():
             if category['name'] == category_name:
                 return category
 
-        return {}
+        self.data['categories'] = self.data.get('categories', [])
+        self.data['categories'].append({'name': category_name, 'reference': [], 'target': []})
+        return self.get_category(category_name)
 
     def __str__(self):
         return '%s (%s)' % (self.get_name(), self.get_id())
