@@ -79,32 +79,31 @@ def get_relmons():
 
     data, total_rows = db.get_relmons(include_docs=True, page=page, page_size=limit)
     for relmon in data:
-        relmon['done_size'] = 0
-        relmon['total_size'] = 0
-        relmon['downloaded_relvals'] = 0
         relmon['total_relvals'] = 0
+        relmon['downloaded_relvals'] = 0
+        relmon['compared_relvals'] = 0
         for category in relmon.get('categories'):
             relmon['total_relvals'] += len(category['reference']) + len(category['target'])
             category['reference_status'] = {}
-            category['reference_total_size'] = 0
+            category['reference_size'] = 0
             for relval in category['reference']:
-                category['reference_total_size'] += 1
-                relmon_status = relval.get('status', 'initial')
+                category['reference_size'] += relval.get('file_size', 0)
+                relmon_status = relval['status']
                 if relmon_status not in category['reference_status']:
                     category['reference_status'][relmon_status] = 0
 
                 if relmon_status != 'initial':
-                    relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
+                    relmon['downloaded_relvals'] += + 1
 
                 if category['status'] == 'done':
-                    relmon['done_size'] += 1
+                    relmon['compared_relvals'] += 1
 
-                category['reference_status'][relmon_status] = category['reference_status'][relmon_status] + 1
+                category['reference_status'][relmon_status] += 1
 
             category['target_status'] = {}
-            category['target_total_size'] = 0
+            category['target_size'] = 0
             for relval in category['target']:
-                category['target_total_size'] += 1
+                category['target_size'] += relval.get('file_size', 0)
                 relmon_status = relval['status']
                 if relmon_status not in category['target_status']:
                     category['target_status'][relmon_status] = 0
@@ -113,13 +112,9 @@ def get_relmons():
                     relmon['downloaded_relvals'] = relmon['downloaded_relvals'] + 1
 
                 if category['status'] == 'done':
-                    relmon['done_size'] += 1
+                    relmon['compared_relvals'] += 1
 
-                category['target_status'][relmon_status] = category['target_status'][relmon_status] + 1
-
-            relmon['total_size'] += category['reference_total_size'] + category['target_total_size']
-
-        relmon['total_size'] = max(relmon['total_size'], 0.001)
+                category['target_status'][relmon_status] += 1
 
     return output_text({'data': data, 'total_rows': total_rows, 'page_size': limit})
 

@@ -24,12 +24,12 @@
               </v-progress-linear>
             </li>
             <li><span class="font-weight-light">Comparison:</span>
-              <v-progress-linear :value="relmonData.done_size / relmonData.total_size * 100"
+              <v-progress-linear :value="relmonData.compared_relvals / relmonData.total_relvals * 100"
                                  color="primary"
                                  height="16"
                                  class="elevation-1"
                                  style="max-width: 250px; color: white; border-radius: 4px">
-                <small><strong>{{ Math.ceil(relmonData.done_size / relmonData.total_size * 100) }}%</strong></small>
+                <small><strong>{{ Math.ceil(relmonData.compared_relvals / relmonData.total_relvals * 100) }}%</strong></small>
               </v-progress-linear>
             </li>
           </ul>
@@ -127,22 +127,23 @@
             <li>
               <span class="font-weight-light">References</span>
               <span class="font-weight-light"> - total:</span> {{category.reference.length}}
-              <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.reference_total_size / 1024.0 / 1024.0) * 10) / 10}}MB
-              <span v-for="value, key in category.reference_status"><span class="font-weight-light"> | {{key}}:&nbsp;</span>{{value}}</span>
+              <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.reference_size / 1024.0 / 1024.0) * 10) / 10}} MB
+              <span v-for="value, key in category.reference_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
               <ul>
                 <li v-for="reference in category.reference">
-                  <span class="font-weight-light">Name:</span> {{reference.name}} | <span class="font-weight-light">Status:</span> <span :class="reference.status | statusToColor">{{reference.status}}</span> <span class="font-weight-light"> | Size:</span> {{Math.round((reference.file_size / 1024.0 / 1024.0) * 10) / 10}}MB
+                  {{reference.name}}
+                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span> |  {{Math.round((reference.file_size / 1024.0 / 1024.0) * 10) / 10}} MB)</span>
                 </li>
               </ul>
             </li>
             <li>
               <span class="font-weight-light">Targets</span>
               <span class="font-weight-light"> - total:</span> {{category.target.length}}
-              <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.target_total_size / 1024.0 / 1024.0) * 10) / 10}}MB
-              <span v-for="value, key in category.target_status"><span class="font-weight-light"> | {{key}}:&nbsp;</span>{{value}}</span>
+              <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.target_size / 1024.0 / 1024.0) * 10) / 10}} MB
+              <span v-for="value, key in category.target_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
               <ul>
                 <li v-for="target in category.target">
-                  <span class="font-weight-light">Name:</span> {{target.name}} | <span class="font-weight-light">Status:</span> <span :class="target.status | statusToColor">{{target.status}}</span> <span class="font-weight-light"> | Size:</span> {{Math.round((target.file_size / 1024.0 / 1024.0) * 10) / 10}}MB
+                  {{target.name}} <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span> | {{Math.round((target.file_size / 1024.0 / 1024.0) * 10) / 10}} MB)</span>
                 </li>
               </ul>
             </li>
