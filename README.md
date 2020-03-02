@@ -27,7 +27,7 @@ Each RelMon has few more attributes that could not be edited by a user.
     * `new` - RelMon is new and will soon be submitted to HTCondor for comparison
     * `submitted` - RelMon was successfully submitted to HTCondor and is waiting for resources to start running. Time in this status depends on RelMon size and load of HTCondor system
     * `running` - RelMon got resources in HTCondor and now is downloading files or running the `ValidationMatrix.py`. Time in this status depends on RelMon size
-    * `finished` - RelMon finished running all `ValidationMatrix.py` commands and now is packing and transferring reports to reports website
+    * `finishing` - RelMon finished running all `ValidationMatrix.py` commands and now is packing and transferring reports to reports website
     * `done` - RelMon is done, reports are available
     * `failed` - RelMon submission or job at HTCondor failed. Carefully inspect workflow names, reset the RelMon or contact an administrator for more help
   * **HTCondor job status** - Status of HTCondor job. Usually it is one of these:

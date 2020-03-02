@@ -482,7 +482,7 @@ def main():
 
     try:
         if notify_finished and relmon['status'] != 'failed':
-            relmon['status'] = 'finished'
+            relmon['status'] = 'done'
         else:
             cmsweb = CMSWebWrapper(cert_file, key_file)
             relmon['status'] = 'running'
