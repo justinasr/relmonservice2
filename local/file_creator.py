@@ -38,7 +38,8 @@ class FileCreator():
             # Clone the relmon service
             'git clone https://github.com/justinasr/relmonservice2.git',
             # Make a cookie for callbacks about progress
-            'cern-get-sso-cookie -u %s -o relmonservice2/remote/cookie.txt' % (self.cookie_url),
+            'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
+            'cp cookie.txt relmonservice2/remote',
             # CMSSW environment setup
             'scramv1 project CMSSW CMSSW_10_4_0',
             'cd CMSSW_10_4_0/src',
@@ -91,7 +92,8 @@ class FileCreator():
             'echo "Integrity check:"',
             'echo "PRAGMA integrity_check;" | sqlite3 %s' % (web_sqlite_path),
             'cd $DIR',
-            'cern-get-sso-cookie -u %s -o relmonservice2/remote/cookie.txt' % (self.cookie_url),
+            'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
+            'cp cookie.txt relmonservice2/remote',
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
             '-r RELMON_%s.json --callback %s --notifyfinished' % (relmon_id, self.callback_url)
         ]
