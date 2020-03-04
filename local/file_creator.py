@@ -78,8 +78,10 @@ class FileCreator():
             # Do integrity check
             'echo "Integrity check:"',
             'echo "PRAGMA integrity_check;" | sqlite3 reports.sqlite',
-            # Remove sql file from web path
-            'rm -rf %s' % (web_sqlite_path),
+            # Remove old sql file from web path
+            'if [ ! -z "$EXISTING_REPORT" ]; then',
+            '  rm -rf $EXISTING_REPORT',
+            'fi',
             # Copy reports sqlite to web path
             'time rsync -v reports.sqlite %s' % (web_sqlite_path),
             # Checksum for created sqlite
