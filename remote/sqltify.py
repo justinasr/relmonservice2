@@ -32,6 +32,7 @@ for category in categories:
         print('Commit after %s inserted files for %s' % (files_inserted, category))
         db_connection.commit()
 
+    db_connection.commit()
     if files_inserted == 0:
         print('No files were inserted for %s, dropping empty table' % (category))
         db_cursor.execute('DROP TABLE IF EXISTS %s;' % (category))
