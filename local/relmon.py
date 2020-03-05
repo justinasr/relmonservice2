@@ -21,13 +21,13 @@ class RelMon():
             new_references = []
             for old_reference in category['reference']:
                 if isinstance(old_reference, str):
-                    new_references.append({'name': old_reference,
+                    new_references.append({'name': old_reference.strip(),
                                            'file_name': '',
                                            'file_url': '',
                                            'file_size': 0,
                                            'status': 'initial'})
                 else:
-                    new_references.append({'name': old_reference['name'],
+                    new_references.append({'name': old_reference['name'].strip(),
                                            'file_name': old_reference.get('file_name', ''),
                                            'file_url': old_reference.get('file_url', ''),
                                            'file_size': old_reference.get('file_size', 0),
@@ -36,13 +36,13 @@ class RelMon():
             new_targets = []
             for old_target in category['target']:
                 if isinstance(old_target, str):
-                    new_targets.append({'name': old_target,
+                    new_targets.append({'name': old_target.strip(),
                                         'file_name': '',
                                         'file_url': '',
                                         'file_size': 0,
                                         'status': 'initial'})
                 else:
-                    new_targets.append({'name': old_target['name'],
+                    new_targets.append({'name': old_target['name'].strip(),
                                         'file_name': old_target.get('file_name', ''),
                                         'file_url': old_target.get('file_url', ''),
                                         'file_size': old_target.get('file_size', 0),
