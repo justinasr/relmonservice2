@@ -1,7 +1,7 @@
 <template>
   <v-app style="background-color: #fafafa">
     <v-container>
-      <CreateNewRelMonComponent @refetchRelmons="refetchRelmons" :userInfo="userInfo" ref="createNewRelMonComponent"></CreateNewRelMonComponent>
+      <TopBarComponent @refetchRelmons="refetchRelmons" :userInfo="userInfo" ref="createNewRelMonComponent"></TopBarComponent>
       <RelMonComponent @editRelmon="editRelmon" @refetchRelmons="refetchRelmons" v-for="relmonData in fetchedData" :key="relmonData.name" :relmonData="relmonData" :userInfo="userInfo"></RelMonComponent>
       <v-row style="line-height: 36px; text-align: center;">
         <v-col class="elevation-3 pa-2 mb-2" style="background: white">
@@ -21,7 +21,7 @@
 <script>
 import axios from 'axios'
 import RelMonComponent from './RelMonComponent';
-import CreateNewRelMonComponent from './CreateNewRelMonComponent';
+import TopBarComponent from './TopBarComponent';
 
 export default {
   name: 'MainComponent',
@@ -31,7 +31,8 @@ export default {
       userInfo: {'name': '', 'authorized': false},
       page: 0,
       totalRows: 0,
-      pageSize: 0
+      pageSize: 0,
+      query: '',
     }
   },
   created () {
@@ -40,6 +41,11 @@ export default {
       this.page = 0;
     } else {
       this.page = Math.max(urlParams['page'], 0);
+    }
+    if (!('q' in urlParams)) {
+      this.query = '';
+    } else {
+      this.query = urlParams['q'];
     }
 
     this.updateURLParams();
@@ -50,14 +56,14 @@ export default {
   },
   components: {
     RelMonComponent,
-    CreateNewRelMonComponent
+    TopBarComponent
   },
   methods: {
     editRelmon(relmon) {
       this.$refs.createNewRelMonComponent.startEditing(relmon)
     },
     refetchRelmons() {
-      let urlParams = {'page': this.page};
+      let urlParams = Object.fromEntries(new URLSearchParams(window.location.search));
       axios.get('api/get_relmons', { params: urlParams }).then(response => {
         this.fetchedData = response.data.data;
         this.totalRows = response.data.total_rows;
@@ -73,6 +79,9 @@ export default {
     },
     updateURLParams() {
       let urlParams = {'page': this.page};
+      if (this.query.length > 0) {
+        urlParams['q'] = this.query;
+      }
       urlParams = new URLSearchParams(urlParams);
       window.history.replaceState('search', '', '?' + urlParams.toString());
     },
@@ -87,7 +96,7 @@ export default {
       this.refetchRelmons();
     },
     totalPages() {
-      return Math.ceil(this.totalRows / Math.max(1, this.pageSize));
+      return Math.max(1, Math.ceil(this.totalRows / Math.max(1, this.pageSize)));
     }
   }
 }

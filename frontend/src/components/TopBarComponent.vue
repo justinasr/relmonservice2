@@ -1,17 +1,32 @@
 <template>
   <v-row>
     <v-col class="elevation-3 pa-2 mb-2" style="background: white">
-      <!-- <pre>{{relmonWrapper.relmon}}</pre> -->
-      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]" title="Create a new RelMon">
-        Create New RelMon
-      </v-btn>
-      <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="forceRefresh()" title="Trigger RelMon Service to check RelMon progress in HTCondor. This happens automatically every 10 minutes">
-        Trigger a Refresh
-      </v-btn>
-      <div style="float: right; line-height: 36px;">
-        <span class="font-weight-light">Logged in as</span> {{userInfo.name}}
-        <span v-if="userInfo.authorized">&#11088;</span>
-      </div>
+      <v-row style="margin: 0">
+        <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
+          <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]" title="Create a new RelMon">
+            Create New
+          </v-btn>
+          <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="forceRefresh()" title="Trigger RelMon Service to check RelMon progress in HTCondor. This happens automatically every 10 minutes">
+            Trigger Refresh
+          </v-btn>
+        </v-col>
+        <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
+          <div style="display: flex; border-radius: 4px; margin: 4px;" class="btn-shadow">
+            <div style="border: 0.5px rgba(0,0,0,0.42) solid; flex-grow: 1; border-radius: 4px 0px 0px 4px;" >
+              <input v-model="query" style="width: 100%; height: 100%; padding-left:8px; border: none; color: rgba(0, 0, 0, 0.67);" placeholder="RelMon name or ID" />
+            </div>
+            <v-btn small color="primary" class="ma-0" style="border-radius: 0px 4px 4px 0px; box-shadow: none; -webkit-box-shadow: none;" @click="search()" title="Perform search in RelMon Service">
+              Search
+            </v-btn>
+          </div>
+        </v-col>
+        <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
+          <div style="float: right; line-height: 36px;">
+            <span class="font-weight-light">Logged in as</span> {{userInfo.name}}
+            <span v-if="userInfo.authorized">&#11088;</span>
+          </div>
+        </v-col>
+      </v-row>
       <v-expansion-panels multiple v-model="expandedPanels">
         <v-expansion-panel :key="0" class="elevation-0">
           <v-expansion-panel-content>
@@ -149,7 +164,7 @@
 <script>
 import axios from 'axios'
 export default {
-  name: 'CreateNewRelMonComponent',
+  name: 'TopBarComponent',
   data () {
     return {
       categories: ['Data', 'FullSim', 'FastSim', 'Generator', 'FullSim PU', 'FastSim PU'],
@@ -160,6 +175,7 @@ export default {
       creatingOverlay: false,
       isRefreshing: false,
       forceRefreshOverlay: false,
+      query: ''
     }
   },
   created () {
@@ -251,6 +267,18 @@ export default {
     },
     refetchRelmons() {
       this.$emit('refetchRelmons')
+    },
+    search() {
+      let urlParams = Object.fromEntries(new URLSearchParams(window.location.search));
+      urlParams['q'] = this.query;
+      if (this.query.length == 0) {
+        delete urlParams['q'];
+      }
+      urlParams = new URLSearchParams(urlParams);
+      window.history.replaceState('search', '', '?' + urlParams.toString());
+
+      this.refetchRelmons();
+      this.query = '';
     }
   }
 }
@@ -276,5 +304,9 @@ input {
 }
 .bigger-text {
   font-size: 1.5rem;
+}
+.btn-shadow {
+  -webkit-box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+  box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
 }
 </style>

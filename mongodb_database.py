@@ -46,8 +46,11 @@ class Database:
     def get_relmon(self, relmon_id):
         return self.relmons.find_one({'_id': relmon_id})
 
-    def get_relmons(self, page=0, page_size=PAGE_SIZE, include_docs=False):
-        relmons = self.relmons.find().sort('_id', -1)
+    def get_relmons(self, query_dict=None, page=0, page_size=PAGE_SIZE, include_docs=False):
+        if query_dict is None:
+            query_dict = {}
+
+        relmons = self.relmons.find(query_dict).sort('_id', -1)
         total_rows = relmons.count()
         relmons = relmons.skip(page * page_size).limit(page_size)
         return list(relmons), total_rows
