@@ -78,12 +78,26 @@ def get_relmons():
     limit = int(args.get('limit', db.PAGE_SIZE))
     query = args.get('q')
     if query:
-        query_dict = {'_id': query}
-        data, total_rows = db.get_relmons(query_dict=query_dict, include_docs=True, page=page, page_size=limit)
-        if total_rows == 0:
-            query = f'*{query}*'
-            query_dict = {'name': {'$regex': query.replace('*', '.*')}}
-            data, total_rows = db.get_relmons(query_dict=query_dict, include_docs=True, page=page, page_size=limit)
+        query = query.strip()
+        if query.lower() in ('new', 'submitted', 'running', 'finishing', 'done', 'failed'):
+            query_dict = {'status': query.lower()}
+            data, total_rows = db.get_relmons(query_dict=query_dict,
+                                              include_docs=True,
+                                              page=page,
+                                              page_size=limit)
+        else:
+            query_dict = {'_id': query}
+            data, total_rows = db.get_relmons(query_dict=query_dict,
+                                              include_docs=True,
+                                              page=page,
+                                              page_size=limit)
+            if total_rows == 0:
+                query = f'*{query}*'
+                query_dict = {'name': {'$regex': query.replace('*', '.*')}}
+                data, total_rows = db.get_relmons(query_dict=query_dict,
+                                                  include_docs=True,
+                                                  page=page,
+                                                  page_size=limit)
     else:
         data, total_rows = db.get_relmons(include_docs=True, page=page, page_size=limit)
 

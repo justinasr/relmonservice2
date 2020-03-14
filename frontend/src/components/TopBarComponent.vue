@@ -11,9 +11,9 @@
           </v-btn>
         </v-col>
         <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
-          <div style="display: flex; border-radius: 4px; margin: 4px;" class="btn-shadow">
+          <div style="display: flex; border-radius: 4px; margin: 4px;" v-if="!expandedPanels.length" class="btn-shadow">
             <div style="border: 0.5px rgba(0,0,0,0.42) solid; flex-grow: 1; border-radius: 4px 0px 0px 4px;" >
-              <input v-model="query" style="width: 100%; height: 100%; padding-left:8px; border: none; color: rgba(0, 0, 0, 0.67);" placeholder="RelMon name or ID" />
+              <input v-model="query" v-on:keyup.enter="search" style="width: 100%; height: 100%; padding-left:8px; border: none; color: rgba(0, 0, 0, 0.67);" placeholder="RelMon name, status or ID" />
             </div>
             <v-btn small color="primary" class="ma-0" style="border-radius: 0px 4px 4px 0px; box-shadow: none; -webkit-box-shadow: none;" @click="search()" title="Perform search in RelMon Service">
               Search
