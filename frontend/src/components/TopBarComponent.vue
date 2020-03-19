@@ -11,6 +11,18 @@
           </v-btn>
         </v-col>
         <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
+        </v-col>
+        <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
+          <div style="float: right; line-height: 36px;">
+            <span class="font-weight-light">Logged in as</span> {{userInfo.name}}
+            <span v-if="userInfo.authorized">&#11088;</span>
+          </div>
+        </v-col>
+      </v-row>
+      <v-row style="margin: 0">
+        <v-col cols=12 sm=12 md=3 lg=3 style="margin: 0; padding: 0;">
+        </v-col>
+        <v-col cols=12 sm=12 md=6 lg=6 style="margin: 0; padding: 0;">
           <div style="display: flex; border-radius: 4px; margin: 4px;" v-if="!expandedPanels.length" class="btn-shadow">
             <div style="border: 0.5px rgba(0,0,0,0.42) solid; flex-grow: 1; border-radius: 4px 0px 0px 4px;" >
               <input v-model="query" v-on:keyup.enter="search" style="width: 100%; height: 100%; padding-left:8px; border: none; color: rgba(0, 0, 0, 0.67);" placeholder="RelMon name, status or ID" />
@@ -18,12 +30,6 @@
             <v-btn small color="primary" class="ma-0" style="border-radius: 0px 4px 4px 0px; box-shadow: none; -webkit-box-shadow: none;" @click="search()" title="Perform search in RelMon Service">
               Search
             </v-btn>
-          </div>
-        </v-col>
-        <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
-          <div style="float: right; line-height: 36px;">
-            <span class="font-weight-light">Logged in as</span> {{userInfo.name}}
-            <span v-if="userInfo.authorized">&#11088;</span>
           </div>
         </v-col>
       </v-row>

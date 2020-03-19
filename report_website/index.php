@@ -30,14 +30,16 @@ if (!isset($_SERVER["PATH_INFO"])) {
     <body>
       <header class="v-sheet v-sheet--tile theme--light v-toolbar v-app-bar v-app-bar--fixed elevation-3" data-booted="true" style="height: 64px; margin-top: 0px; transform: translateY(0px); left: 0px; right: 0px;">
         <div class="v-toolbar__content" style="height: 64px;">
-          <div class="headline">
-            <span>RelMon</span><span class="font-weight-light">Reports</span>
-          </div>
+          <a href="/pdmv-new-relmon/" style="text-decoration: none; color: rgba(0, 0, 0, 0.87);">
+            <div class="headline">
+              <span>RelMon</span><span class="font-weight-light">Reports</span>
+            </div>
+          </a>
         </div>
       </header>
       <div class="container" style="padding: 12px">
         <div class="row card elevation-3">
-          <div class="card-body">
+          <div class="card-body" style="padding-bottom: 8px;">
             <ul>
   <?php
               if ($authorizedUser) {
@@ -48,10 +50,33 @@ if (!isset($_SERVER["PATH_INFO"])) {
               <li><a target='_blank' href="http://cmsweb.cern.ch/dqm/offline">Link to the Offline DQM GUI</a></li>
               <li><a target='_blank' href="http://cmsweb.cern.ch/dqm/relval">Link to the RelVal DQM GUI</a></li>
             </ul>
+
+            <div class="row">
+              <div class="col-sm-12 col-md-3" style="margin: 0; padding: 0;">
+              </div>
+              <div class="col-sm-12 col-md-6" style="margin: 0; padding: 0;">
+                <form onsubmit="this.action='?q='+this.q.value;">
+                  <div style="display: flex; border-radius: 4px; margin: 4px;" class="elevation-3">
+                    <div style="border: 0.5px solid rgba(0, 0, 0, 0.42); flex-grow: 1; border-radius: 4px 0px 0px 4px;">
+                      <input type="text" name="q" id="q" style="width: 100%; height: 100%; padding: 0 0 0 8px; background-color: transparent; border: none; color: rgba(0, 0, 0, 0.67);" placeholder="RelMon name or ID"/>
+                    </div>
+                    <button type="submit" class="vuetify-button" style="border-radius: 0 4px 4px 0">Search</button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
+
   <?php
         $relmons = glob('./*.sqlite');
+        if (isset($_GET["q"])) {
+            $q = $_GET["q"];
+            $q = str_replace("*", ".*", "/*" . $q . "*/i");
+            $relmons = array_filter($relmons, function($k) use ($q) {
+              return preg_match($q, $k);
+            });
+        }
         usort($relmons, function($a, $b) { return filemtime($a) < filemtime($b); });
         foreach($relmons as $relmon) {
   ?>
