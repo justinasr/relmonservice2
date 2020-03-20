@@ -460,7 +460,7 @@ def main():
     parser.add_argument('--callback',
                         type=str,
                         help='URL for callbacks')
-    parser.add_argument('--notifyfinished',
+    parser.add_argument('--notifydone',
                         action='store_true',
                         help='Just notify that job is completed')
 
@@ -474,20 +474,20 @@ def main():
     relmon_filename = args.get('relmon')
     cpus = args.get('cpus', 1)
     callback_url = args.get('callback')
-    notify_finished = bool(args.get('notifyfinished'))
+    notify_done = bool(args.get('notifydone'))
     logging.info('Arguments: relmon %s; cert %s; key %s; cpus %s; callback %s; notify %s',
                  relmon_filename,
                  cert_file,
                  key_file,
                  cpus,
                  callback_url,
-                 'YES' if notify_finished else 'NO')
+                 'YES' if notify_done else 'NO')
 
     with open(relmon_filename) as relmon_file:
         relmon = json.load(relmon_file)
 
     try:
-        if notify_finished and relmon['status'] != 'failed':
+        if notify_done and relmon['status'] != 'failed':
             relmon['status'] = 'done'
         else:
             cmsweb = CMSWebWrapper(cert_file, key_file)
