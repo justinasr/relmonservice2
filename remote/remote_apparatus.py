@@ -397,9 +397,11 @@ def run_validation_matrix(relmon, cpus, callback_url):
 
         category_name = category['name']
         subreport_path_no_hlt = get_local_subreport_path(category_name, False)
+        logging.info('Creating directory %s', subreport_path_no_hlt)
         os.makedirs('Reports/' + subreport_path_no_hlt)
         if category_name.lower() != 'generator':
             subreport_path_hlt = get_local_subreport_path(category_name, True)
+            logging.info('Creating directory %s', subreport_path_hlt)
             os.makedirs('Reports/' + subreport_path_hlt)
 
         hlt = category['hlt']
