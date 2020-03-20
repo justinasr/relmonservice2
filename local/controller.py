@@ -23,6 +23,7 @@ class Controller():
 
         self.ssh_executor = SSHExecutor(config)
         self.file_creator = FileCreator(config)
+        self.config = config
         # Multithread manager
         manager = Manager()
         # Lists of relmon ids
@@ -64,7 +65,6 @@ class Controller():
         relmons_to_check = database.get_relmons_with_status('submitted', include_docs=True)
         relmons_to_check.extend(database.get_relmons_with_status('running', include_docs=True))
         relmons_to_check.extend(database.get_relmons_with_status('finishing', include_docs=True))
-        relmons_to_check.extend(database.get_relmons_with_status('finished', include_docs=True))
         self.logger.info('Relmons to check (%s): %s.',
                          len(relmons_to_check),
                          ', '.join(r.get('id') for r in relmons_to_check))
@@ -139,12 +139,12 @@ class Controller():
         old_relmon = RelMon(old_relmon_data)
         new_relmon = RelMon(relmon_data)
         if old_relmon.get_status() == 'done':
-            self.logger.info('Relmon %s is done, will try to do smart edit', old_relmon)
+            self.logger.info('Relmon %s is done, will try to do a smart edit', old_relmon)
             new_category_names = [x['name'] for x in new_relmon.get_json().get('categories')]
             old_category_names = [x['name'] for x in old_relmon.get_json().get('categories')]
             self.logger.info('Relmon %s had these categories: %s', old_relmon, old_category_names)
             self.logger.info('Relmon %s have these categories: %s', new_relmon, new_category_names)
-            relmon_changed = False
+            categories_changed = False
             for category_name in set(new_category_names + old_category_names):
                 old_category = old_relmon.get_category(category_name)
                 new_category = new_relmon.get_category(category_name)
@@ -161,7 +161,7 @@ class Controller():
                 changed = changed or old_category_targets != new_category_targets
                 changed = changed or old_category_pairing != new_category_pairing
                 changed = changed or old_category_hlt != new_category_hlt
-                relmon_changed = relmon_changed or changed
+                categories_changed = categories_changed or changed
                 if changed:
                     self.logger.info('Category %s of %s changed', category_name, old_relmon)
                     old_category['reference'] = new_category_references
@@ -172,15 +172,30 @@ class Controller():
                 else:
                     self.logger.info('Category %s of %s did not change', category_name, old_relmon)
 
-            if old_relmon.get_name() != new_relmon.get_name():
-                relmon_changed = True
-                old_relmon.get_json()['name'] = relmon_data['name']
-
-            if relmon_changed:
+            name_changed = old_relmon.get_name() != new_relmon.get_name()
+            if name_changed and not categories_changed:
+                # Only name changed, categories did not change, just a rename
+                new_name = relmon_data['name']
+                self.logger.info('Renaming %s to %s without changing categories' % (old_relmon, new_name))
+                old_relmon.get_json()['name'] = new_name
+                ssh_executor = SSHExecutor(self.config)
+                ssh_executor.execute_command([
+                    'cd %s' % (self.file_creator.web_location),
+                    'EXISTING_REPORT=$(ls -1 %s*.sqlite | head -n 1)' % (relmon_id),
+                    'echo "Existing file name: $EXISTING_REPORT"',
+                    'mv $EXISTING_REPORT %s___%s.sqlite' % (relmon_id, new_name),
+                ])
+                database.update_relmon(old_relmon)
+            elif categories_changed:
+                # Categories changed, will have to resubmit
+                new_name = relmon_data['name']
+                old_relmon.get_json()['name'] = new_name
                 old_relmon.set_status('new')
                 old_relmon.set_condor_id(0)
                 old_relmon.set_condor_status('<unknown>')
                 database.update_relmon(old_relmon)
+            else:
+                self.logger.info('Nothing changed for %s?' % (old_relmon))
 
         else:
             self.logger.info('Relmon %s is not yet done, will edit and reset')
@@ -244,7 +259,7 @@ class Controller():
             # It is easier to ssh to lxplus than set up condor locally
             stdout, stderr = self.ssh_executor.execute_command([
                 'cd %s' % (remote_relmon_directory),
-                'condor_submit RELMON_%s.sub' % (relmon_id)
+                'module load lxbatch/tzero && condor_submit RELMON_%s.sub' % (relmon_id)
             ])
             # Parse result of condor_submit
             if not stderr and '1 job(s) submitted to cluster' in stdout:
@@ -274,7 +289,7 @@ class Controller():
                          relmon,
                          relmon_condor_id)
         stdout, stderr = self.ssh_executor.execute_command(
-            'condor_q -af:h ClusterId JobStatus | grep %s' % (relmon_condor_id)
+            'module load lxbatch/tzero && condor_q -af:h ClusterId JobStatus | grep %s' % (relmon_condor_id)
         )
         new_condor_status = '<unknown>'
         if stdout and not stderr:
@@ -352,7 +367,7 @@ class Controller():
         self.logger.info('Trying to terminate %s', relmon)
         condor_id = relmon.get_condor_id()
         if condor_id > 0:
-            self.ssh_executor.execute_command('condor_rm %s' % (condor_id))
+            self.ssh_executor.execute_command('module load lxbatch/tzero && condor_rm %s' % (condor_id))
         else:
             self.logger.info('Relmon %s HTCondor id is not valid: %s', relmon, condor_id)
 

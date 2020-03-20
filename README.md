@@ -24,8 +24,8 @@ There are three options for HLT: No HLT, Only HLT and Both. This option controls
 Each RelMon has few more attributes that could not be edited by a user.
   * **ID** - unique identifier, timestamp of RelMon creation
   * **Status** - RelMon status. It can be one of these:
-    * `new` - RelMon is new and will soon be submitted to HTCondor for comparison
-    * `submitted` - RelMon was successfully submitted to HTCondor and is waiting for resources to start running. Time in this status depends on RelMon size and load of HTCondor system
+    * `new` - RelMon is new and will soon be submitted to HTCondor batch system
+    * `submitted` - RelMon was successfully submitted to HTCondor batch system and is waiting for resources (CPU, memory, disk space) to start running. Time in this status depends on RelMon size and load of HTCondor system
     * `running` - RelMon got resources in HTCondor and now is downloading files or running the `ValidationMatrix.py`. Time in this status depends on RelMon size
     * `finishing` - RelMon finished running all `ValidationMatrix.py` commands and now is packing and transferring reports to reports website
     * `done` - RelMon is done, reports are available

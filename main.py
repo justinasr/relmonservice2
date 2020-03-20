@@ -186,7 +186,8 @@ def update_info():
                                                       relmon['status']))
     db.update_relmon(RelMon(relmon))
     if relmon['status'] != old_status:
-        controller_tick()
+        for job in scheduler.get_jobs():
+            job.modify(next_run_time=datetime.now())
 
     return output_text({'message': 'OK'})
 

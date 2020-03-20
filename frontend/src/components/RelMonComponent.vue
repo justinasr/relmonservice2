@@ -24,12 +24,12 @@
               </v-progress-linear>
             </li>
             <li><span class="font-weight-light">Comparison:</span>
-              <v-progress-linear :value="relmonData.compared_relvals / relmonData.total_relvals * 100"
+              <v-progress-linear :value="(relmonData.compared_relvals / relmonData.total_relvals * 99) + (relmonData.status == 'done' ? 1 : 0)"
                                  color="primary"
                                  height="16"
                                  class="elevation-1"
                                  style="max-width: 250px; color: white; border-radius: 4px">
-                <small><strong>{{ Math.ceil(relmonData.compared_relvals / relmonData.total_relvals * 100) }}%</strong></small>
+                <small><strong>{{ Math.ceil(relmonData.compared_relvals / relmonData.total_relvals * 99) + (relmonData.status == 'done' ? 1 : 0) }}%</strong></small>
               </v-progress-linear>
             </li>
           </ul>

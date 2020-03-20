@@ -164,13 +164,18 @@ class RelMon():
 
     def get_disk(self):
         """
-        Return amount of disk space reuired based on number of references and targets
+        Return amount of disk space required based on number of references and targets
         """
         number_of_relvals = 0
         for category in self.data['categories']:
+            if category['status'] != 'initial':
+                continue
+
             number_of_relvals += len(category['reference'])
             number_of_relvals += len(category['target'])
 
+        # At lest 300M
+        number_of_relvals = max(number_of_relvals, 1)
         disk = '%sM' % (number_of_relvals * 300)
         return disk
 

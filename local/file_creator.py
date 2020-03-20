@@ -41,8 +41,8 @@ class FileCreator():
             'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
             'cp cookie.txt relmonservice2/remote',
             # CMSSW environment setup
-            'scramv1 project CMSSW CMSSW_10_4_0',
-            'cd CMSSW_10_4_0/src',
+            'scramv1 project CMSSW CMSSW_11_0_0',
+            'cd CMSSW_11_0_0/src',
             # Open scope for CMSSW
             '(',
             'eval `scramv1 runtime -sh`',
@@ -80,7 +80,7 @@ class FileCreator():
             'echo "PRAGMA integrity_check;" | sqlite3 reports.sqlite',
             # Remove old sql file from web path
             'if [ ! -z "$EXISTING_REPORT" ]; then',
-            '  rm -rf $EXISTING_REPORT',
+            '  rm -f $EXISTING_REPORT',
             'fi',
             # Copy reports sqlite to web path
             'time rsync -v reports.sqlite %s' % (web_sqlite_path),
@@ -97,7 +97,7 @@ class FileCreator():
             'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
             'cp cookie.txt relmonservice2/remote',
             'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
-            '-r RELMON_%s.json --callback %s --notifyfinished' % (relmon_id, self.callback_url)
+            '-r RELMON_%s.json --callback %s --notifydone' % (relmon_id, self.callback_url)
         ]
 
         script_file_content_string = '\n'.join(script_file_content)
@@ -136,10 +136,11 @@ class FileCreator():
             'request_disk           = %s' % (disk),
             '+JobFlavour            = "tomorrow"',
             '+JobPrio               = 1',
-            'requirements           = (OpSysAndVer =?= "SLCern6")',
+            'requirements           = (OpSysAndVer =?= "CentOS7")',
             # Leave in queue when status is DONE for two hours - 7200 seconds
             'leave_in_queue         = JobStatus == 4 && (CompletionDate =?= UNDEFINED'
             '                         || ((CurrentTime - CompletionDate) < 7200))',
+            '+AccountingGroup       = "group_u_CMS.CAF.PHYS"',
             'queue'
         ]
 

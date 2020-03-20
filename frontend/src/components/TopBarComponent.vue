@@ -255,7 +255,7 @@ export default {
       this.categories.forEach(function(item, index) {
         if (!existingCategoryNames.includes(item)) {
           categories.push({'name': item,
-                           'hlt': item === 'Generator' ? 'only' : 'both',
+                           'hlt': item === 'Generator' ? 'no' : 'both',
                            'automatic_pairing': true,
                            'reference':'',
                            'target': ''})
