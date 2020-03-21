@@ -1,10 +1,14 @@
 <template>
-  <v-row>
-    <v-col class="elevation-3 pa-4 mb-2" style="background: white; position: relative;">
-      <span class="font-weight-light bigger-text">RelMon</span> <span class="ml-2 bigger-text">{{relmonData.name}}</span>
+  <div>
+    <div class="elevation-3 mb-2 pl-4 pr-4 pt-2 pb-2" style="background: white; position: relative;">
       <v-row>
-        <v-col :lg="5" :md="6" :sm="6" :cols="12">
-          Job information
+        <v-col cols=12>
+          <span class="font-weight-light bigger-text">RelMon</span> <span class="ml-2 bigger-text">{{relmonData.name}}</span>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col lg=5 md=6 sm=6 cols=12>
+          RelMon information
           <ul>
             <li><span class="font-weight-light">ID:</span> {{relmonData.id}}</li>
             <li><span class="font-weight-light">Status:</span> <span :title="'HTCondor Status: ' + relmonData.condor_status + '\nHTCondor ID: ' + relmonData.condor_id">{{relmonData.status}}</span> <span v-if="relmonData.status == 'done'">
@@ -18,8 +22,7 @@
               <v-progress-linear :value="relmonData.downloaded_relvals / relmonData.total_relvals * 100"
                                  color="success"
                                  height="16"
-                                 class="elevation-1"
-                                 style="max-width: 250px; color: white; border-radius: 4px">
+                                 class="elevation-1 progress-bar">
                 <small><strong>{{ Math.ceil(relmonData.downloaded_relvals / relmonData.total_relvals * 100) }}%</strong></small>
               </v-progress-linear>
             </li>
@@ -27,8 +30,7 @@
               <v-progress-linear :value="(relmonData.compared_relvals / relmonData.total_relvals * 99) + (relmonData.status == 'done' ? 1 : 0)"
                                  color="primary"
                                  height="16"
-                                 class="elevation-1"
-                                 style="max-width: 250px; color: white; border-radius: 4px">
+                                 class="elevation-1 progress-bar">
                 <small><strong>{{ Math.ceil(relmonData.compared_relvals / relmonData.total_relvals * 99) + (relmonData.status == 'done' ? 1 : 0) }}%</strong></small>
               </v-progress-linear>
             </li>
@@ -41,7 +43,7 @@
             <v-btn small class="ma-1" color="error" @click="deleteConformationOverlay = true">Delete</v-btn>
           </div>
         </v-col>
-        <v-col :lg="7" :md="6" :sm="6" :cols="12">
+        <v-col lg=7 md=6 sm=6 cols=12>
           Categories
           <ul>
             <li v-for="category in relmonData.categories" v-if="category.reference.length || category.target.length"><span class="font-weight-light">{{category.name}}</span> - {{category.status}} <span class="font-weight-light">| HLT:</span> {{category.hlt}} <span class="font-weight-light">| pairing:</span> {{category.automatic_pairing ? 'auto' : 'manual'}}
@@ -114,9 +116,9 @@
                                color="primary"></v-progress-circular>
         </v-overlay>
       </v-row>
-    </v-col>
+    </div>
     <v-dialog v-model="detailedView">
-      <v-card class="pa-4" >
+      <v-card class="pa-4">
         <span class="font-weight-light bigger-text">Categories of</span> <span class="ml-2 bigger-text">{{relmonData.name}}</span>
         <div v-for="category in relmonData.categories" v-if="category.reference.length || category.target.length">
           <span class="font-weight-light bigger-text">{{category.name}}</span>
@@ -155,7 +157,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </v-row>
+  </div>
 </template>
 
 <script>
@@ -240,16 +242,17 @@ export default {
 </script>
 
 <style scoped>
-.bigger-text {
-  font-size: 1.5rem;
-  word-break: break-all;
-}
-
 li {
   padding-bottom: 4px;
 }
 
 .red-text {
   color: red;
+}
+
+.progress-bar {
+  max-width: 250px;
+  color: white !important;
+  border-radius: 4px
 }
 </style>

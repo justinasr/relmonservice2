@@ -129,28 +129,28 @@ class RelMon():
             number_of_relvals += len(category['reference'])
             number_of_relvals += len(category['target'])
 
-        # Comparisons CPU
-        #  0- 10     -  1
-        # 11- 25     -  2
-        # 26- 60     -  4
-        # 61-150     -  8
-        # 151+       - 16
+        # Pairs       CPU
+        #  0 -  5   -   1
+        #  6 - 15   -   2
+        # 16 - 45   -   4
+        # 46 - 90   -   8
+        # 90+       -  16
 
         cpus = 1
-        if number_of_relvals <= 20:
-            # Max 10 vs 10
+        if number_of_relvals <= 10:
+            # Max 5 vs 5
             cpus = 1
-        elif number_of_relvals <= 50:
-            # Max 25 vs 25
+        elif number_of_relvals <= 30:
+            # Max 15 vs 15
             cpus = 2
-        elif number_of_relvals <= 120:
-            # Max 60 vs 60
+        elif number_of_relvals <= 90:
+            # Max 45 vs 45
             cpus = 4
-        elif number_of_relvals <= 300:
-            # Max 150 vs 150
+        elif number_of_relvals <= 180:
+            # Max 90 vs 90
             cpus = 8
         else:
-            # > 150 vs 150
+            # > 90 vs 90
             cpus = 16
 
         return cpus

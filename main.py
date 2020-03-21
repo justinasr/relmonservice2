@@ -93,7 +93,8 @@ def get_relmons():
                                               page_size=limit)
             if total_rows == 0:
                 query = f'*{query}*'
-                query_dict = {'name': {'$regex': query.replace('*', '.*')}}
+                # Perform case insensitive search
+                query_dict = {'name': {'$regex': query.replace('*', '.*'), '$options': '-i'}}
                 data, total_rows = db.get_relmons(query_dict=query_dict,
                                                   include_docs=True,
                                                   page=page,

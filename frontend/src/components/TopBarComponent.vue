@@ -1,41 +1,19 @@
 <template>
-  <v-row>
-    <v-col class="elevation-3 pa-2 mb-2" style="background: white">
-      <v-row style="margin: 0">
-        <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
-          <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]" title="Create a new RelMon">
-            Create New
+  <div>
+    <div class="elevation-3 mb-2 pl-4 pr-4 pt-2 pb-2" v-if="userInfo.authorized" style="background: white">
+      <v-row style="text-align: center">
+        <v-col cols=12>
+          <v-btn small color="primary" v-if="!expandedPanels.length" @click="expandedPanels = expandedPanels.length ? [] : [0]" title="Create a new RelMon">
+            Create New RelMon
           </v-btn>
-          <v-btn small color="primary" v-if="!expandedPanels.length && userInfo.authorized" class="ma-1" @click="forceRefresh()" title="Trigger RelMon Service to check RelMon progress in HTCondor. This happens automatically every 10 minutes">
-            Trigger Refresh
+          <v-btn small color="primary" v-if="!expandedPanels.length" class="ml-2" @click="forceRefresh()" title="Trigger RelMon Service to check RelMon progress in HTCondor. This happens automatically every 10 minutes">
+            Trigger Status Refresh
           </v-btn>
-        </v-col>
-        <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
-        </v-col>
-        <v-col cols=12 sm=12 md=4 lg=4 style="margin: 0; padding: 0;">
-          <div style="float: right; line-height: 36px;">
-            <span class="font-weight-light">Logged in as</span> {{userInfo.name}}
-            <span v-if="userInfo.authorized">&#11088;</span>
-          </div>
-        </v-col>
-      </v-row>
-      <v-row style="margin: 0">
-        <v-col cols=12 sm=12 md=3 lg=3 style="margin: 0; padding: 0;">
-        </v-col>
-        <v-col cols=12 sm=12 md=6 lg=6 style="margin: 0; padding: 0;">
-          <div style="display: flex; border-radius: 4px; margin: 4px;" v-if="!expandedPanels.length" class="btn-shadow">
-            <div style="border: 0.5px rgba(0,0,0,0.42) solid; flex-grow: 1; border-radius: 4px 0px 0px 4px;" >
-              <input v-model="query" v-on:keyup.enter="search" style="width: 100%; height: 100%; padding-left:8px; border: none; color: rgba(0, 0, 0, 0.67);" placeholder="RelMon name, status or ID" />
-            </div>
-            <v-btn small color="primary" class="ma-0" style="border-radius: 0px 4px 4px 0px; box-shadow: none; -webkit-box-shadow: none;" @click="search()" title="Perform search in RelMon Service">
-              Search
-            </v-btn>
-          </div>
         </v-col>
       </v-row>
       <v-expansion-panels multiple v-model="expandedPanels">
         <v-expansion-panel :key="0" class="elevation-0">
-          <v-expansion-panel-content>
+          <v-expansion-panel-content class="expansion-panel-content">
             <v-row>
               <v-col v-if="!isEditing" cols=12>
                 <span class="bigger-text font-weight-light">Creating</span> <span class="bigger-text ml-2">a new RelMon</span>
@@ -44,10 +22,10 @@
                 <span class="bigger-text font-weight-light">Editing</span> <span class="bigger-text ml-2">{{relmonWrapper.relmon.name}}</span>
               </v-col>
               <v-col cols=12 sm=12 md=8 lg=8>
-                <span class="font-weight-light">Name:</span><input type="text" style="width: 100%" v-model="relmonWrapper.relmon.name">
+                <span class="font-weight-light">Name:</span><input type="text" class="thin-border" v-model="relmonWrapper.relmon.name">
               </v-col>
               <v-col v-if="isEditing" cols=12 sm=12 md=4 lg=4>
-                <span class="font-weight-light">ID:</span><input type="text" :disabled="true" style="width: 100%" v-model="relmonWrapper.relmon.id">
+                <span class="font-weight-light">ID:</span><input type="text" class="thin-border" :disabled="true" v-model="relmonWrapper.relmon.id">
               </v-col>
             </v-row>
             <v-row>
@@ -59,7 +37,7 @@
                       <div>
                         {{ category.name }}
                       </div>
-                      <small>
+                      <small class="font-weight-light">
                         {{listLength(category.reference)}} vs. {{listLength(category.target)}}
                       </small>
                     </div>
@@ -67,14 +45,14 @@
                   <v-tab-item v-for="category in relmonWrapper.relmon.categories" :key="category.name" :value="'tab-' + category.name">
                     <v-row>
                       <v-col cols=12>
-                        <span class="font-weight-light">{{category.name}} references:</span><br>
-                        <textarea v-model="category.reference"></textarea>
-                        <span class="font-weight-light">{{category.name}} targets:</span><br>
-                        <textarea v-model="category.target"></textarea>
+                        {{category.name}} <span class="font-weight-light">references:</span><br>
+                        <textarea class="thin-border" v-model="category.reference"></textarea>
+                        {{category.name}} <span class="font-weight-light">targets:</span><br>
+                        <textarea class="thin-border" v-model="category.target"></textarea>
                       </v-col>
-                      <v-col cols=6>
-                        <span class="font-weight-light">Pairing:</span>
-                        <v-btn-toggle mandatory v-model="category.automatic_pairing">
+                      <v-col cols=12 sm=12 md=6 lg=6>
+                        <span class="font-weight-light mr-2">Pairing:</span>
+                        <v-btn-toggle mandatory v-model="category.automatic_pairing" class="radio-buttons">
                           <v-btn small :value="true">
                             Automatic
                           </v-btn>
@@ -83,9 +61,9 @@
                           </v-btn>
                         </v-btn-toggle>
                       </v-col>
-                      <v-col cols=6>
-                        <span class="font-weight-light">HLT:</span>
-                        <v-btn-toggle mandatory v-model="category.hlt">
+                      <v-col cols=12 sm=12 md=6 lg=6>
+                        <span class="font-weight-light mr-2">HLT:</span>
+                        <v-btn-toggle mandatory v-model="category.hlt" class="radio-buttons">
                           <v-btn small :value="'no'">
                             No HLT
                           </v-btn>
@@ -112,7 +90,23 @@
           </v-expansion-panel-content>
         </v-expansion-panel>
       </v-expansion-panels>
-    </v-col>
+    </div>
+    <div class="elevation-3 mb-2 pl-4 pr-4 pt-2 pb-2" v-if="!expandedPanels.length" style="background: white">
+      <v-row>
+        <v-spacer></v-spacer>
+        <v-col cols=12 sm=12 md=6 lg=6>
+          <div class="v-btn--contained search-wrapper">
+            <div class="thin-border search-input-wrapper">
+              <input v-model="query" v-on:keyup.enter="search" placeholder="Search by RelMon name, status or ID" />
+            </div>
+            <v-btn small color="primary" class="ma-0" @click="search()" title="Perform search in RelMon Service">
+              Search
+            </v-btn>
+          </div>
+        </v-col>
+        <v-spacer></v-spacer>
+      </v-row>
+    </div>
 
     <v-overlay :absolute="false"
                :opacity="0.95"
@@ -164,7 +158,7 @@
         Close
       </v-btn>
     </v-overlay>
-  </v-row>
+  </div>
 </template>
 
 <script>
@@ -191,10 +185,7 @@ export default {
 
   },
   props: {
-    userInfo: {
-      type: Object,
-      default: function () { return { 'name': '', 'authorized': false }; }
-    }
+    userInfo: {},
   },
   components: {
   },
@@ -280,6 +271,7 @@ export default {
       if (this.query.length == 0) {
         delete urlParams['q'];
       }
+      urlParams['page'] = 0;
       urlParams = new URLSearchParams(urlParams);
       window.history.replaceState('search', '', '?' + urlParams.toString());
 
@@ -290,29 +282,78 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
+
 textarea{
   width: 100%;
-  border-style: solid;
   min-height: 250px;
+  padding-left: 6px;
 }
+
 input {
+  padding-left: 6px;
+  width: 100%;
+}
+
+.thin-border {
   border-style: solid;
-  border-width: 1px;
+  border-width: 0.5px;
   border-color: rgb(169, 169, 169);
+  border-radius: 4px;
 }
+
+.v-tab {
+  color: rgb(0, 0, 0, 0.87) !important;
+}
+
 .v-tab--active {
-  background-color: rgba(0,0,0,0.05);
+  color: white !important;
+  background-color: var(--v-primary-base);
 }
+
+.v-tabs-slider {
+  display: none !important;
+}
+
+.radio-buttons > .v-item--active {
+  color: white !important;
+  background-color: var(--v-primary-base) !important;
+}
+
 .elevation-0::before {
   box-shadow: none !important;
   -webkit-box-shadow: none !important;
 }
-.bigger-text {
-  font-size: 1.5rem;
+
+.radio-buttons .v-btn::before {
+  opacity: 0 !important;
+  -webkit-transition: none !important;
+  transition: none !important;
 }
-.btn-shadow {
-  -webkit-box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
-  box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+
+.search-wrapper {
+  display: flex;
+  border-radius: 4px;
 }
+
+.search-input-wrapper {
+  flex-grow: 1;
+  border-radius: 4px 0px 0px 4px;
+}
+
+.search-input-wrapper > input {
+  height: 100%;
+  border: none;
+}
+
+.search-wrapper button {
+  border-radius: 0px 4px 4px 0px;
+  box-shadow: none;
+  -webkit-box-shadow: none;
+}
+
+.expansion-panel-content > div {
+  padding: 0 !important;
+}
+
 </style>
