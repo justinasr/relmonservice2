@@ -25,13 +25,21 @@ class RelMon():
             new_references = []
             for old_reference in category['reference']:
                 if isinstance(old_reference, str):
-                    new_references.append({'name': self.sanitize_relval(old_reference),
+                    name = self.sanitize_relval(old_reference)
+                    if not name:
+                        continue
+
+                    new_references.append({'name': name,
                                            'file_name': '',
                                            'file_url': '',
                                            'file_size': 0,
                                            'status': 'initial'})
                 else:
-                    new_references.append({'name': self.sanitize_relval(old_reference['name']),
+                    name = self.sanitize_relval(old_reference['name'])
+                    if not name:
+                        continue
+
+                    new_references.append({'name': name,
                                            'file_name': old_reference.get('file_name', ''),
                                            'file_url': old_reference.get('file_url', ''),
                                            'file_size': old_reference.get('file_size', 0),
@@ -40,13 +48,21 @@ class RelMon():
             new_targets = []
             for old_target in category['target']:
                 if isinstance(old_target, str):
-                    new_targets.append({'name': self.sanitize_relval(old_target),
+                    name = self.sanitize_relval(old_target)
+                    if not name:
+                        continue
+
+                    new_targets.append({'name': name,
                                         'file_name': '',
                                         'file_url': '',
                                         'file_size': 0,
                                         'status': 'initial'})
                 else:
-                    new_targets.append({'name': self.sanitize_relval(old_target['name']),
+                    name = self.sanitize_relval(old_target['name'])
+                    if not name:
+                        continue
+
+                    new_targets.append({'name': name,
                                         'file_name': old_target.get('file_name', ''),
                                         'file_url': old_target.get('file_url', ''),
                                         'file_size': old_target.get('file_size', 0),
@@ -73,9 +89,12 @@ class RelMon():
         new_references = []
         for old_reference in category['reference']:
             if isinstance(old_reference, str):
-                name = old_reference
+                name = self.sanitize_relval(old_reference.strip())
             else:
-                name = old_reference['name']
+                name = self.sanitize_relval(old_reference['name'].strip())
+
+            if not name:
+                continue
 
             new_references.append({'name': name,
                                    'file_name': '',
@@ -86,9 +105,12 @@ class RelMon():
         new_targets = []
         for old_target in category['target']:
             if isinstance(old_target, str):
-                name = old_target
+                name = self.sanitize_relval(old_target.strip())
             else:
-                name = old_target['name']
+                name = self.sanitize_relval(old_target['name'].strip())
+
+            if not name:
+                continue
 
             new_targets.append({'name': name,
                                 'file_name': '',

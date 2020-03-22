@@ -199,8 +199,8 @@ export default {
       }
       relmonClone.categories.forEach(function(item, index) {
         item['name'] = item['name'].replace(' ', '_')
-        item['reference'] = item['reference'].split('\n').filter(Boolean)
-        item['target'] = item['target'].split('\n').filter(Boolean)
+        item['reference'] = item['reference'].split('\n').map(x => x.replace(/\s/g, "")).filter(Boolean)
+        item['target'] = item['target'].split('\n').map(x => x.replace(/\s/g, "")).filter(Boolean)
       })
       axios.post('api/' + action, relmonClone).then(response => {
         setTimeout(function(){
@@ -222,8 +222,8 @@ export default {
         var relmonClone = JSON.parse(JSON.stringify(relmon))
         relmonClone.categories.forEach(function(item, index) {
           item['name'] = item['name'].replace('_', ' ')
-          item['reference'] = item['reference'].map(x => x['name']).filter(Boolean).join('\n')
-          item['target'] = item['target'].map(x => x['name']).filter(Boolean).join('\n')
+          item['reference'] = item['reference'].map(x => x['name'].replace(/\s/g, "")).filter(Boolean).join('\n')
+          item['target'] = item['target'].map(x => x['name'].replace(/\s/g, "")).filter(Boolean).join('\n')
         })
         this.isEditing = true;
         relmonClone['categories'] = this.addMissingCategories(relmonClone.categories);
@@ -235,7 +235,7 @@ export default {
       }
     },
     listLength(l) {
-      return l.split('\n').filter(Boolean).length;
+      return l.split('\n').map(x => x.replace(/\s/g, "")).filter(Boolean).length;
     },
     createEmptyRelmon() {
       return {'name': '',
