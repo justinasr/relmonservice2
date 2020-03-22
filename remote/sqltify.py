@@ -49,7 +49,7 @@ for category in categories:
     db_connection.commit()
 
 # Reclaim space from deleted entries
-db_cursor.execute('VACUUM;' % (category))
+db_cursor.execute('VACUUM;')
 db_connection.commit()
 
 # Create index

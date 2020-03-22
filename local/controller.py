@@ -6,12 +6,14 @@ Runs main loop that checks status and acts accordingly
 import logging
 import time
 import os.path
+import shutil
 from multiprocessing import Manager
 from mongodb_database import Database
 from local.ssh_executor import SSHExecutor
 from local.relmon import RelMon
 from local.file_creator import FileCreator
 from local.email_sender import EmailSender
+from zipfile import ZipFile
 
 
 class Controller():
@@ -371,26 +373,35 @@ class Controller():
             '%s.err' % (local_name)
         )
 
-        files = []
+        downloaded_files = []
         if os.path.isfile('%s.out' % (local_name)):
-            files.append('%s.out' % (local_name))
+            downloaded_files.append('%s.out' % (local_name))
 
         if os.path.isfile('%s.log' % (local_name)):
-            files.append('%s.log' % (local_name))
+            downloaded_files.append('%s.log' % (local_name))
 
         if os.path.isfile('%s.err' % (local_name)):
-            files.append('%s.err' % (local_name))
+            downloaded_files.append('%s.err' % (local_name))
 
         if os.path.isfile('%s/validation_matrix.log' % (local_relmon_directory)):
-            files.append('%s/validation_matrix.log' % (local_relmon_directory))
+            downloaded_files.append('%s/validation_matrix.log' % (local_relmon_directory))
+
+        attachments = []
+        if downloaded_files:
+            archive_name = '%s.zip' % (local_name)
+            attachments = [archive_name]
+            with ZipFile(archive_name, 'w') as zip_object:
+                for file_path in downloaded_files:
+                    zip_object.write(file_path, file_path.split('/')[-1])
 
         if relmon.get_status() != 'failed':
             relmon.set_status('done')
-            self.__send_done_notification(relmon, files=files)
+            self.__send_done_notification(relmon, files=attachments)
         else:
-            self.__send_failed_notification(relmon, files=files)
+            self.__send_failed_notification(relmon, files=attachments)
 
         database.update_relmon(relmon)
+        shutil.rmtree(local_relmon_directory, ignore_errors=True)
 
     def __reset_relmon(self, relmon_id, database, user_info):
         relmon_json = database.get_relmon(relmon_id)
