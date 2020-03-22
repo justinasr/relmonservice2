@@ -34,7 +34,7 @@ def add_relmon():
     if not relmon.get('name'):
         return output_text({'message': 'No name'}, code=400)
 
-    controller.create_relmon(relmon, Database())
+    controller.create_relmon(relmon, Database(), user_info_dict())
     controller_tick()
     return output_text({'message': 'OK'})
 
@@ -46,7 +46,7 @@ def reset_relmon():
 
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
-        controller.add_to_reset_list(str(int(data['id'])))
+        controller.add_to_reset_list(str(int(data['id'])), user_info_dict())
         controller_tick()
         return output_text({'message': 'OK'})
 
@@ -60,7 +60,7 @@ def delete_relmon():
 
     data = json.loads(request.data.decode('utf-8'))
     if 'id' in data:
-        controller.add_to_delete_list(str(int(data['id'])))
+        controller.add_to_delete_list(str(int(data['id'])), user_info_dict())
         controller_tick()
         return output_text({'message': 'OK'})
 
@@ -92,7 +92,7 @@ def get_relmons():
                                               page=page,
                                               page_size=limit)
             if total_rows == 0:
-                query = f'*{query}*'
+                query = '*%s*' % (query)
                 # Perform case insensitive search
                 query_dict = {'name': {'$regex': query.replace('*', '.*'), '$options': '-i'}}
                 data, total_rows = db.get_relmons(query_dict=query_dict,
@@ -103,6 +103,9 @@ def get_relmons():
         data, total_rows = db.get_relmons(include_docs=True, page=page, page_size=limit)
 
     for relmon in data:
+        if 'user_info' in relmon:
+            del relmon['user_info']
+
         relmon['total_relvals'] = 0
         relmon['downloaded_relvals'] = 0
         relmon['compared_relvals'] = 0
@@ -160,7 +163,7 @@ def edit_relmon():
         return output_text({'message': 'Unauthorized'}, code=403)
 
     relmon = json.loads(request.data.decode('utf-8'))
-    controller.edit_relmon(relmon, Database())
+    controller.edit_relmon(relmon, Database(), user_info_dict())
     controller_tick()
     return output_text({'message': 'OK'})
 
@@ -206,12 +209,18 @@ def controller_tick():
 
 @app.route('/api/user')
 def user_info():
-    fullname = request.headers.get('Adfs-Fullname', '???')
-    login = request.headers.get('Adfs-Login', '???')
+    return output_text(user_info_dict())
+
+
+def user_info_dict():
+    fullname = request.headers.get('Adfs-Fullname', '')
+    login = request.headers.get('Adfs-Login', '')
+    email = request.headers.get('Adfs-Email', '')
     authorized_user = is_user_authorized()
-    return output_text({'login': login,
-                        'authorized_user': authorized_user,
-                        'fullname': fullname})
+    return {'login': login,
+            'authorized_user': authorized_user,
+            'fullname': fullname,
+            'email': email}
 
 
 def is_user_authorized():

@@ -317,6 +317,9 @@ def get_dataset_lists(category):
     target_dataset_list = []
     automatic_pairing = category['automatic_pairing']
 
+    if not reference_list and not target_list:
+        return [], []
+
     if automatic_pairing:
         reference_dataset_list, target_dataset_list = pair_references_with_targets(category)
     else:
@@ -408,9 +411,9 @@ def run_validation_matrix(relmon, cpus, callback_url):
         logging.info('Category: %s', category_name)
         logging.info('HLT: %s', hlt)
         reference_list, target_list = get_dataset_lists(category)
-        category['status'] = 'comparing'
-        notify(relmon, callback_url)
         if reference_list and target_list:
+            category['status'] = 'comparing'
+            notify(relmon, callback_url)
             # Run Generator without HLT
             # Do not run Generator with HLT
             if hlt in ('only', 'both') and category_name.lower() != 'generator':

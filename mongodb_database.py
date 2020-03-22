@@ -55,7 +55,10 @@ class Database:
         relmons = relmons.skip(page * page_size).limit(page_size)
         return list(relmons), total_rows
 
-    def get_relmons_with_status(self, status, page=0, page_size=PAGE_SIZE, include_docs=False):
+    def get_relmons_with_status(self, status):
         relmons = self.relmons.find({'status': status})
-        relmons = relmons.skip(page * page_size).limit(page_size)
+        return list(relmons)
+
+    def get_relmons_with_condor_status(self, status):
+        relmons = self.relmons.find({'condor_status': status})
         return list(relmons)

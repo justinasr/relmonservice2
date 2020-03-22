@@ -239,6 +239,15 @@ class RelMon():
         self.data['categories'].append({'name': category_name, 'reference': [], 'target': []})
         return self.get_category(category_name)
 
+    def set_user_info(self, user_info):
+        """
+        Set a dictionary with user who edited last info
+        """
+        self.data['user_info'] = user_info
+
+    def get_user_info(self):
+        return self.data['user_info']
+
     def __str__(self):
         return '%s (%s)' % (self.get_name(), self.get_id())
 
