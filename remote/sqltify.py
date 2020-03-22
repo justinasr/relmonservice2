@@ -18,8 +18,9 @@ indexes_to_create = []
 
 for category in categories:
     # Create tables
-    logging.info('Dropping and creating table for %s', category)
+    logging.info('Recreating table for %s', category)
     db_cursor.execute('DROP TABLE IF EXISTS %s;' % (category))
+    db_cursor.execute('DROP INDEX IF EXISTS %sIndex;' % (category))
     db_cursor.execute('CREATE TABLE %s (path text, htmlgz blob);' % (category))
     # Walk through files and add to database
     files_inserted = 0
@@ -46,6 +47,10 @@ for category in categories:
         indexes_to_create.append(category)
 
     db_connection.commit()
+
+# Reclaim space from deleted entries
+db_cursor.execute('VACUUM;' % (category))
+db_connection.commit()
 
 # Create index
 for category in indexes_to_create:
