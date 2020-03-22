@@ -3,10 +3,10 @@
     <div class="elevation-3 mb-2 pl-4 pr-4 pt-2 pb-2" v-if="userInfo.authorized" style="background: white">
       <v-row style="text-align: center">
         <v-col cols=12>
-          <v-btn small color="primary" v-if="!expandedPanels.length" @click="expandedPanels = expandedPanels.length ? [] : [0]" title="Create a new RelMon">
+          <v-btn small color="primary" v-if="!expandedPanels.length" class="ma-1" @click="expandedPanels = expandedPanels.length ? [] : [0]" title="Create a new RelMon">
             Create New RelMon
           </v-btn>
-          <v-btn small color="primary" v-if="!expandedPanels.length" class="ml-2" @click="forceRefresh()" title="Trigger RelMon Service to check RelMon progress in HTCondor. This happens automatically every 10 minutes">
+          <v-btn small color="primary" v-if="!expandedPanels.length" class="ma-1" @click="forceRefresh()" title="Trigger RelMon Service to check RelMon progress in HTCondor. This happens automatically every 10 minutes">
             Trigger Status Refresh
           </v-btn>
         </v-col>

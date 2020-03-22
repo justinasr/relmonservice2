@@ -65,7 +65,8 @@ class FileCreator():
             'EXISTING_REPORT=$(ls -1 %s | head -n 1)' % (old_web_sqlite_path),
             'echo "Existing file name: $EXISTING_REPORT"',
             'if [ ! -z "$EXISTING_REPORT" ]; then',
-            '  time rsync -v $EXISTING_REPORT reports.sqlite',
+            '  echo "File exists"',
+            '  time rsync -v "$EXISTING_REPORT" reports.sqlite',
             'fi',
             # Run sqltify
             'python3 sqltify.py',
@@ -80,7 +81,7 @@ class FileCreator():
             'echo "PRAGMA integrity_check;" | sqlite3 reports.sqlite',
             # Remove old sql file from web path
             'if [ ! -z "$EXISTING_REPORT" ]; then',
-            '  rm -f $EXISTING_REPORT',
+            '  rm -f "$EXISTING_REPORT"',
             'fi',
             # Copy reports sqlite to web path
             'time rsync -v reports.sqlite %s' % (web_sqlite_path),

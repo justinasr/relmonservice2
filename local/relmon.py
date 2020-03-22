@@ -2,6 +2,8 @@
 Module for RelMon class
 """
 import os
+import re
+from copy import deepcopy
 
 
 class RelMon():
@@ -11,6 +13,8 @@ class RelMon():
     """
 
     def __init__(self, data):
+        data = deepcopy(data)
+        data['name'] = self.sanitize_name(data['name'])
         self.data = data
         relmon_path = 'relmons/%s/' % (self.get_id())
         if not os.path.isdir(relmon_path):
@@ -21,13 +25,13 @@ class RelMon():
             new_references = []
             for old_reference in category['reference']:
                 if isinstance(old_reference, str):
-                    new_references.append({'name': old_reference.strip(),
+                    new_references.append({'name': self.sanitize_relval(old_reference),
                                            'file_name': '',
                                            'file_url': '',
                                            'file_size': 0,
                                            'status': 'initial'})
                 else:
-                    new_references.append({'name': old_reference['name'].strip(),
+                    new_references.append({'name': self.sanitize_relval(old_reference['name']),
                                            'file_name': old_reference.get('file_name', ''),
                                            'file_url': old_reference.get('file_url', ''),
                                            'file_size': old_reference.get('file_size', 0),
@@ -36,13 +40,13 @@ class RelMon():
             new_targets = []
             for old_target in category['target']:
                 if isinstance(old_target, str):
-                    new_targets.append({'name': old_target.strip(),
+                    new_targets.append({'name': self.sanitize_relval(old_target),
                                         'file_name': '',
                                         'file_url': '',
                                         'file_size': 0,
                                         'status': 'initial'})
                 else:
-                    new_targets.append({'name': old_target['name'].strip(),
+                    new_targets.append({'name': self.sanitize_relval(old_target['name']),
                                         'file_name': old_target.get('file_name', ''),
                                         'file_url': old_target.get('file_url', ''),
                                         'file_size': old_target.get('file_size', 0),
@@ -50,6 +54,18 @@ class RelMon():
 
             category['reference'] = new_references
             category['target'] = new_targets
+
+    def sanitize_relval(self, s):
+        """
+        Replace all non letters, digits, hyphens and underscores with underscore
+        """
+        return re.sub(r'[^A-Za-z0-9\-_]', '_', s.strip())
+
+    def sanitize_name(self, s):
+        """
+        Replace all non letters, digits, hyphens and underscores with underscore
+        """
+        return re.sub(r'[^A-Za-z0-9\-_]', '_', s.strip())
 
     def reset_category(self, category_name):
         category = self.get_category(category_name)
@@ -82,16 +98,6 @@ class RelMon():
 
         category['reference'] = new_references
         category['target'] = new_targets
-
-    def __remove_empty_categories(self):
-        non_empty_categories = []
-        for category in self.data.get('categories', []):
-            reference_length = len(category['reference'])
-            target_length = len(category['target'])
-            if reference_length > 0 and target_length > 0:
-                non_empty_categories.append(category)
-
-        self.data['categories'] = non_empty_categories
 
     def reset(self):
         """

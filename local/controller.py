@@ -172,10 +172,10 @@ class Controller():
                 else:
                     self.logger.info('Category %s of %s did not change', category_name, old_relmon)
 
-            name_changed = old_relmon.get_name() != new_relmon.get_name()
+            name_changed = old_relmon_data['name'] != new_relmon.get_name()
             if name_changed and not categories_changed:
                 # Only name changed, categories did not change, just a rename
-                new_name = relmon_data['name']
+                new_name = new_relmon.get_name()
                 self.logger.info('Renaming %s to %s without changing categories' % (old_relmon, new_name))
                 old_relmon.get_json()['name'] = new_name
                 ssh_executor = SSHExecutor(self.config)
@@ -183,12 +183,12 @@ class Controller():
                     'cd %s' % (self.file_creator.web_location),
                     'EXISTING_REPORT=$(ls -1 %s*.sqlite | head -n 1)' % (relmon_id),
                     'echo "Existing file name: $EXISTING_REPORT"',
-                    'mv $EXISTING_REPORT %s___%s.sqlite' % (relmon_id, new_name),
+                    'mv "$EXISTING_REPORT" "%s___%s.sqlite"' % (relmon_id, new_name),
                 ])
                 database.update_relmon(old_relmon)
             elif categories_changed:
                 # Categories changed, will have to resubmit
-                new_name = relmon_data['name']
+                new_name = new_relmon.get_name()
                 old_relmon.get_json()['name'] = new_name
                 old_relmon.set_status('new')
                 old_relmon.set_condor_id(0)
@@ -199,7 +199,7 @@ class Controller():
 
         else:
             self.logger.info('Relmon %s is not yet done, will edit and reset')
-            old_relmon.get_json()['name'] = relmon_data['name']
+            old_relmon.get_json()['name'] = new_relmon.get_name()
             old_relmon.get_json()['categories'] = new_relmon.get_json().get('categories', [])
             # Update only name and categories, do not allow to update anything else
             old_relmon.reset()
