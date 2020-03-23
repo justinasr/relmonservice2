@@ -7,13 +7,13 @@ import logging
 import time
 import os.path
 import shutil
+import zipfile
 from multiprocessing import Manager
 from mongodb_database import Database
 from local.ssh_executor import SSHExecutor
 from local.relmon import RelMon
 from local.file_creator import FileCreator
 from local.email_sender import EmailSender
-from zipfile import ZipFile
 
 
 class Controller():
@@ -390,7 +390,7 @@ class Controller():
         if downloaded_files:
             archive_name = '%s.zip' % (local_name)
             attachments = [archive_name]
-            with ZipFile(archive_name, 'w') as zip_object:
+            with zipfile.ZipFile(archive_name, 'w', zipfile.ZIP_DEFLATED) as zip_object:
                 for file_path in downloaded_files:
                     zip_object.write(file_path, file_path.split('/')[-1])
 
