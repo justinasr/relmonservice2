@@ -41,12 +41,13 @@ class EmailSender():
     def send(self, subject, body, recipients, files=None):
         body = body.strip()
         body += '\n\nSincerely,\nRelMon Service'
+        ccs = ['PdmV Service Account <pdmvserv@cern.ch>']
         # Create a fancy email message
         message = MIMEMultipart()
         message['Subject'] = '[RelMon] %s' % (subject)
         message['From'] = 'PdmV Service Account <pdmvserv@cern.ch>'
         message['To'] = ', '.join(recipients)
-        message['Cc'] = 'PdmV Service Account <pdmvserv@cern.ch>'
+        message['Cc'] = ', '.join(ccs)
         # Set body text
         message.attach(MIMEText(body))
         if files:
@@ -63,5 +64,6 @@ class EmailSender():
 
         self.logger.info('Will send "%s" to %s', message['Subject'], message['To'])
         self.__setup_smtp()
-        self.smtp.sendmail(message['From'], message['To'], message.as_string())
+        self.smtp.sendmail(message['From'], recipients + ccs, message.as_string())
         self.__close_smtp()
+

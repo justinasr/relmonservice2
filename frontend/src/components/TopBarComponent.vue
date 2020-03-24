@@ -113,7 +113,7 @@
                :z-index="3"
                :value="editOverlay"
                style="text-align: center">
-      <span v-if="relmonWrapper.relmon.status == 'done'">This will update {{relmonWrapper.relmon.name}}. All progress of changed categories will be lost and these categories will be redone from scratch.</span>
+      <span v-if="relmonWrapper.relmon.status == 'done'">This will update {{relmonWrapper.relmon.name}}. If you have changed any categories, they will be redone from scratch.</span>
       <span v-if="relmonWrapper.relmon.status != 'done'">This will update and reset {{relmonWrapper.relmon.name}}. All progress will be lost and RelMon will be redone from scratch.</span>
       <br>Are you sure you want to update {{relmonWrapper.relmon.name}}?<br>
       <v-btn color="error"
