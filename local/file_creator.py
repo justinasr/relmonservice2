@@ -40,20 +40,37 @@ class FileCreator():
             # Make a cookie for callbacks about progress
             'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
             'cp cookie.txt relmonservice2/remote',
+
+            # Dump this to a file for singularity
+            'cat <<\'EndOfRelmonFile\' > relmon.sh',
+            '#!/bin/bash',
+
             # CMSSW environment setup
-            'scramv1 project CMSSW CMSSW_11_0_0',
-            'cd CMSSW_11_0_0/src',
+            'export SCRAM_ARCH=slc6_amd64_gcc491',
+            'source /cvmfs/cms.cern.ch/cmsset_default.sh',
+            'scramv1 project CMSSW CMSSW_7_4_0',
+            'cd CMSSW_7_4_0/src',
             # Open scope for CMSSW
             '(',
             'eval `scramv1 runtime -sh`',
-            'cd $DIR',
+            'cd ../..',
             # Create reports directory
             'mkdir -p Reports',
             # Run the remote apparatus
-            'python3 relmonservice2/remote/remote_apparatus.py '  # No newlines here
+            'python relmonservice2/remote/remote_apparatus.py '  # No newlines here
             '-r RELMON_%s.json -c %s -k %s --cpus %s --callback %s' % (relmon_id, self.grid_cert_file, self.grid_key_file, cpus, self.callback_url),
             # Close scope for CMSSW
             ')',
+
+            # Run in singularity
+            '# End of relmon.sh file',
+            'EndOfRelmonFile',
+            '',
+            '# Make file executable',
+            'chmod +x relmon.sh',
+            'singularity run -B /afs -B /eos -B /cvmfs -B /etc/grid-security --home $PWD:/srv docker://cmssw/slc6:latest $(echo $(pwd)/relmon.sh)',
+            # End singularity
+
             'cd $DIR',
             # Remove all root files
             'rm *.root',

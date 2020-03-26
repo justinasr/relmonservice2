@@ -6,7 +6,10 @@ import logging
 import json
 import os
 import time
-import http.client
+try:
+    from http.client import HTTPSConnection
+except:
+    from httplib import HTTPSConnection
 
 
 class CMSWebWrapper():
@@ -28,11 +31,11 @@ class CMSWebWrapper():
         if self.cert_file is None or self.key_file is None:
             raise Exception('Missing user certificate or user key')
 
-        return http.client.HTTPSConnection('cmsweb.cern.ch',
-                                           port=443,
-                                           cert_file=self.cert_file,
-                                           key_file=self.key_file,
-                                           timeout=120)
+        return HTTPSConnection('cmsweb.cern.ch',
+                               port=443,
+                               cert_file=self.cert_file,
+                               key_file=self.key_file,
+                               timeout=120)
 
     def get(self, path, cache=True):
         """
