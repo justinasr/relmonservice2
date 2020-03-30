@@ -46,6 +46,7 @@ class Database:
     def get_relmon(self, relmon_id):
         return self.relmons.find_one({'_id': relmon_id})
 
+
     def get_relmons(self, query_dict=None, page=0, page_size=PAGE_SIZE, include_docs=False):
         if query_dict is None:
             query_dict = {}
@@ -61,4 +62,8 @@ class Database:
 
     def get_relmons_with_condor_status(self, status):
         relmons = self.relmons.find({'condor_status': status})
+        return list(relmons)
+
+    def get_relmons_with_name(self, relmon_name):
+        relmons = self.relmons.find({'name': relmon_name})
         return list(relmons)

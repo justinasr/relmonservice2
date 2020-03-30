@@ -7,6 +7,7 @@ import logging
 import json
 import configparser
 import os
+import time
 from local.controller import Controller
 from mongodb_database import Database
 from local.relmon import RelMon
@@ -34,7 +35,16 @@ def add_relmon():
     if not relmon.get('name'):
         return output_text({'message': 'No name'}, code=400)
 
-    controller.create_relmon(relmon, Database(), user_info_dict())
+    relmon['id'] = str(int(time.time()))
+    relmon = RelMon(relmon)
+    database = Database()
+    if database.get_relmons_with_name(relmon.get_name()):
+        return output_text({'message': 'RelMon with this name already exists'}, code=422)
+
+    if database.get_relmon(relmon.get_id()):
+        return output_text({'message': 'RelMon with this ID already exists'}, code=422)
+
+    controller.create_relmon(relmon, database, user_info_dict())
     controller_tick()
     return output_text({'message': 'OK'})
 
@@ -163,7 +173,19 @@ def edit_relmon():
         return output_text({'message': 'Unauthorized'}, code=403)
 
     relmon = json.loads(request.data.decode('utf-8'))
-    controller.edit_relmon(relmon, Database(), user_info_dict())
+    relmon = RelMon(relmon)
+    database = Database()
+    existing_relmons_with_same_name = database.get_relmons_with_name(relmon.get_name())
+    for existing_relmon_with_same_name in existing_relmons_with_same_name:
+        if existing_relmon_with_same_name['id'] != relmon.get_id():
+            return output_text({'message': 'RelMon with this name already exists'}, code=422)
+
+    relmon_id = relmon.get_id()
+    existing_relmon = database.get_relmon(relmon_id)
+    if not relmon_id or not existing_relmon:
+        return output_text({'message': 'RelMon does not exist'}, code=422)
+
+    controller.edit_relmon(relmon, database, user_info_dict())
     controller_tick()
     return output_text({'message': 'OK'})
 

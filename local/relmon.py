@@ -270,6 +270,12 @@ class RelMon():
     def get_user_info(self):
         return self.data['user_info']
 
+    def get_cmssw_release(self):
+        """
+        Return CMSSW releast name
+        """
+        return self.data.get('cmssw_release', 'CMSSW_7_4_0')
+
     def __str__(self):
         return '%s (%s)' % (self.get_name(), self.get_id())
 

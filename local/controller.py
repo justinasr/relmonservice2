@@ -137,34 +137,25 @@ class Controller():
                                        'user_info': user_info})
         self.logger.info('Added %s to delete list', relmon_id)
 
-    def create_relmon(self, relmon_data, database, user_info):
+    def create_relmon(self, relmon, database, user_info):
         """
         Create relmon from the supplied dictionary
         """
-        relmon_data['id'] = str(int(time.time()))
-        relmon = RelMon(relmon_data)
         relmon.reset()
         relmon.set_user_info(user_info)
         database.create_relmon(relmon)
         self.logger.info('Relmon %s was created', relmon)
 
-    def edit_relmon(self, relmon_data, database, user_info):
+    def edit_relmon(self, new_relmon, database, user_info):
         """
         Update relmon categories
         """
-        relmon_id = relmon_data.get('id')
-        if not relmon_id:
-            self.logger.error('Relmon does not have an ID')
-            return
-
+        relmon_id = new_relmon.get_id()
         old_relmon_data = database.get_relmon(relmon_id)
-        if not old_relmon_data:
-            self.logger.error('Cannot update relmon that is not in the database')
-            return
-
         old_relmon = RelMon(old_relmon_data)
-        new_relmon = RelMon(relmon_data)
-        if old_relmon.get_status() == 'done':
+        old_cmssw_release = old_relmon.get_cmssw_release()
+        new_cmssw_release = new_relmon.get_cmssw_release()
+        if old_relmon.get_status() == 'done' and old_cmssw_release == new_cmssw_release:
             self.logger.info('Relmon %s is done, will try to do a smart edit', old_relmon)
             new_category_names = [x['name'] for x in new_relmon.get_json().get('categories')]
             old_category_names = [x['name'] for x in old_relmon.get_json().get('categories')]
@@ -226,7 +217,7 @@ class Controller():
                 self.logger.info('Nothing changed for %s?' % (old_relmon))
 
         else:
-            self.logger.info('Relmon %s is not yet done, will edit and reset')
+            self.logger.info('Relmon %s will be reset', old_relmon)
             old_relmon.get_json()['name'] = new_relmon.get_name()
             old_relmon.get_json()['categories'] = new_relmon.get_json().get('categories', [])
             # Update only name and categories, do not allow to update anything else
@@ -407,6 +398,12 @@ class Controller():
         relmon_json = database.get_relmon(relmon_id)
         relmon = RelMon(relmon_json)
         self.__terminate_relmon(relmon)
+        old_username = relmon.get_user_info().get('login')
+        new_username = user_info.get('login')
+        if old_username != new_username:
+            self.logger.info('Reset by %s while not done, should inform %s', new_username, old_username)
+            self.__send_reset_notification(relmon, user_info)
+
         relmon.reset()
         relmon.set_user_info(user_info)
         database.update_relmon(relmon)
@@ -426,6 +423,17 @@ class Controller():
             self.logger.info('Relmon %s HTCondor id is not valid: %s', relmon, condor_id)
 
         self.logger.info('Finished terminating relmon %s', relmon)
+
+    def __send_reset_notification(self, relmon, new_user_info):
+        relmon_name = relmon.get_name()
+        new_user_fullname = new_user_info.get('fullname', '<anonymous>')
+        body = 'Hello,\n\n'
+        body += 'RelMon %s was reset by %s.\n' % (relmon_name, new_user_fullname)
+        body += 'You will not receive notification when this RelMon finishes running.\n'
+        body += 'RelMon in RelMon Service: https://pdmv-relmonsvc.web.cern.ch/relmonsvc?q=%s\n' % (relmon_name)
+        subject = 'RelMon %s was reset' % (relmon_name)
+        recipients = [relmon.get_user_info()['email']]
+        self.email_sender.send(subject, body, recipients)
 
     def __send_done_notification(self, relmon, files=None):
         relmon_name = relmon.get_name()
