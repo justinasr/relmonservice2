@@ -1,11 +1,18 @@
-from pymongo import MongoClient
-from pymongo.errors import DuplicateKeyError
+"""
+Module that contains Database class
+"""
 import logging
 import time
 import os
+from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError
 
 
 class Database:
+    """
+    Database class represents MongoDB database
+    It encapsulates underlying connection and exposes some convenience methods
+    """
     PAGE_SIZE = 10
 
     def __init__(self):
@@ -17,6 +24,9 @@ class Database:
         self.relmons = self.relmons_db['relmons']
 
     def create_relmon(self, relmon):
+        """
+        Add given RelMon to the database
+        """
         relmon_json = relmon.get_json()
         relmon_json['last_update'] = int(time.time())
         relmon_json['_id'] = relmon_json['id']
@@ -26,28 +36,43 @@ class Database:
             return None
 
     def update_relmon(self, relmon):
+        """
+        Update given RelMon in the database based on ID
+        """
         relmon_json = relmon.get_json()
         relmon_json['last_update'] = int(time.time())
         if '_id' not in relmon_json:
             self.logger.error('No _id in document')
-            return False
+            return
 
         try:
             self.relmons.replace_one({'_id': relmon_json['_id']}, relmon_json)
         except DuplicateKeyError:
-            return None
+            return
 
     def delete_relmon(self, relmon):
+        """
+        Delete given RelMon from the database based on it's ID
+        """
         self.relmons.delete_one({'_id': relmon.get_id()})
 
     def get_relmon_count(self):
+        """
+        Return total number of RelMons in the database
+        """
         return self.relmons.count_documents({})
 
     def get_relmon(self, relmon_id):
+        """
+        Fetch a RelMon with given ID from the database
+        """
         return self.relmons.find_one({'_id': relmon_id})
 
-
-    def get_relmons(self, query_dict=None, page=0, page_size=PAGE_SIZE, include_docs=False):
+    def get_relmons(self, query_dict=None, page=0, page_size=PAGE_SIZE):
+        """
+        Search for relmons in the database
+        Return list of paginated RelMons and total number of search results
+        """
         if query_dict is None:
             query_dict = {}
 
@@ -57,13 +82,22 @@ class Database:
         return list(relmons), total_rows
 
     def get_relmons_with_status(self, status):
+        """
+        Get list of RelMons with given status
+        """
         relmons = self.relmons.find({'status': status})
         return list(relmons)
 
     def get_relmons_with_condor_status(self, status):
+        """
+        Get list of RelMons with given HTCondor status
+        """
         relmons = self.relmons.find({'condor_status': status})
         return list(relmons)
 
     def get_relmons_with_name(self, relmon_name):
+        """
+        Get list of (should be one) RelMons with given name
+        """
         relmons = self.relmons.find({'name': relmon_name})
         return list(relmons)

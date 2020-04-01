@@ -356,7 +356,8 @@ def compare_compress_move(category_name, hlt, reference_list, target_list, cpus,
                                    '--HLT' if hlt else ''])
 
     # Remove all /cms-service-reldqm/style/blueprint/ from HTML files
-    path_fix_command = "find %s/ -type f -name '*.html' | xargs -L1 sed -i -e 's#/cms-service-reldqm/style/blueprint/##g'" % (subreport_path)
+    path_fix_command = ("find %s/ -type f -name '*.html' |xargs -L1 "
+                        "sed -i -e 's#/cms-service-reldqm/style/blueprint/##g'" % (subreport_path))
     compression_command = ' '.join(['dir2webdir.py', subreport_path])
     move_command = ' '.join(['mv', subreport_path, 'Reports/'])
 
@@ -443,7 +444,10 @@ def run_validation_matrix(relmon, cpus, callback_url):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='ROOT file downloader and ValidationMatrix runner')
+    """
+    Main function
+    """
+    parser = argparse.ArgumentParser(description='File downloader and ValidationMatrix runner')
     parser.add_argument('--relmon',
                         '-r',
                         type=str,

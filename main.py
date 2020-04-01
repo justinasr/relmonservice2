@@ -1,15 +1,18 @@
-from flask import Flask, render_template, request, make_response
-from flask_restful import Api
-from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
+"""
+Module that contains start of the program, tick scheduler and web APIs
+"""
 import argparse
 import logging
 import json
 import configparser
 import os
 import time
-from local.controller import Controller
+from datetime import datetime
+from flask import Flask, render_template, request, make_response
+from flask_restful import Api
+from apscheduler.schedulers.background import BackgroundScheduler
 from mongodb_database import Database
+from local.controller import Controller
 from local.relmon import RelMon
 
 
@@ -23,11 +26,17 @@ controller = None
 
 @app.route('/')
 def index_page():
+    """
+    Return index.html
+    """
     return render_template('index.html')
 
 
 @app.route('/api/create', methods=['POST'])
 def add_relmon():
+    """
+    API to create a RelMon
+    """
     if not is_user_authorized():
         return output_text({'message': 'Unauthorized'}, code=403)
 
@@ -51,6 +60,9 @@ def add_relmon():
 
 @app.route('/api/reset', methods=['POST'])
 def reset_relmon():
+    """
+    API to reset a RelMon
+    """
     if not is_user_authorized():
         return output_text({'message': 'Unauthorized'}, code=403)
 
@@ -65,6 +77,9 @@ def reset_relmon():
 
 @app.route('/api/delete', methods=['DELETE'])
 def delete_relmon():
+    """
+    API to delete a RelMon
+    """
     if not is_user_authorized():
         return output_text({'message': 'Unauthorized'}, code=403)
 
@@ -79,38 +94,38 @@ def delete_relmon():
 
 @app.route('/api/get_relmons')
 def get_relmons():
-    db = Database()
+    """
+    API to fetch RelMons from database
+    """
+    database = Database()
     args = request.args.to_dict()
     if args is None:
         args = {}
 
     page = int(args.get('page', 0))
-    limit = int(args.get('limit', db.PAGE_SIZE))
+    limit = int(args.get('limit', database.PAGE_SIZE))
     query = args.get('q')
     if query:
         query = query.strip()
         if query.lower() in ('new', 'submitted', 'running', 'finishing', 'done', 'failed'):
             query_dict = {'status': query.lower()}
-            data, total_rows = db.get_relmons(query_dict=query_dict,
-                                              include_docs=True,
-                                              page=page,
-                                              page_size=limit)
+            data, total_rows = database.get_relmons(query_dict=query_dict,
+                                                    page=page,
+                                                    page_size=limit)
         else:
             query_dict = {'_id': query}
-            data, total_rows = db.get_relmons(query_dict=query_dict,
-                                              include_docs=True,
-                                              page=page,
-                                              page_size=limit)
+            data, total_rows = database.get_relmons(query_dict=query_dict,
+                                                    page=page,
+                                                    page_size=limit)
             if total_rows == 0:
                 query = '*%s*' % (query)
                 # Perform case insensitive search
                 query_dict = {'name': {'$regex': query.replace('*', '.*'), '$options': '-i'}}
-                data, total_rows = db.get_relmons(query_dict=query_dict,
-                                                  include_docs=True,
-                                                  page=page,
-                                                  page_size=limit)
+                data, total_rows = database.get_relmons(query_dict=query_dict,
+                                                        page=page,
+                                                        page_size=limit)
     else:
-        data, total_rows = db.get_relmons(include_docs=True, page=page, page_size=limit)
+        data, total_rows = database.get_relmons(page=page, page_size=limit)
 
     for relmon in data:
         if 'user_info' in relmon:
@@ -169,6 +184,9 @@ def output_text(data, code=200, headers=None):
 
 @app.route('/api/edit', methods=['POST'])
 def edit_relmon():
+    """
+    API for RelMon editing
+    """
     if not is_user_authorized():
         return output_text({'message': 'Unauthorized'}, code=403)
 
@@ -192,6 +210,9 @@ def edit_relmon():
 
 @app.route('/api/update', methods=['POST'])
 def update_info():
+    """
+    API for jobs in HTCondor to notify about progress
+    """
     login = request.headers.get('Adfs-Login', '???')
     logger = logging.getLogger('logger')
     if login not in ('pdmvserv', 'jrumsevi'):
@@ -199,18 +220,16 @@ def update_info():
         return output_text({'message': 'Unauthorized'}, code=403)
 
     data = json.loads(request.data.decode('utf-8'))
-    db = Database()
-    relmon = db.get_relmon(data['id'])
+    database = Database()
+    relmon = database.get_relmon(data['id'])
     if not relmon:
         return output_text({'message', 'Could not find'})
 
     old_status = relmon.get('status')
     relmon['categories'] = data['categories']
     relmon['status'] = data['status']
-    logger.info('Update for %s (%s). Status is %s' % (relmon['name'],
-                                                      relmon['id'],
-                                                      relmon['status']))
-    db.update_relmon(RelMon(relmon))
+    logger.info('Update for %s (%s). Status is %s', relmon['name'], relmon['id'], relmon['status'])
+    database.update_relmon(RelMon(relmon))
     if relmon['status'] != old_status:
         for job in scheduler.get_jobs():
             job.modify(next_run_time=datetime.now())
@@ -220,6 +239,9 @@ def update_info():
 
 @app.route('/api/tick')
 def controller_tick():
+    """
+    API to trigger a controller tick
+    """
     if not is_user_authorized():
         return output_text({'message': 'Unauthorized'}, code=403)
 
@@ -231,10 +253,16 @@ def controller_tick():
 
 @app.route('/api/user')
 def user_info():
+    """
+    API for user info
+    """
     return output_text(user_info_dict())
 
 
 def user_info_dict():
+    """
+    Get user name, login, email and authorized flag from request headers
+    """
     fullname = request.headers.get('Adfs-Fullname', '')
     login = request.headers.get('Adfs-Login', '')
     email = request.headers.get('Adfs-Email', '')
@@ -246,19 +274,32 @@ def user_info_dict():
 
 
 def is_user_authorized():
+    """
+    Return whether user is a member of administrators e-group
+    """
     groups = [x.strip().lower() for x in request.headers.get('Adfs-Group', '???').split(';')]
     return 'cms-ppd-pdmv-val-admin-pdmv' in groups
 
 
 def tick():
+    """
+    Trigger controller to perform a tick
+    """
     controller.tick()
 
 
 def setup_console_logging():
+    """
+    Setup logging to console
+    """
     logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
 
 
 def get_config(mode):
+    """
+    Get config as a dictionary
+    Based on the mode - prod, dev or env it can be taken either from file or environment variables
+    """
     if mode == 'env':
         keys = ['callback_url',
                 'cookie_url',
@@ -289,12 +330,16 @@ def get_config(mode):
     return config
 
 
-if __name__ == '__main__':
+def main():
+    """
+    Main function, parse arguments, create a controller and start Flask web server
+    """
     parser = argparse.ArgumentParser(description='RelMon Service')
     parser.add_argument('--mode',
                         choices=['prod', 'dev', 'env'],
                         required=True,
-                        help='Production (prod) or development (dev) mode from config file or environment variables (env) mode')
+                        help='Production (prod) or development (dev) mode from '
+                             'config file or environment variables (env) mode')
     parser.add_argument('--debug',
                         help='Debug mode',
                         action='store_true')
@@ -306,7 +351,8 @@ if __name__ == '__main__':
     logger.info('Mode is "%s"', mode)
     config = get_config(mode)
     scheduler.add_executor('processpool')
-    if not debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+    if not debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        global controller
         controller = Controller(config)
         scheduler.add_job(tick, 'interval', seconds=300, max_instances=1)
 
@@ -319,3 +365,7 @@ if __name__ == '__main__':
             debug=debug,
             threaded=True)
     scheduler.shutdown()
+
+
+if __name__ == '__main__':
+    main()

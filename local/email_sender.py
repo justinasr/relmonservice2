@@ -11,6 +11,9 @@ from email.mime.text import MIMEText
 
 
 class EmailSender():
+    """
+    Email Sender allows to send emails to users using CERN SMTP server
+    """
 
     def __init__(self, config):
         self.logger = logging.getLogger('logger')
@@ -18,6 +21,9 @@ class EmailSender():
         self.smtp = None
 
     def __setup_smtp(self):
+        """
+        Read credentials and connect to SMTP file
+        """
         if ':' not in self.credentials:
             with open(self.credentials) as json_file:
                 credentials = json.load(json_file)
@@ -35,10 +41,16 @@ class EmailSender():
         self.smtp.login(credentials['username'], credentials['password'])
 
     def __close_smtp(self):
+        """
+        Close connection to SMTP server
+        """
         self.smtp.quit()
         self.smtp = None
 
     def send(self, subject, body, recipients, files=None):
+        """
+        Send email
+        """
         body = body.strip()
         body += '\n\nSincerely,\nRelMon Service'
         ccs = ['PdmV Service Account <pdmvserv@cern.ch>']
@@ -53,8 +65,8 @@ class EmailSender():
         if files:
             for path in files:
                 attachment = MIMEBase('application', 'octet-stream')
-                with open(path, 'rb') as f:
-                    attachment.set_payload(f.read())
+                with open(path, 'rb') as attachment_file:
+                    attachment.set_payload(attachment_file.read())
 
                 file_name = path.split('/')[-1]
                 encoders.encode_base64(attachment)
@@ -66,4 +78,3 @@ class EmailSender():
         self.__setup_smtp()
         self.smtp.sendmail(message['From'], recipients + ccs, message.as_string())
         self.__close_smtp()
-

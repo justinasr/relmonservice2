@@ -17,6 +17,11 @@ from local.email_sender import EmailSender
 
 
 class Controller():
+    """
+    Main instance of RelMon logic
+    Performs ticks during which RelMons are deleted, reset, submitted
+    and their status is checked (if they are running)
+    """
     def __init__(self, config):
         self.logger = logging.getLogger('logger')
         self.logger.info('***** Creating a controller! *****')
@@ -29,6 +34,8 @@ class Controller():
         self.file_creator = FileCreator(config)
         self.email_sender = EmailSender(config)
         self.config = config
+        self.service_url = self.config['service_url']
+        self.reports_url = self.config['reports_url']
         # Multithread manager
         manager = Manager()
         # Lists of relmon ids
@@ -56,7 +63,7 @@ class Controller():
                          ','.join([x['id'] for x in self.relmons_to_delete]))
         for relmon_dict in self.relmons_to_delete:
             relmon_id = relmon_dict['id']
-            self.__delete_relmon(relmon_id, database, relmon_dict['user_info'])
+            self.__delete_relmon(relmon_id, database)
             self.relmons_to_delete.remove(relmon_dict)
 
         # Reset relmons
@@ -153,9 +160,7 @@ class Controller():
         relmon_id = new_relmon.get_id()
         old_relmon_data = database.get_relmon(relmon_id)
         old_relmon = RelMon(old_relmon_data)
-        old_cmssw_release = old_relmon.get_cmssw_release()
-        new_cmssw_release = new_relmon.get_cmssw_release()
-        if old_relmon.get_status() == 'done' and old_cmssw_release == new_cmssw_release:
+        if old_relmon.get_status() == 'done':
             self.logger.info('Relmon %s is done, will try to do a smart edit', old_relmon)
             new_category_names = [x['name'] for x in new_relmon.get_json().get('categories')]
             old_category_names = [x['name'] for x in old_relmon.get_json().get('categories')]
@@ -193,7 +198,9 @@ class Controller():
             if name_changed and not categories_changed:
                 # Only name changed, categories did not change, just a rename
                 new_name = new_relmon.get_name()
-                self.logger.info('Renaming %s to %s without changing categories' % (old_relmon, new_name))
+                self.logger.info('Renaming %s to %s without changing categories',
+                                 old_relmon,
+                                 new_name)
                 old_relmon.get_json()['name'] = new_name
                 ssh_executor = SSHExecutor(self.config)
                 ssh_executor.execute_command([
@@ -214,7 +221,7 @@ class Controller():
                 old_relmon.set_user_info(user_info)
                 database.update_relmon(old_relmon)
             else:
-                self.logger.info('Nothing changed for %s?' % (old_relmon))
+                self.logger.info('Nothing changed for %s?', old_relmon)
 
         else:
             self.logger.info('Relmon %s will be reset', old_relmon)
@@ -303,12 +310,16 @@ class Controller():
         database.update_relmon(relmon)
 
     def __check_if_running(self, relmon, database):
+        """
+        Check if given RelMon is running in HTCondor and get it's status there
+        """
         relmon_condor_id = relmon.get_condor_id()
         self.logger.info('Will check if %s is running in HTCondor, id: %s',
                          relmon,
                          relmon_condor_id)
         stdout, stderr = self.ssh_executor.execute_command(
-            'module load lxbatch/tzero && condor_q -af:h ClusterId JobStatus | grep %s' % (relmon_condor_id)
+            'module load lxbatch/tzero && condor_q -af:h ClusterId JobStatus | '
+            'grep %s' % (relmon_condor_id)
         )
         new_condor_status = '<unknown>'
         if stdout and not stderr:
@@ -335,6 +346,10 @@ class Controller():
         database.update_relmon(relmon)
 
     def __collect_output(self, relmon, database):
+        """
+        When RelMon finishes running in HTCondor, download it's output logs, zip them
+        and send to relevant user via email
+        """
         condor_status = relmon.get_condor_status()
         if condor_status not in ['DONE', 'REMOVED']:
             self.logger.info('%s status is not DONE or REMOVED, it is %s', relmon, condor_status)
@@ -395,52 +410,72 @@ class Controller():
         shutil.rmtree(local_relmon_directory, ignore_errors=True)
 
     def __reset_relmon(self, relmon_id, database, user_info):
+        """
+        Perform RelMon reset
+        Terminate it in HTCondor and set to new so it would be submitted again
+        """
         relmon_json = database.get_relmon(relmon_id)
         relmon = RelMon(relmon_json)
         self.__terminate_relmon(relmon)
         old_username = relmon.get_user_info().get('login')
         new_username = user_info.get('login')
         if old_username != new_username:
-            self.logger.info('Reset by %s while not done, should inform %s', new_username, old_username)
+            self.logger.info('Reset by %s while not done, should inform %s',
+                             new_username,
+                             old_username)
             self.__send_reset_notification(relmon, user_info)
 
         relmon.reset()
         relmon.set_user_info(user_info)
         database.update_relmon(relmon)
 
-    def __delete_relmon(self, relmon_id, database, user_info):
+    def __delete_relmon(self, relmon_id, database):
+        """
+        Terminate and delete RelMon
+        """
         relmon_json = database.get_relmon(relmon_id)
         relmon = RelMon(relmon_json)
         self.__terminate_relmon(relmon)
         database.delete_relmon(relmon)
 
     def __terminate_relmon(self, relmon):
+        """
+        Terminate RelMon job in HTCondor
+        """
         self.logger.info('Trying to terminate %s', relmon)
         condor_id = relmon.get_condor_id()
         if condor_id > 0:
-            self.ssh_executor.execute_command('module load lxbatch/tzero && condor_rm %s' % (condor_id))
+            self.ssh_executor.execute_command(
+                'module load lxbatch/tzero && condor_rm %s' % (condor_id)
+            )
         else:
             self.logger.info('Relmon %s HTCondor id is not valid: %s', relmon, condor_id)
 
         self.logger.info('Finished terminating relmon %s', relmon)
 
     def __send_reset_notification(self, relmon, new_user_info):
+        """
+        Send notification email that RelMon was reset
+        """
         relmon_name = relmon.get_name()
         new_user_fullname = new_user_info.get('fullname', '<anonymous>')
         body = 'Hello,\n\n'
         body += 'RelMon %s was reset by %s.\n' % (relmon_name, new_user_fullname)
         body += 'You will not receive notification when this RelMon finishes running.\n'
-        body += 'RelMon in RelMon Service: https://pdmv-relmonsvc.web.cern.ch/relmonsvc?q=%s\n' % (relmon_name)
+        body += 'RelMon in RelMon Service: %s?q=%s\n' % (self.service_url, relmon_name)
         subject = 'RelMon %s was reset' % (relmon_name)
         recipients = [relmon.get_user_info()['email']]
         self.email_sender.send(subject, body, recipients)
 
     def __send_done_notification(self, relmon, files=None):
+        """
+        Send email notification that RelMon has successfully finished
+        """
         relmon_name = relmon.get_name()
         body = 'Hello,\n\n'
         body += 'RelMon %s has finished running.\n' % (relmon_name)
-        body += 'Reports can be found here: https://pdmv-new-relmon.web.cern.ch/pdmv-new-relmon/?q=%s\n' % (relmon_name)
-        body += 'RelMon in RelMon Service: https://pdmv-relmonsvc.web.cern.ch/relmonsvc?q=%s\n' % (relmon_name)
+        body += 'Reports can be found here: %s?q=%s\n' % (self.reports_url, relmon_name)
+        body += 'RelMon in RelMon Service: %s?q=%s\n' % (self.service_url, relmon_name)
         if files:
             body += 'You can find job output as an attachment.\n'
 
@@ -449,10 +484,13 @@ class Controller():
         self.email_sender.send(subject, body, recipients, files)
 
     def __send_failed_notification(self, relmon, files=None):
+        """
+        Send email notification that RelMon has failed
+        """
         relmon_name = relmon.get_name()
         body = 'Hello,\n\n'
         body += 'RelMon %s has failed.\n' % (relmon_name)
-        body += 'RelMon in RelMon Service: https://pdmv-relmonsvc.web.cern.ch/relmonsvc?q=%s\n' % (relmon_name)
+        body += 'RelMon in RelMon Service: %s?q=%s\n' % (self.service_url, relmon_name)
         if files:
             body += 'You can find job output as an attachment.\n'
 

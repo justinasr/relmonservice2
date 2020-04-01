@@ -19,7 +19,7 @@ class FileCreator():
         self.grid_key_path = config['grid_key']
         self.grid_cert_file = self.grid_cert_path.split('/')[-1]
         self.grid_key_file = self.grid_key_path.split('/')[-1]
-        self.cookie_url = config['cookie_url']
+        self.cookie_url = config['service_url']
         self.callback_url = config['callback_url']
 
     def create_job_script_file(self, relmon):
@@ -29,8 +29,6 @@ class FileCreator():
         relmon_id = relmon.get_id()
         cpus = relmon.get_cpu()
         relmon_name = relmon.get_name()
-        cmssw_release = relmon.get_cmssw_release()
-        run_in_singularity = cmssw_release == 'CMSSW_7_4_0'
         script_file_name = 'relmons/%s/RELMON_%s.sh' % (relmon_id, relmon_id)
         old_web_sqlite_path = '%s/%s*.sqlite' % (self.web_location, relmon_id)
         web_sqlite_path = '"%s/%s___%s.sqlite"' % (self.web_location, relmon_id, relmon_name)
@@ -41,26 +39,11 @@ class FileCreator():
             'git clone https://github.com/justinasr/relmonservice2.git',
             # Make a cookie for callbacks about progress
             'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
-            'cp cookie.txt relmonservice2/remote']
-
-        if run_in_singularity:
-            script_file_content += [
-                # Dump this to a file for singularity
-                'cat <<\'EndOfRelmonFile\' > relmon.sh',
-                '#!/bin/bash',
-                # CMSSW environment setup
-                'export SCRAM_ARCH=slc6_amd64_gcc491',
-                'source /cvmfs/cms.cern.ch/cmsset_default.sh',
-                'scramv1 project CMSSW CMSSW_7_4_0',
-                'cd CMSSW_7_4_0/src']
-        else:
-            script_file_content += [
-                # CMSSW environment setup
-                'source /cvmfs/cms.cern.ch/cmsset_default.sh',
-                'scramv1 project CMSSW CMSSW_11_0_0',
-                'cd CMSSW_11_0_0/src']
-
-        script_file_content += [
+            'cp cookie.txt relmonservice2/remote',
+            # CMSSW environment setup
+            'source /cvmfs/cms.cern.ch/cmsset_default.sh',
+            'scramv1 project CMSSW CMSSW_11_0_0',
+            'cd CMSSW_11_0_0/src',
             # Open scope for CMSSW
             '(',
             'eval `scramv1 runtime -sh`',
@@ -68,22 +51,14 @@ class FileCreator():
             # Create reports directory
             'mkdir -p Reports',
             # Run the remote apparatus
-            'python relmonservice2/remote/remote_apparatus.py '  # No newlines here
-            '-r RELMON_%s.json -c %s -k %s --cpus %s --callback %s' % (relmon_id, self.grid_cert_file, self.grid_key_file, cpus, self.callback_url),
+            'python relmonservice2/remote/remote_apparatus.py '  # No newline
+            '-r RELMON_%s.json -c %s -k %s --cpus %s --callback %s' % (relmon_id,
+                                                                       self.grid_cert_file,
+                                                                       self.grid_key_file,
+                                                                       cpus,
+                                                                       self.callback_url),
             # Close scope for CMSSW
-            ')']
-
-        if run_in_singularity:
-            script_file_content += [
-                # Run in singularity
-                '# End of relmon.sh file',
-                'EndOfRelmonFile',
-                '',
-                '# Make file executable',
-                'chmod +x relmon.sh',
-                'singularity run -B /afs -B /eos -B /cvmfs -B /etc/grid-security --home $PWD:/srv docker://cmssw/slc6:latest $(echo $(pwd)/relmon.sh)']
-
-        script_file_content += [
+            ')',
             'cd $DIR',
             # Remove all root files
             'rm *.root',
@@ -160,7 +135,9 @@ class FileCreator():
             'output                 = RELMON_%s.out' % (relmon_id),
             'error                  = RELMON_%s.err' % (relmon_id),
             'log                    = RELMON_%s.log' % (relmon_id),
-            'transfer_input_files   = RELMON_%s.json,%s,%s' % (relmon_id, self.grid_cert_path, self.grid_key_path),
+            'transfer_input_files   = RELMON_%s.json,%s,%s' % (relmon_id,
+                                                               self.grid_cert_path,
+                                                               self.grid_key_path),
             'when_to_transfer_output = on_exit',
             'request_cpus           = %s' % (cpus),
             'request_memory         = %s' % (memory),

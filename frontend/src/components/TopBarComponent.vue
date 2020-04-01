@@ -81,19 +81,6 @@
               </v-col>
             </v-row>
             <v-row>
-              <v-col cols=12 sm=12 md=4 lg=4>
-                <span class="font-weight-light mr-2">Comparison tools:</span>
-                <v-btn-toggle mandatory v-model="relmonWrapper.relmon.cmssw_release" class="radio-buttons">
-                  <v-btn small :value="'CMSSW_7_4_0'">
-                    CMSSW 7_4_0
-                  </v-btn>
-                  <v-btn small :value="'CMSSW_11_0_0'">
-                    CMSSW 11_0_0
-                  </v-btn>
-                </v-btn-toggle>
-              </v-col>
-            </v-row>
-            <v-row>
               <v-col>
                 <v-btn v-if="!isEditing" small class="ma-1" color="primary" :disabled="!relmonWrapper.relmon.name" @click="updateRelmon('create')">Create</v-btn>
                 <v-btn v-if="isEditing" small class="ma-1" color="primary" :disabled="!relmonWrapper.relmon.name" @click="editOverlay = true">Save</v-btn>
@@ -245,9 +232,6 @@ export default {
         })
         this.isEditing = true;
         relmonClone['categories'] = this.addMissingCategories(relmonClone.categories);
-        if (!('cmssw_release' in relmonClone)) {
-          relmonClone['cmssw_release'] = 'CMSSW_7_4_0';
-        }
         this.expandedPanels = [0];
         window.scrollTo(0,0);
         this.relmonWrapper.relmon = relmonClone;

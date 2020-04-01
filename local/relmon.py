@@ -14,7 +14,7 @@ class RelMon():
 
     def __init__(self, data):
         data = deepcopy(data)
-        data['name'] = self.sanitize_name(data['name'])
+        data['name'] = RelMon.sanitize_name(data['name'])
         self.data = data
         relmon_path = 'relmons/%s/' % (self.get_id())
         if not os.path.isdir(relmon_path):
@@ -25,7 +25,7 @@ class RelMon():
             new_references = []
             for old_reference in category['reference']:
                 if isinstance(old_reference, str):
-                    name = self.sanitize_relval(old_reference)
+                    name = RelMon.sanitize_relval(old_reference)
                     if not name:
                         continue
 
@@ -35,7 +35,7 @@ class RelMon():
                                            'file_size': 0,
                                            'status': 'initial'})
                 else:
-                    name = self.sanitize_relval(old_reference['name'])
+                    name = RelMon.sanitize_relval(old_reference['name'])
                     if not name:
                         continue
 
@@ -48,7 +48,7 @@ class RelMon():
             new_targets = []
             for old_target in category['target']:
                 if isinstance(old_target, str):
-                    name = self.sanitize_relval(old_target)
+                    name = RelMon.sanitize_relval(old_target)
                     if not name:
                         continue
 
@@ -58,7 +58,7 @@ class RelMon():
                                         'file_size': 0,
                                         'status': 'initial'})
                 else:
-                    name = self.sanitize_relval(old_target['name'])
+                    name = RelMon.sanitize_relval(old_target['name'])
                     if not name:
                         continue
 
@@ -71,27 +71,32 @@ class RelMon():
             category['reference'] = new_references
             category['target'] = new_targets
 
-    def sanitize_relval(self, s):
+    @staticmethod
+    def sanitize_relval(name):
         """
         Replace all non letters, digits, hyphens and underscores with underscore
         """
-        return re.sub(r'[^A-Za-z0-9\-_]', '_', s.strip())
+        return re.sub(r'[^A-Za-z0-9\-_]', '_', name.strip())
 
-    def sanitize_name(self, s):
+    @staticmethod
+    def sanitize_name(name):
         """
         Replace all non letters, digits, hyphens and underscores with underscore
         """
-        return re.sub(r'[^A-Za-z0-9\-_]', '_', s.strip())
+        return re.sub(r'[^A-Za-z0-9\-_]', '_', name.strip())
 
     def reset_category(self, category_name):
+        """
+        Reset category with given name to initial status
+        """
         category = self.get_category(category_name)
         category['status'] = 'initial'
         new_references = []
         for old_reference in category['reference']:
             if isinstance(old_reference, str):
-                name = self.sanitize_relval(old_reference.strip())
+                name = RelMon.sanitize_relval(old_reference.strip())
             else:
-                name = self.sanitize_relval(old_reference['name'].strip())
+                name = RelMon.sanitize_relval(old_reference['name'].strip())
 
             if not name:
                 continue
@@ -105,9 +110,9 @@ class RelMon():
         new_targets = []
         for old_target in category['target']:
             if isinstance(old_target, str):
-                name = self.sanitize_relval(old_target.strip())
+                name = RelMon.sanitize_relval(old_target.strip())
             else:
-                name = self.sanitize_relval(old_target['name'].strip())
+                name = RelMon.sanitize_relval(old_target['name'].strip())
 
             if not name:
                 continue
@@ -268,13 +273,10 @@ class RelMon():
         self.data['user_info'] = user_info
 
     def get_user_info(self):
+        """
+        Return dictionary with user info who acted on this RelMon last
+        """
         return self.data['user_info']
-
-    def get_cmssw_release(self):
-        """
-        Return CMSSW releast name
-        """
-        return self.data.get('cmssw_release', 'CMSSW_7_4_0')
 
     def __str__(self):
         return '%s (%s)' % (self.get_name(), self.get_id())

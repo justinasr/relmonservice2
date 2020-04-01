@@ -8,7 +8,7 @@ import os
 import time
 try:
     from http.client import HTTPSConnection
-except:
+except ImportError:
     from httplib import HTTPSConnection
 
 
