@@ -302,7 +302,8 @@ def get_config(mode):
     """
     if mode == 'env':
         keys = ['callback_url',
-                'cookie_url',
+                'service_url',
+                'reports_url',
                 'grid_certificate',
                 'grid_key',
                 'host',
