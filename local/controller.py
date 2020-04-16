@@ -416,10 +416,11 @@ class Controller():
         """
         relmon_json = database.get_relmon(relmon_id)
         relmon = RelMon(relmon_json)
+        relmon_status = relmon.get_status()
         self.__terminate_relmon(relmon)
         old_username = relmon.get_user_info().get('login')
         new_username = user_info.get('login')
-        if old_username != new_username:
+        if old_username != new_username and relmon_status != 'done':
             self.logger.info('Reset by %s while not done, should inform %s',
                              new_username,
                              old_username)
