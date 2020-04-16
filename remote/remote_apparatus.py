@@ -211,11 +211,11 @@ def clean_file_tree(tree):
     Remove empty lists and dictionaries from file "tree"
     """
     for key in list(tree.keys()):
-        if tree[key] is dict:
+        if isinstance(tree[key], dict):
             clean_file_tree(tree[key])
             if not tree[key]:
                 del tree[key]
-        elif tree[key] is list:
+        elif isinstance(tree[key], list):
             if not tree[key]:
                 del tree[key]
 
