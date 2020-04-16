@@ -189,7 +189,7 @@ def make_file_tree(items, category):
     result_tree = {}
     for item in items:
         filename = item['file_name']
-        dataset = filename.split('__')[1]
+        dataset = filename.split('__')[1].split('_')[0]
         if category == 'Data':
             run_number = filename.split('__')[0].split('_')[-1]
         else:
