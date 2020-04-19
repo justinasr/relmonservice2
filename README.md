@@ -102,4 +102,4 @@ RelMon can be deleted by clicking Delete button at the bottom of RelMon.
 User can search for RelMons by using a search field at the top of the page. User can specify either RelMon ID, full or part of RelMon name, RelMon status. Search is case insensitive.
 
 ## Users
-There are two types of users in RelMon service: simple users and authorized users. Authorized users have a star next to their name at the top of the page. Only authorized users can created, edit, reset and delete RelMons. Simple users can look at them and use search.
+There are two types of users in RelMon service: simple users and authorized users. Authorized users have a star next to their name at the top of the page. Only authorized users can created, edit, reset and delete RelMons as well as Trigger a Status Refresh (trigger a Tick). Simple users can view RelMons, look at detailed view and use search.
