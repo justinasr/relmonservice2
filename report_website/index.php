@@ -28,7 +28,7 @@ if (!isset($_SERVER["PATH_INFO"])) {
       <title>RelMon Reports</title>
     </head>
     <body>
-      <header class="v-sheet v-sheet--tile theme--light v-toolbar v-app-bar v-app-bar--fixed elevation-3" data-booted="true" style="height: 64px; margin-top: 0px; transform: translateY(0px); left: 0px; right: 0px;">
+      <header class="v-sheet v-sheet--tile theme--light v-toolbar v-app-bar v-app-bar--fixed elevation-3" data-booted="true" style="height: 64px; margin-top: 0px; transform: translateY(0px); left: 0px; right: 0px; position: fixed; z-index: 999;">
         <div class="v-toolbar__content" style="height: 64px;">
           <a href="/pdmv-new-relmon/" style="text-decoration: none; color: rgba(0, 0, 0, 0.87);">
             <div class="headline">
@@ -37,7 +37,7 @@ if (!isset($_SERVER["PATH_INFO"])) {
           </a>
         </div>
       </header>
-      <div class="container" style="padding: 12px">
+      <div class="container" style="padding: 76px 12px 12px 12px;">
         <div class="row card elevation-3">
           <div class="card-body" style="padding-bottom: 8px;">
             <ul>
@@ -55,7 +55,7 @@ if (!isset($_SERVER["PATH_INFO"])) {
               <div class="col-sm-12 col-md-3" style="margin: 0; padding: 0;">
               </div>
               <div class="col-sm-12 col-md-6" style="margin: 0; padding: 0;">
-                <form onsubmit="this.action='?q='+this.q.value;">
+                <form >
                   <div style="display: flex; border-radius: 4px; margin: 4px;" class="elevation-3">
                     <div style="border: 0.5px solid rgba(0, 0, 0, 0.42); flex-grow: 1; border-radius: 4px 0px 0px 4px;">
                       <input type="text" name="q" id="q" style="width: 100%; height: 100%; padding: 0 0 0 8px; background-color: transparent; border: none; color: rgba(0, 0, 0, 0.67);" placeholder="RelMon name or ID"/>
@@ -72,12 +72,20 @@ if (!isset($_SERVER["PATH_INFO"])) {
         $relmons = glob('./*.sqlite');
         if (isset($_GET["q"])) {
             $q = $_GET["q"];
-            $q = str_replace("*", ".*", "/*" . $q . "*/i");
-            $relmons = array_filter($relmons, function($k) use ($q) {
-              return preg_match($q, $k);
+            $regexQuery = str_replace("*", ".*", "/*" . $q . "*/i");
+            $relmons = array_filter($relmons, function($k) use ($regexQuery) {
+              return preg_match($regexQuery, $k);
             });
         }
         usort($relmons, function($a, $b) { return filemtime($a) < filemtime($b); });
+        $totalRelmons = count($relmons);
+        $page = 0;
+        $pageSize = 10;
+        if (isset($_GET["page"])) {
+            $page = $_GET["page"];
+        }
+        $relmons = array_slice($relmons, $page * $pageSize, $pageSize);
+
         foreach($relmons as $relmon) {
   ?>
           <div class="row card mt-2 elevation-3">
@@ -118,6 +126,48 @@ if (!isset($_SERVER["PATH_INFO"])) {
                     }
   ?>
                   </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+  <?php
+        }
+        if ($totalRelmons > $pageSize) {
+          $actionString = "?";
+          if ($q) {
+            $actionString = $actionString . "q=" . $q . "&";
+          }
+          $actionString = $actionString . "page=";
+  ?>
+          <div class="row card mt-2 elevation-3">
+            <div class="card-body">
+              <div class="row" style="height: 28px;">
+                <div class="col-sm-4">
+  <?php
+                  if ($page > 0) {
+                    print('<a href="' . $actionString . ($page - 1) . '" style="float: left"><div class="vuetify-button elevation-3" style="border-radius: 4px; line-height: 28px;">Previous Page</div></a>');
+                  }
+  ?>
+                </div>
+                <div class="col-sm-4" style="text-align: center;">
+                  <span class="font-weight-light">Pages:</span>
+  <?php
+                  $totalPages = max(1, ceil($totalRelmons / max(1, $pageSize)));
+                  for ($i = 0; $i < $totalPages; $i++) {
+                    if ($i == $page) {
+                      print('<b>' . $i . '</b> ');
+                    } else {
+                      print('<a href="' . $actionString . $i .'">' . $i .'</a> ');
+                    }
+                  }
+  ?>
+                </div>
+                <div class="col-sm-4">
+  <?php
+                  if (($page + 1) * $pageSize < $totalRelmons) {
+                    print('<a href="' . $actionString . ($page + 1) . '" style="float: right"><div class="vuetify-button elevation-3" style="border-radius: 4px; line-height: 28px;">Next Page</div></a>');
+                  }
+  ?>
                 </div>
               </div>
             </div>
