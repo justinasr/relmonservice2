@@ -26,7 +26,7 @@ if [ "$CMD" = "build" ]; then
 fi
 
 if [ "$CMD" = "start" ]; then
-  echo "Starting ReReco"
-  nohup python3 $(pwd)/main.py &
+  echo "Starting RelMon Service"
+  nohup python3 $(pwd)/main.py --mode prod &
   echo "Started with pid $!"
 fi
