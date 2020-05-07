@@ -4,7 +4,7 @@ module.exports = {
   "transpileDependencies": [
     "vuetify"
   ],
-  publicPath: isProd ? '/relmonsvc' : '',
+  publicPath: isProd ? '/relmonservice' : '',
   assetsDir: 'static/',
   devServer: {
     port: 8003,

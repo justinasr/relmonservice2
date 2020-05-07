@@ -355,7 +355,7 @@ def main():
     if not debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         global controller
         controller = Controller(config)
-        scheduler.add_job(tick, 'interval', seconds=300, max_instances=1)
+        scheduler.add_job(tick, 'interval', seconds=600, max_instances=1)
 
     scheduler.start()
     port = int(config.get('port', 8001))
