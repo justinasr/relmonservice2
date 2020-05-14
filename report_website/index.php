@@ -43,7 +43,7 @@ if (!isset($_SERVER["PATH_INFO"])) {
             <ul>
   <?php
               if ($authorizedUser) {
-                print("<li><a target='_blank' href='https://pdmv-relmonsvc.web.cern.ch/relmonsvc'>RelMon Service</a></li>");
+                print("<li><a target='_blank' href='https://cms-pdmv.cern.ch/relmonservice'>RelMon Service</a></li>");
               }
   ?>
               <li><a target='_blank' href="http://cmsweb.cern.ch/dqm/online">Link to the Online DQM GUI</a></li>
