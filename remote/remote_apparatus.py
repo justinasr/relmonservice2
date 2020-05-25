@@ -43,7 +43,7 @@ def get_root_file_path_for_dataset(cmsweb, dqmio_dataset, category_name):
     dataset = parts[0]
     cmssw = parts[1].split('-')[0]
     processing_string = parts[1].split('-')[1]
-    dataset_part = dataset + "__" + cmssw + '-' + processing_string
+    dataset_part = dataset + "__" + cmssw + '-' + processing_string + '-'
     if category_name == 'Data':
         cmsweb_dqm_dir_link = '/dqm/relval/data/browse/ROOT/RelValData/'
     else:
