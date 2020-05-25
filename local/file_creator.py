@@ -37,6 +37,12 @@ class FileCreator():
             'DIR=$(pwd)',
             # Clone the relmon service
             'git clone https://github.com/justinasr/relmonservice2.git',
+            # Fallback for github hiccups
+            'if [ ! -d relmonservice2 ]; then',
+            '  wget https://github.com/justinasr/RelmonService2/archive/master.zip',
+            '  unzip master.zip',
+            '  mv RelmonService2-master relmonservice2',
+            'fi',
             # Make a cookie for callbacks about progress
             'cern-get-sso-cookie -u %s -o cookie.txt' % (self.cookie_url),
             'cp cookie.txt relmonservice2/remote',
