@@ -129,23 +129,34 @@
             <li>
               <span class="font-weight-light">References</span>
               <span class="font-weight-light"> - total:</span> {{category.reference.length}}
-              <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.reference_size / 1024.0 / 1024.0) * 10) / 10}} MB
+              <span class="font-weight-light"> | size:</span>&nbsp;{{niceSize(category.reference_size)}}
               <span v-for="value, key in category.reference_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
               <ul>
                 <li v-for="reference in category.reference">
                   {{reference.name}}
-                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span> |  {{Math.round((reference.file_size / 1024.0 / 1024.0) * 10) / 10}} MB)</span>
+                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span>)</span>
+                  <small v-if="reference.file_name">
+                    <br>
+                    <a :href="'https://cmsweb.cern.ch' + reference.file_url">{{reference.file_name}}</a>
+                    ({{niceSize(reference.file_size)}})
+                  </small>
                 </li>
               </ul>
             </li>
             <li>
               <span class="font-weight-light">Targets</span>
               <span class="font-weight-light"> - total:</span> {{category.target.length}}
-              <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.target_size / 1024.0 / 1024.0) * 10) / 10}} MB
+              <span class="font-weight-light"> | size:</span>&nbsp;{{niceSize(category.target_size)}}
               <span v-for="value, key in category.target_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
               <ul>
                 <li v-for="target in category.target">
-                  {{target.name}} <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span> | {{Math.round((target.file_size / 1024.0 / 1024.0) * 10) / 10}} MB)</span>
+                  {{target.name}}
+                  <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span>)</span>
+                  <small v-if="target.file_name">
+                    <br>
+                    <a :href="'https://cmsweb.cern.ch' + target.file_url">{{target.file_name}}</a>
+                    ({{niceSize(target.file_size)}})
+                  </small>
                 </li>
               </ul>
             </li>
@@ -236,6 +247,19 @@ export default {
     },
     niceDate: function (time) {
       return dateFormat(new Date(time * 1000), 'yyyy-mm-dd HH:MM')
+    },
+    niceSize: function(size) {
+      if (size < 1024) {
+        return size + ' B'
+      }
+      if (size < 1048576) {
+        return (size / 1024.0).toFixed(2) + ' KB'
+      }
+      if (size < 1073741824) {
+        return (size / 1048576.0).toFixed(2) + ' MB'
+      }
+
+      return (size / 1073741824.0).toFixed(2) + ' GB'
     }
   }
 }
