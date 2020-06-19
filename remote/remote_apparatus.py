@@ -15,6 +15,7 @@ import subprocess
 import os
 import time
 import sys
+import traceback
 from difflib import SequenceMatcher
 from cmswebwrapper import CMSWebWrapper
 from events import get_events
@@ -193,9 +194,14 @@ def make_file_tree(items, category):
     result_tree = {}
     for item in items:
         filename = item['file_name']
-        dataset = filename.split('__')[1].split('_')[0]
+        split_filename = filename.split('__')
+        if len(split_filename) < 2:
+            logging.error('Bad file name: "%s"', filename)
+            continue
+
+        dataset = split_filename[1].split('_')[0]
         if category == 'Data':
-            run_number = filename.split('__')[0].split('_')[-1]
+            run_number = split_filename[0].split('_')[-1]
         else:
             run_number = 'all_runs'
 
@@ -506,8 +512,11 @@ def main():
         relmon = json.load(relmon_file)
 
     try:
-        if notify_done and relmon['status'] != 'failed':
-            relmon['status'] = 'done'
+        if notify_done:
+            if relmon['status'] != 'failed':
+                relmon['status'] = 'done'
+            else:
+                logging.info('Will notify about failure')
         else:
             cmsweb = CMSWebWrapper(cert_file, key_file)
             relmon['status'] = 'running'
@@ -517,6 +526,7 @@ def main():
             relmon['status'] = 'finishing'
     except Exception as ex:
         logging.error(ex)
+        logging.error(traceback.format_exc())
         relmon['status'] = 'failed'
     finally:
         with open(relmon_filename, 'w') as relmon_file:
