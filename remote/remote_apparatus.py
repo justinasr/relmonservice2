@@ -17,6 +17,7 @@ import time
 import sys
 from difflib import SequenceMatcher
 from cmswebwrapper import CMSWebWrapper
+from events import get_events
 
 
 def get_dqmio_dataset(workflow):
@@ -142,14 +143,17 @@ def download_root_files(relmon, cmsweb, callback_url):
             item['file_size'] = 0
             item['status'] = 'downloading'
             item['file_name'] = item['file_url'].split('/')[-1]
+            item['events'] = 0
             notify(relmon, callback_url)
             try:
                 item['file_name'] = cmsweb.get_big_file(item['file_url'])
                 item['status'] = 'downloaded'
                 item['file_size'] = os.path.getsize(item['file_name'])
-                logging.info('Downloaded %s. Size %.2f MB',
+                item['events'] = get_events(item['file_name'])
+                logging.info('Downloaded %s. Size %.2f MB. Events %s',
                              item['file_name'],
-                             item.get('file_size', 0) / 1024.0 / 1024.0)
+                             item.get('file_size', 0) / 1024.0 / 1024.0,
+                             item['events'])
             except Exception as ex:
                 logging.error(ex)
                 logging.error('Error getting %s for %s', item['file_url'], item['name'])
@@ -244,6 +248,8 @@ def pair_references_with_targets(category):
                 reference_name = reference['file_name']
                 target_name = target['file_name']
                 logging.info('Pair %s with %s', reference_name, target_name)
+                reference['match'] = target['name']
+                target['match'] = reference['name']
                 selected_pairs.append((reference_name, target_name))
             else:
                 logging.info('Dataset %s. Run %s. Will try to match %s\nwith\n%s',
@@ -279,6 +285,8 @@ def pair_references_with_targets(category):
                         references_in_run.remove(reference_target_ratio[0])
                         targets_in_run.remove(reference_target_ratio[1])
                         selected_pairs.append((reference_name, target_name))
+                        reference_target_ratio[0]['match'] = reference_target_ratio[1]['name']
+                        reference_target_ratio[1]['match'] = reference_target_ratio[0]['name']
 
     # Delete empty items wo there would be less to print
     clean_file_tree(reference_tree)
@@ -327,6 +335,8 @@ def get_dataset_lists(category):
             if reference_list[i]['file_name'] and target_list[i]['file_name']:
                 reference_dataset_list.append(reference_list[i]['file_name'])
                 target_dataset_list.append(target_list[i]['file_name'])
+                reference_list[i]['match'] = target_list[i]['name']
+                target_list[i]['match'] = reference_list[i]['name']
 
             if not reference_list[i]['file_name']:
                 logging.error('File name is missing for %s, will not compare this workflow',

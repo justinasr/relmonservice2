@@ -134,12 +134,12 @@
               <ul>
                 <li v-for="reference in category.reference">
                   {{reference.name}}
-                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span>)</span>
-                  <small v-if="reference.file_name">
+                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span><span v-if="reference.file_name && reference.events !== undefined"> | {{reference.events}} events</span>)</span>
+                  <span class="small-font" v-if="reference.file_name">
                     <br>
                     <a :href="'https://cmsweb.cern.ch' + reference.file_url">{{reference.file_name}}</a>
-                    ({{niceSize(reference.file_size)}})
-                  </small>
+                    <span class="font-weight-light"> ({{niceSize(reference.file_size)}})</span>
+                  </span>
                 </li>
               </ul>
             </li>
@@ -151,12 +151,12 @@
               <ul>
                 <li v-for="target in category.target">
                   {{target.name}}
-                  <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span>)</span>
-                  <small v-if="target.file_name">
+                  <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span><span v-if="target.file_name && target.events !== undefined"> | {{target.events}} events</span>)</span>
+                  <span class="small-font" v-if="target.file_name">
                     <br>
                     <a :href="'https://cmsweb.cern.ch' + target.file_url">{{target.file_name}}</a>
-                    ({{niceSize(target.file_size)}})
-                  </small>
+                    <span class="font-weight-light"> ({{niceSize(target.file_size)}})</span>
+                  </span>
                 </li>
               </ul>
             </li>
@@ -278,5 +278,10 @@ li {
   max-width: 250px;
   color: white !important;
   border-radius: 4px
+}
+
+.small-font {
+  font-size: 12px;
+  letter-spacing: -0.3px;
 }
 </style>
