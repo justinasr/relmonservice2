@@ -2,8 +2,11 @@
   <v-app style="background-color: #fafafa">
     <v-container>
       <TopBarComponent @refetchRelmons="refetchRelmons" :userInfo="userInfo" ref="createNewRelMonComponent"></TopBarComponent>
+      <div v-if="loading" class="ma-3" style="text-align: center">
+        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+      </div>
       <RelMonComponent @editRelmon="editRelmon" @refetchRelmons="refetchRelmons" v-for="relmonData in fetchedData" :key="relmonData.name" :relmonData="relmonData" :userInfo="userInfo"></RelMonComponent>
-      <div style="line-height: 28px; text-align: center;">
+      <div style="line-height: 36px; text-align: center;">
         <div class="elevation-3 pl-4 pr-4 pt-2 pb-2" style="background: white">
           <v-row>
             <v-col :cols="12">
@@ -33,6 +36,7 @@ export default {
   data () {
     return {
       fetchedData: {},
+      loading: false,
       page: 0,
       totalRows: 0,
       pageSize: 0,
@@ -79,10 +83,18 @@ export default {
       if ('q' in urlParams) {
         this.query = urlParams['q'];
       }
+      this.loading = true;
+      this.fetchedData = {};
       axios.get('api/get_relmons', { params: urlParams }).then(response => {
         this.fetchedData = response.data.data;
         this.totalRows = response.data.total_rows;
         this.pageSize = response.data.page_size;
+        this.loading = false;
+      }).catch(error => {
+        this.fetchedData = {};
+        this.totalRows = 0;
+        this.loading = false;
+        alert('Error fetching relmons');
       });
     },
     updateURLParams() {

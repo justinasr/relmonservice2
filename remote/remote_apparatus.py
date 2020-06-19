@@ -15,8 +15,10 @@ import subprocess
 import os
 import time
 import sys
+import traceback
 from difflib import SequenceMatcher
 from cmswebwrapper import CMSWebWrapper
+from events import get_events
 
 
 def get_dqmio_dataset(workflow):
@@ -142,14 +144,17 @@ def download_root_files(relmon, cmsweb, callback_url):
             item['file_size'] = 0
             item['status'] = 'downloading'
             item['file_name'] = item['file_url'].split('/')[-1]
+            item['events'] = 0
             notify(relmon, callback_url)
             try:
                 item['file_name'] = cmsweb.get_big_file(item['file_url'])
                 item['status'] = 'downloaded'
                 item['file_size'] = os.path.getsize(item['file_name'])
-                logging.info('Downloaded %s. Size %.2f MB',
+                item['events'] = get_events(item['file_name'])
+                logging.info('Downloaded %s. Size %.2f MB. Events %s',
                              item['file_name'],
-                             item.get('file_size', 0) / 1024.0 / 1024.0)
+                             item.get('file_size', 0) / 1024.0 / 1024.0,
+                             item['events'])
             except Exception as ex:
                 logging.error(ex)
                 logging.error('Error getting %s for %s', item['file_url'], item['name'])
@@ -189,9 +194,14 @@ def make_file_tree(items, category):
     result_tree = {}
     for item in items:
         filename = item['file_name']
-        dataset = filename.split('__')[1].split('_')[0]
+        split_filename = filename.split('__')
+        if len(split_filename) < 2:
+            logging.error('Bad file name: "%s"', filename)
+            continue
+
+        dataset = split_filename[1].split('_')[0]
         if category == 'Data':
-            run_number = filename.split('__')[0].split('_')[-1]
+            run_number = split_filename[0].split('_')[-1]
         else:
             run_number = 'all_runs'
 
@@ -244,6 +254,8 @@ def pair_references_with_targets(category):
                 reference_name = reference['file_name']
                 target_name = target['file_name']
                 logging.info('Pair %s with %s', reference_name, target_name)
+                reference['match'] = target['name']
+                target['match'] = reference['name']
                 selected_pairs.append((reference_name, target_name))
             else:
                 logging.info('Dataset %s. Run %s. Will try to match %s\nwith\n%s',
@@ -279,6 +291,8 @@ def pair_references_with_targets(category):
                         references_in_run.remove(reference_target_ratio[0])
                         targets_in_run.remove(reference_target_ratio[1])
                         selected_pairs.append((reference_name, target_name))
+                        reference_target_ratio[0]['match'] = reference_target_ratio[1]['name']
+                        reference_target_ratio[1]['match'] = reference_target_ratio[0]['name']
 
     # Delete empty items wo there would be less to print
     clean_file_tree(reference_tree)
@@ -327,6 +341,8 @@ def get_dataset_lists(category):
             if reference_list[i]['file_name'] and target_list[i]['file_name']:
                 reference_dataset_list.append(reference_list[i]['file_name'])
                 target_dataset_list.append(target_list[i]['file_name'])
+                reference_list[i]['match'] = target_list[i]['name']
+                target_list[i]['match'] = reference_list[i]['name']
 
             if not reference_list[i]['file_name']:
                 logging.error('File name is missing for %s, will not compare this workflow',
@@ -496,8 +512,11 @@ def main():
         relmon = json.load(relmon_file)
 
     try:
-        if notify_done and relmon['status'] != 'failed':
-            relmon['status'] = 'done'
+        if notify_done:
+            if relmon['status'] != 'failed':
+                relmon['status'] = 'done'
+            else:
+                logging.info('Will notify about failure')
         else:
             cmsweb = CMSWebWrapper(cert_file, key_file)
             relmon['status'] = 'running'
@@ -507,6 +526,7 @@ def main():
             relmon['status'] = 'finishing'
     except Exception as ex:
         logging.error(ex)
+        logging.error(traceback.format_exc())
         relmon['status'] = 'failed'
     finally:
         with open(relmon_filename, 'w') as relmon_file:

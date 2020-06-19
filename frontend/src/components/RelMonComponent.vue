@@ -134,12 +134,12 @@
               <ul>
                 <li v-for="reference in category.reference">
                   {{reference.name}}
-                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span>)</span>
-                  <small v-if="reference.file_name">
+                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span><span v-if="reference.file_name && reference.events !== undefined"> | {{reference.events}} events</span>)</span>
+                  <span class="small-font" v-if="reference.file_name">
                     <br>
                     <a :href="'https://cmsweb.cern.ch' + reference.file_url">{{reference.file_name}}</a>
-                    ({{niceSize(reference.file_size)}})
-                  </small>
+                    <span class="font-weight-light"> ({{niceSize(reference.file_size)}})</span>
+                  </span>
                 </li>
               </ul>
             </li>
@@ -151,12 +151,12 @@
               <ul>
                 <li v-for="target in category.target">
                   {{target.name}}
-                  <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span>)</span>
-                  <small v-if="target.file_name">
+                  <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span><span v-if="target.file_name && target.events !== undefined"> | {{target.events}} events</span>)</span>
+                  <span class="small-font" v-if="target.file_name">
                     <br>
                     <a :href="'https://cmsweb.cern.ch' + target.file_url">{{target.file_name}}</a>
-                    ({{niceSize(target.file_size)}})
-                  </small>
+                    <span class="font-weight-light"> ({{niceSize(target.file_size)}})</span>
+                  </span>
                 </li>
               </ul>
             </li>
@@ -193,8 +193,17 @@ export default {
   },
   filters: {
     statusToColor (status) {
-      if (status.startsWith("no_")) {
+      if (status.startsWith("no_") || status === 'failed') {
         return "red-text";
+      }
+      if (status === 'downloaded') {
+        return "green-text";
+      }
+      if (status === 'initial') {
+        return "gray-text";
+      }
+      if (status === 'downloading') {
+        return "blinking-text";
       }
       return "";
     }
@@ -226,6 +235,9 @@ export default {
           component.resetConformationOverlay = false;
           component.isRefreshing = false;
         }, 5000);
+      }).catch(error => {
+        component.isRefreshing = false;
+        alert('Error resetting RelMon, refresh the page and try again');
       });
     },
     deleteRelmon(relmon) {
@@ -240,6 +252,9 @@ export default {
           component.deleteConformationOverlay = false;
           component.isRefreshing = false;
         }, 5000);
+      }).catch(error => {
+        component.isRefreshing = false;
+        alert('Error deleting RelMon, refresh the page and try again');
       });
     },
     refetchRelmons() {
@@ -274,9 +289,33 @@ li {
   color: red;
 }
 
+.green-text {
+  color: #229955;
+}
+
+.gray-text {
+  color: #7f8c8d;
+}
+
+.blinking-text {
+  color: #2980b9;
+  animation: blinker 1.5s ease-in-out infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0.2;
+  }
+}
+
 .progress-bar {
   max-width: 250px;
   color: white !important;
   border-radius: 4px
+}
+
+.small-font {
+  font-size: 12px;
+  letter-spacing: -0.3px;
 }
 </style>

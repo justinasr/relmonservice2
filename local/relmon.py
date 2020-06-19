@@ -33,7 +33,9 @@ class RelMon():
                                            'file_name': '',
                                            'file_url': '',
                                            'file_size': 0,
-                                           'status': 'initial'})
+                                           'status': 'initial',
+                                           'events': 0,
+                                           'match': ''})
                 else:
                     name = RelMon.sanitize_relval(old_reference['name'])
                     if not name:
@@ -43,7 +45,9 @@ class RelMon():
                                            'file_name': old_reference.get('file_name', ''),
                                            'file_url': old_reference.get('file_url', ''),
                                            'file_size': old_reference.get('file_size', 0),
-                                           'status': old_reference.get('status', 'initial')})
+                                           'status': old_reference.get('status', 'initial'),
+                                           'events': old_reference.get('events', 0),
+                                           'match': old_reference.get('match', '')})
 
             new_targets = []
             for old_target in category['target']:
@@ -56,7 +60,9 @@ class RelMon():
                                         'file_name': '',
                                         'file_url': '',
                                         'file_size': 0,
-                                        'status': 'initial'})
+                                        'status': 'initial',
+                                        'events': 0,
+                                        'match': ''})
                 else:
                     name = RelMon.sanitize_relval(old_target['name'])
                     if not name:
@@ -66,7 +72,9 @@ class RelMon():
                                         'file_name': old_target.get('file_name', ''),
                                         'file_url': old_target.get('file_url', ''),
                                         'file_size': old_target.get('file_size', 0),
-                                        'status': old_target.get('status', 'initial')})
+                                        'status': old_target.get('status', 'initial'),
+                                        'events': old_target.get('events', 0),
+                                        'match': old_target.get('match', '')})
 
             category['reference'] = new_references
             category['target'] = new_targets
@@ -105,7 +113,9 @@ class RelMon():
                                    'file_name': '',
                                    'file_url': '',
                                    'file_size': 0,
-                                   'status': 'initial'})
+                                   'status': 'initial',
+                                   'events': 0,
+                                   'match': ''})
 
         new_targets = []
         for old_target in category['target']:
@@ -121,7 +131,9 @@ class RelMon():
                                 'file_name': '',
                                 'file_url': '',
                                 'file_size': 0,
-                                'status': 'initial'})
+                                'status': 'initial',
+                                'events': 0,
+                                'match': ''})
 
         category['reference'] = new_references
         category['target'] = new_targets
