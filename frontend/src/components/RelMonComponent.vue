@@ -193,8 +193,17 @@ export default {
   },
   filters: {
     statusToColor (status) {
-      if (status.startsWith("no_")) {
+      if (status.startsWith("no_") || status === 'failed') {
         return "red-text";
+      }
+      if (status === 'downloaded') {
+        return "green-text";
+      }
+      if (status === 'initial') {
+        return "gray-text";
+      }
+      if (status === 'downloading') {
+        return "blinking-text";
       }
       return "";
     }
@@ -226,6 +235,9 @@ export default {
           component.resetConformationOverlay = false;
           component.isRefreshing = false;
         }, 5000);
+      }).catch(error => {
+        component.isRefreshing = false;
+        alert('Error resetting RelMon, refresh the page and try again');
       });
     },
     deleteRelmon(relmon) {
@@ -240,6 +252,9 @@ export default {
           component.deleteConformationOverlay = false;
           component.isRefreshing = false;
         }, 5000);
+      }).catch(error => {
+        component.isRefreshing = false;
+        alert('Error deleting RelMon, refresh the page and try again');
       });
     },
     refetchRelmons() {
@@ -272,6 +287,25 @@ li {
 
 .red-text {
   color: red;
+}
+
+.green-text {
+  color: #229955;
+}
+
+.gray-text {
+  color: #7f8c8d;
+}
+
+.blinking-text {
+  color: #2980b9;
+  animation: blinker 1.5s ease-in-out infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0.2;
+  }
 }
 
 .progress-bar {
