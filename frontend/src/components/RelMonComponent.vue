@@ -63,7 +63,7 @@
               </ul>
             </li>
           </ul>
-          <v-btn small class="ma-1" color="primary" @click="detailedView = true">Open detailed view</v-btn>
+          <v-btn small class="ma-1" color="primary" @click="detailedView = true; detailedViewFileInfo = false;">Open detailed view</v-btn>
         </v-col>
 
         <v-overlay :absolute="false"
@@ -120,6 +120,7 @@
     <v-dialog v-model="detailedView">
       <v-card class="pa-4">
         <span class="font-weight-light bigger-text">Categories of</span> <span class="ml-2 bigger-text">{{relmonData.name}}</span>
+        <v-switch v-model="detailedViewFileInfo" class="ma-2" label="Show file info"></v-switch>
         <div v-for="category in relmonData.categories" v-if="category.reference.length || category.target.length">
           <span class="font-weight-light bigger-text">{{category.name}}</span>
           <ul>
@@ -134,8 +135,8 @@
               <ul>
                 <li v-for="reference in category.reference">
                   {{reference.name}}
-                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span><span v-if="reference.file_name && reference.events !== undefined"> | {{reference.events}} events</span>)</span>
-                  <span class="small-font" v-if="reference.file_name">
+                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span><span v-if="reference.file_name && reference.events !== undefined && reference.events > 0 && detailedViewFileInfo"> | {{reference.events}} events</span>)</span>
+                  <span class="small-font" v-if="detailedViewFileInfo && reference.file_name">
                     <br>
                     <a :href="'https://cmsweb.cern.ch' + reference.file_url">{{reference.file_name}}</a>
                     <span class="font-weight-light"> ({{niceSize(reference.file_size)}})</span>
@@ -151,8 +152,8 @@
               <ul>
                 <li v-for="target in category.target">
                   {{target.name}}
-                  <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span><span v-if="target.file_name && target.events !== undefined"> | {{target.events}} events</span>)</span>
-                  <span class="small-font" v-if="target.file_name">
+                  <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span><span v-if="target.file_name && target.events !== undefined && target.events > 0 && detailedViewFileInfo"> | {{target.events}} events</span>)</span>
+                  <span class="small-font" v-if="detailedViewFileInfo && target.file_name">
                     <br>
                     <a :href="'https://cmsweb.cern.ch' + target.file_url">{{target.file_name}}</a>
                     <span class="font-weight-light"> ({{niceSize(target.file_size)}})</span>
@@ -183,7 +184,8 @@ export default {
       resetConformationOverlay: false,
       deleteConformationOverlay: false,
       isRefreshing: false,
-      detailedView: false
+      detailedView: false,
+      detailedViewFileInfo: false,
     }
   },
   created () {
