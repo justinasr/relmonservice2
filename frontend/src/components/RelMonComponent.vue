@@ -46,19 +46,24 @@
         <v-col lg=7 md=6 sm=6 cols=12>
           Categories
           <ul>
-            <li v-for="category in relmonData.categories" v-if="category.reference.length || category.target.length"><span class="font-weight-light">{{category.name}}</span> - {{category.status}} <span class="font-weight-light">| HLT:</span> {{category.hlt}} <span class="font-weight-light">| pairing:</span> {{category.automatic_pairing ? 'auto' : 'manual'}}
+            <li v-for="category in relmonData.categories" v-if="category.reference.length || category.target.length" :key="category.name">
+              <span class="font-weight-light">{{category.name}}</span> - {{category.status}} <span class="font-weight-light">| HLT:</span> {{category.hlt}} <span class="font-weight-light">| pairing:</span> {{category.automatic_pairing ? 'auto' : 'manual'}}
               <ul>
                 <li>
                   <span class="font-weight-light">References</span>
                   <span class="font-weight-light"> - total:</span> {{category.reference.length}}
                   <!-- <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.reference_total_size / 1024.0 / 1024.0) * 10) / 10}}MB -->
-                  <span v-for="value, key in category.reference_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
+                  <span v-for="(value, key) in category.reference_status" :key="key">
+                    <span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span>
+                  </span>
                 </li>
                 <li>
                   <span class="font-weight-light">Targets</span>
                   <span class="font-weight-light"> - total:</span> {{category.target.length}}
                   <!-- <span class="font-weight-light"> | size:</span>&nbsp;{{Math.round((category.target_total_size / 1024.0 / 1024.0) * 10) / 10}}MB -->
-                  <span v-for="value, key in category.target_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
+                  <span v-for="(value, key) in category.target_status" :key="key">
+                    <span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span>
+                  </span>
                 </li>
               </ul>
             </li>
@@ -117,51 +122,60 @@
         </v-overlay>
       </v-row>
     </div>
-    <v-dialog v-model="detailedView">
+    <v-dialog v-if="detailedView" v-model="detailedView">
       <v-card class="pa-4">
         <span class="font-weight-light bigger-text">Categories of</span> <span class="ml-2 bigger-text">{{relmonData.name}}</span>
         <v-switch v-model="detailedViewFileInfo" class="ma-2" label="Show file info"></v-switch>
         <div v-for="category in relmonData.categories" v-if="category.reference.length || category.target.length">
           <span class="font-weight-light bigger-text">{{category.name}}</span>
+
           <ul>
             <li><span class="font-weight-light">Status:</span> {{category.status}}</li>
             <li><span class="font-weight-light">HLT:</span> {{category.hlt}}</li>
             <li><span class="font-weight-light">Pairing:</span> {{category.automatic_pairing ? 'auto' : 'manual'}}</li>
-            <li>
-              <span class="font-weight-light">References</span>
-              <span class="font-weight-light"> - total:</span> {{category.reference.length}}
-              <span class="font-weight-light"> | size:</span>&nbsp;{{niceSize(category.reference_size)}}
-              <span v-for="value, key in category.reference_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
-              <ul>
-                <li v-for="reference in category.reference">
-                  {{reference.name}}
-                  <span class="font-weight-light">(<span :class="reference.status | statusToColor">{{reference.status}}</span><span v-if="reference.file_name && reference.events !== undefined && reference.events > 0 && detailedViewFileInfo"> | {{reference.events}} events</span>)</span>
-                  <span class="small-font" v-if="detailedViewFileInfo && reference.file_name">
-                    <br>
-                    <a :href="'https://cmsweb.cern.ch' + reference.file_url">{{reference.file_name}}</a>
-                    <span class="font-weight-light"> ({{niceSize(reference.file_size)}})</span>
-                  </span>
-                </li>
-              </ul>
-            </li>
-            <li>
-              <span class="font-weight-light">Targets</span>
-              <span class="font-weight-light"> - total:</span> {{category.target.length}}
-              <span class="font-weight-light"> | size:</span>&nbsp;{{niceSize(category.target_size)}}
-              <span v-for="value, key in category.target_status"><span class="font-weight-light">&nbsp;|</span><span class="font-weight-light" :class="key | statusToColor">&nbsp;{{key}}:&nbsp;</span><span :class="key | statusToColor">{{value}}</span></span>
-              <ul>
-                <li v-for="target in category.target">
-                  {{target.name}}
-                  <span class="font-weight-light">(<span :class="target.status | statusToColor">{{target.status}}</span><span v-if="target.file_name && target.events !== undefined && target.events > 0 && detailedViewFileInfo"> | {{target.events}} events</span>)</span>
-                  <span class="small-font" v-if="detailedViewFileInfo && target.file_name">
-                    <br>
-                    <a :href="'https://cmsweb.cern.ch' + target.file_url">{{target.file_name}}</a>
-                    <span class="font-weight-light"> ({{niceSize(target.file_size)}})</span>
-                  </span>
-                </li>
-              </ul>
-            </li>
           </ul>
+
+          <small v-if="category.status == 'initial'" style="color:red">Note: RelVals in this category were not paired yet, they will be paired just before category is compared</small>
+          <div class="table-wrapper">
+            <table>
+              <tr>
+                <th colspan="2">
+                  References <span class="font-weight-light">(total: </span>{{category.reference.length}} <span class="font-weight-light">| size: </span>{{niceSize(category.reference_size)}}<span class="font-weight-light">)</span>
+                </th>
+                <th colspan="2">
+                  Targets <span class="font-weight-light">(total: </span>{{category.target.length}} <span class="font-weight-light">| size: </span>{{niceSize(category.target_size)}}<span class="font-weight-light">)</span>
+                </th>
+              </tr>
+              <tr v-for="(pair, index) in getPairs(category)" :key="index">
+                <td>
+                  <span v-if="pair.reference">{{pair.reference.name}}</span>
+                  <div class="small-font" v-if="detailedViewFileInfo && pair.reference && pair.reference.file_name">
+                    <a :href="'https://cmsweb.cern.ch' + pair.reference.file_url">{{pair.reference.file_name}}</a>
+                  </div>
+                </td>
+
+                <td class="file-info">
+                  <div :class="pair.reference.status | statusToColor" v-if="pair.reference">{{pair.reference.status}}</div>
+                  <div v-if="detailedViewFileInfo && pair.reference && pair.reference.events">{{pair.reference.events}} events</div>
+                  <div v-if="detailedViewFileInfo && pair.reference">{{niceSize(pair.reference.file_size)}}</div>
+                </td>
+
+                <td>
+                  <span v-if="pair.target">{{pair.target.name}}</span>
+                  <div class="small-font" v-if="detailedViewFileInfo && pair.target && pair.target.file_name">
+                    <a :href="'https://cmsweb.cern.ch' + pair.target.file_url">{{pair.target.file_name}}</a>
+                  </div>
+                </td>
+
+                <td class="file-info">
+                  <div :class="pair.target.status | statusToColor" v-if="pair.target">{{pair.target.status}}</div>
+                  <div v-if="detailedViewFileInfo && pair.target && pair.target.events">{{pair.target.events}} events</div>
+                  <div v-if="detailedViewFileInfo && pair.target">{{niceSize(pair.target.file_size)}}</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+
         </div>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -186,6 +200,7 @@ export default {
       isRefreshing: false,
       detailedView: false,
       detailedViewFileInfo: false,
+      pairingCache: {},
     }
   },
   created () {
@@ -277,6 +292,37 @@ export default {
       }
 
       return (size / 1073741824.0).toFixed(2) + ' GB'
+    },
+    getPairs: function(category) {
+      let categoryName = category.name;
+      if (categoryName in this.pairingCache) {
+        return this.pairingCache[categoryName];
+      }
+
+      let pairs = [];
+      let references = category.reference.reduce((arr, reference) => ({...arr, [reference.name]: reference}), {});
+      let targets = category.target.reduce((arr, target) => ({...arr, [target.name]: target}), {});
+
+      for (let reference of category.reference) {
+        if (reference.match && reference.match.length && reference.match in targets) {
+          pairs.push({'reference': reference, 'target': targets[reference.match]});
+          delete references[reference.name];
+          delete targets[reference.match];
+        }
+      }
+      for (let reference of category.reference) {
+        if (reference.name in references) {
+          pairs.push({'reference': reference, 'target': undefined});
+        }
+      }
+      for (let target of category.target) {
+        if (target.name in targets) {
+          pairs.push({'reference': undefined, 'target': target});
+        }
+      }
+
+      this.pairingCache[categoryName] = pairs;
+      return pairs;
     }
   }
 }
@@ -320,4 +366,41 @@ li {
   font-size: 12px;
   letter-spacing: -0.3px;
 }
+
+table, tr, td, th {
+  border: 1px solid black;
+  border-collapse: collapse;
+  padding: 4px;
+}
+
+td {
+  letter-spacing: -0.2px;
+  font-size: 13px;
+}
+
+th {
+  font-size: 15px;
+  font-weight: 400;
+  background: #eee;
+}
+
+tr:hover {
+  background: #eee;
+}
+
+table {
+  width: 100%;
+}
+
+.table-wrapper {
+  width: 100%;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.file-info {
+  text-align: center;
+  white-space: nowrap;
+}
+
 </style>
