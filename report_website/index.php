@@ -46,9 +46,11 @@ if (!isset($_SERVER["PATH_INFO"])) {
                 print("<li><a target='_blank' href='https://cms-pdmv.cern.ch/relmonservice'>RelMon Service</a></li>");
               }
   ?>
-              <li><a target='_blank' href="http://cmsweb.cern.ch/dqm/online">Link to the Online DQM GUI</a></li>
-              <li><a target='_blank' href="http://cmsweb.cern.ch/dqm/offline">Link to the Offline DQM GUI</a></li>
-              <li><a target='_blank' href="http://cmsweb.cern.ch/dqm/relval">Link to the RelVal DQM GUI</a></li>
+              <li><a target='_blank' href="https://cmsweb.cern.ch/dqm/online">Link to the Online DQM GUI</a></li>
+              <li><a target='_blank' href="https://cmsweb.cern.ch/dqm/offline">Link to the Offline DQM GUI</a></li>
+              <li><a target='_blank' href="https://cmsweb.cern.ch/dqm/relval">Link to the RelVal DQM GUI</a></li>
+              <li><a target='_blank' href="https://cmsweb.cern.ch/dqm/relval/data/browse/ROOT/RelValData/">Link to the Data RelVal files</a></li>
+              <li><a target='_blank' href="https://cmsweb.cern.ch/dqm/relval/data/browse/ROOT/RelVal/">Link to the MC RelVal files</a></li>
             </ul>
 
             <div class="row">

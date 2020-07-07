@@ -6,17 +6,17 @@
         <v-progress-circular indeterminate color="primary"></v-progress-circular>
       </div>
       <RelMonComponent @editRelmon="editRelmon" @refetchRelmons="refetchRelmons" v-for="relmonData in fetchedData" :key="relmonData.name" :relmonData="relmonData" :userInfo="userInfo"></RelMonComponent>
-      <div style="line-height: 36px; text-align: center;">
+      <div style="line-height: 28px; text-align: center;">
         <div class="elevation-3 pl-4 pr-4 pt-2 pb-2" style="background: white">
           <v-row>
             <v-col :cols="12">
-              <v-btn small color="primary" style="float: left" class="ma-1" v-if="page > 0" @click="previousPage()">Previous Page</v-btn>
+              <v-btn small color="primary" style="float: left" v-if="page > 0" @click="previousPage()">Previous Page</v-btn>
               <span class="font-weight-light">Pages:</span>
               <span v-for="(p, i) in totalPages()" class="ml-1">
                 <a v-if="i !== page" :href="'?page=' + i" style="text-decoration: none">{{i}}</a>
                 <b v-if="i === page">{{i}}</b>
               </span>
-              <v-btn small color="primary" style="float: right" class="ma-1" v-if="(page + 1) * pageSize < totalRows" @click="nextPage()">Next Page</v-btn>
+              <v-btn small color="primary" style="float: right" v-if="(page + 1) * pageSize < totalRows" @click="nextPage()">Next Page</v-btn>
             </v-col>
           </v-row>
         </div>

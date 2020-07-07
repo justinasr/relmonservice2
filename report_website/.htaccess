@@ -1,10 +1,14 @@
-SSLRequireSSL # The modules only work using HTTPS
-AuthType shibboleth
-ShibRequireSession On
-ShibRequireAll On
-ShibExportAssertion Off
+# Order deny,allow
+# Deny from all
+# Allow from 188.184.30.73 188.185.84.85
 
-Require valid-user
+# SSLRequireSSL # The modules only work using HTTPS
+# AuthType shibboleth
+# ShibRequireSession On
+# ShibRequireAll On
+# ShibExportAssertion Off
+
+# Require valid-user
 
 RewriteEngine on
 
@@ -13,4 +17,3 @@ RewriteRule "^.*/(.*).css$" "$1.css" [L]
 RewriteRule "^favicon.png$" "favicon.png" [L]
 RewriteRule "^(.*).html$" "index.php/$1.htmlgz" [L]
 RewriteRule "^(.*).png$" "index.php/$1.pnggz" [L]
-
