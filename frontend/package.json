@@ -9,18 +9,18 @@
   },
   "dependencies": {
     "axios": "^0.19.2",
-    "core-js": "^3.4.3",
+    "core-js": "^3.6.5",
     "dateformat": "^3.0.3",
     "vue": "^2.6.11",
-    "vuetify": "^2.2.20"
+    "vuetify": "^2.3.5"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^4.2.3",
-    "@vue/cli-service": "^4.2.3",
-    "sass": "^1.26.3",
+    "@vue/cli-plugin-babel": "^4.4.6",
+    "@vue/cli-service": "^4.4.6",
+    "sass": "^1.26.10",
     "sass-loader": "^8.0.0",
-    "vue-cli-plugin-vuetify": "^2.0.5",
+    "vue-cli-plugin-vuetify": "^2.0.7",
     "vue-template-compiler": "^2.6.11",
-    "vuetify-loader": "^1.4.3"
+    "vuetify-loader": "^1.6.0"
   }
 }

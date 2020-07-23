@@ -240,6 +240,9 @@ class Controller():
         """
         relmon_id = relmon.get_id()
         local_relmon_directory = 'relmons/%s' % (relmon_id)
+        if not os.path.isdir(local_relmon_directory):
+            os.mkdir(local_relmon_directory)
+
         remote_relmon_directory = '%s/%s' % (self.remote_directory, relmon_id)
         self.logger.info('Will submit %s to HTCondor', relmon)
         self.logger.info('Remote directory of %s is %s', relmon, remote_relmon_directory)
@@ -438,6 +441,9 @@ class Controller():
         relmon = RelMon(relmon_json)
         self.__terminate_relmon(relmon)
         database.delete_relmon(relmon)
+        local_relmon_directory = 'relmons/%s' % (relmon_id)
+        if os.path.isdir(local_relmon_directory):
+            shutil.rmtree(local_relmon_directory, ignore_errors=True)
 
     def __terminate_relmon(self, relmon):
         """

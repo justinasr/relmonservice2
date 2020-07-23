@@ -1,7 +1,6 @@
 """
 Module for RelMon class
 """
-import os
 import re
 from copy import deepcopy
 
@@ -16,10 +15,6 @@ class RelMon():
         data = deepcopy(data)
         data['name'] = RelMon.sanitize_name(data['name'])
         self.data = data
-        relmon_path = 'relmons/%s/' % (self.get_id())
-        if not os.path.isdir(relmon_path):
-            os.mkdir(relmon_path)
-
         for category in self.data.get('categories', []):
             category['status'] = category.get('status', 'initial')
             new_references = []
