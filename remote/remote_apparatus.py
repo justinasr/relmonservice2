@@ -476,6 +476,10 @@ def main():
                         '-k',
                         type=str,
                         help='File name for GRID key')
+    parser.add_argument('--proxy',
+                        '-p',
+                        type=str,
+                        help='File name for GRID proxy file')
     parser.add_argument('--cpus',
                         nargs='?',
                         const=1,
@@ -496,14 +500,16 @@ def main():
 
     cert_file = args.get('cert')
     key_file = args.get('key')
+    proxy_file = args.get('proxy')
     relmon_filename = args.get('relmon')
     cpus = args.get('cpus', 1)
     callback_url = args.get('callback')
     notify_done = bool(args.get('notifydone'))
-    logging.info('Arguments: relmon %s; cert %s; key %s; cpus %s; callback %s; notify %s',
+    logging.info('Arguments: %s; cert %s; key %s; proxy: %s; cpus %s; callback %s; notify %s',
                  relmon_filename,
                  cert_file,
                  key_file,
+                 proxy_file,
                  cpus,
                  callback_url,
                  'YES' if notify_done else 'NO')
@@ -518,6 +524,10 @@ def main():
             else:
                 logging.info('Will notify about failure')
         else:
+            if (not cert_file or not key_file) and proxy_file:
+                cert_file = proxy_file
+                key_file = proxy_file
+
             cmsweb = CMSWebWrapper(cert_file, key_file)
             relmon['status'] = 'running'
             notify(relmon, callback_url)
