@@ -3,6 +3,7 @@ Module that contains Database class
 """
 import logging
 import time
+import json
 import os
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
