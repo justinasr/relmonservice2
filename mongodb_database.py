@@ -19,7 +19,28 @@ class Database:
         db_host = os.environ.get('DB_HOST', 'localhost')
         db_port = os.environ.get('DB_PORT', 27017)
         self.logger = logging.getLogger('logger')
-        self.client = MongoClient(db_host, db_port)
+        db_auth = os.environ.get('DB_AUTH', None)
+        username = None
+        password = None
+        if db_auth:
+            with open(db_auth) as json_file:
+                credentials = json.load(json_file)
+
+            username = credentials['username']
+            password = credentials['password']
+
+        if username and password:
+            self.logger.debug('Using DB with username and password')
+            self.client = MongoClient(db_host,
+                                      db_port,
+                                      username=username,
+                                      password=password,
+                                      authSource='admin',
+                                      authMechanism='SCRAM-SHA-256')
+        else:
+            self.logger.debug('Using DB without username and password')
+            self.client = MongoClient(db_host, db_port)
+
         self.relmons_db = self.client['relmons']
         self.relmons = self.relmons_db['relmons']
 
