@@ -15,10 +15,6 @@ class FileCreator():
         if self.web_location[-1] == '/':
             self.web_location = self.web_location[:-1]
 
-        self.grid_cert_path = config['grid_certificate']
-        self.grid_key_path = config['grid_key']
-        self.grid_cert_file = self.grid_cert_path.split('/')[-1]
-        self.grid_key_file = self.grid_key_path.split('/')[-1]
         self.cookie_url = config['service_url']
         self.callback_url = config['callback_url']
 
@@ -58,11 +54,9 @@ class FileCreator():
             'mkdir -p Reports',
             # Run the remote apparatus
             'python relmonservice2/remote/remote_apparatus.py '  # No newline
-            '-r RELMON_%s.json -c %s -k %s --cpus %s --callback %s' % (relmon_id,
-                                                                       self.grid_cert_file,
-                                                                       self.grid_key_file,
-                                                                       cpus,
-                                                                       self.callback_url),
+            '-r RELMON_%s.json -p proxy.txt --cpus %s --callback %s' % (relmon_id,
+                                                                        cpus,
+                                                                        self.callback_url),
             # Close scope for CMSSW
             ')',
             'cd $DIR',
@@ -141,9 +135,7 @@ class FileCreator():
             'output                 = RELMON_%s.out' % (relmon_id),
             'error                  = RELMON_%s.err' % (relmon_id),
             'log                    = RELMON_%s.log' % (relmon_id),
-            'transfer_input_files   = RELMON_%s.json,%s,%s' % (relmon_id,
-                                                               self.grid_cert_path,
-                                                               self.grid_key_path),
+            'transfer_input_files   = RELMON_%s.json,proxy.txt' % (relmon_id),
             'when_to_transfer_output = on_exit',
             'request_cpus           = %s' % (cpus),
             'request_memory         = %s' % (memory),

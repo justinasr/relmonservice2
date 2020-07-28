@@ -223,7 +223,7 @@ def update_info():
     database = Database()
     relmon = database.get_relmon(data['id'])
     if not relmon:
-        return output_text({'message', 'Could not find'})
+        return output_text({'message': 'Could not find'})
 
     old_status = relmon.get('status')
     relmon['categories'] = data['categories']
@@ -298,35 +298,17 @@ def setup_console_logging():
 def get_config(mode):
     """
     Get config as a dictionary
-    Based on the mode - prod, dev or env it can be taken either from file or environment variables
+    Based on the mode - prod or dev
     """
-    if mode == 'env':
-        keys = ['callback_url',
-                'service_url',
-                'reports_url',
-                'grid_certificate',
-                'grid_key',
-                'host',
-                'port',
-                'submission_host',
-                'remote_directory',
-                'ssh_credentials',
-                'web_location']
-        config = {}
-        for key in keys:
-            config[key] = os.environ.get(key.upper())
-
-    else:
-        config = configparser.ConfigParser()
-        config.read('config.cfg')
-        config = dict(config.items(mode))
-
+    config = configparser.ConfigParser()
+    config.read('config.cfg')
+    config = dict(config.items(mode))
     logging.info('Config values:')
     for key, value in config.items():
         if key == 'ssh_credentials':
-            logging.info('%s ******', key)
+            logging.info('  %s: ******', key)
         else:
-            logging.info('%s %s', key, value)
+            logging.info('  %s: %s', key, value)
 
     return config
 
@@ -337,13 +319,18 @@ def main():
     """
     parser = argparse.ArgumentParser(description='RelMon Service')
     parser.add_argument('--mode',
-                        choices=['prod', 'dev', 'env'],
+                        choices=['prod', 'dev'],
                         required=True,
-                        help='Production (prod) or development (dev) mode from '
-                             'config file or environment variables (env) mode')
+                        help='Production (prod) or development (dev) mode')
     parser.add_argument('--debug',
                         help='Debug mode',
                         action='store_true')
+    parser.add_argument('--port',
+                        help='Port, default is 8001',
+                        default=8001)
+    parser.add_argument('--host',
+                        help='Host IP, default is 0.0.0.0',
+                        default='0.0.0.0')
     args = vars(parser.parse_args())
     debug = args.get('debug', False)
     setup_console_logging()
@@ -358,8 +345,8 @@ def main():
         scheduler.add_job(tick, 'interval', seconds=600, max_instances=1)
 
     scheduler.start()
-    port = int(config.get('port', 8001))
-    host = config.get('host', '127.0.0.1')
+    port = args.get('port')
+    host = args.get('host')
     logger.info('Will run on %s:%s', host, port)
     app.run(host=host,
             port=port,

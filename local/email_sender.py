@@ -76,5 +76,9 @@ class EmailSender():
 
         self.logger.info('Will send "%s" to %s', message['Subject'], message['To'])
         self.__setup_smtp()
-        self.smtp.sendmail(message['From'], recipients + ccs, message.as_string())
-        self.__close_smtp()
+        try:
+            self.smtp.sendmail(message['From'], recipients + ccs, message.as_string())
+        except Exception as ex:
+            self.logger.error(ex)
+        finally:
+            self.__close_smtp()

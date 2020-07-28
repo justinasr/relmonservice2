@@ -288,6 +288,7 @@ class Controller():
             # It is easier to ssh to lxplus than set up condor locally
             stdout, stderr = self.ssh_executor.execute_command([
                 'cd %s' % (remote_relmon_directory),
+                'voms-proxy-init -voms cms --valid 24:00 --out $(pwd)/proxy.txt',
                 'module load lxbatch/tzero && condor_submit RELMON_%s.sub' % (relmon_id)
             ])
             # Parse result of condor_submit
@@ -411,6 +412,9 @@ class Controller():
 
         database.update_relmon(relmon)
         shutil.rmtree(local_relmon_directory, ignore_errors=True)
+        self.ssh_executor.execute_command([
+            'rm -rf %s' % (remote_relmon_directory)
+        ])
 
     def __reset_relmon(self, relmon_id, database, user_info):
         """
