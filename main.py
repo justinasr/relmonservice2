@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 from flask import Flask, render_template, request, make_response
 from flask_restful import Api
+from jinja2.exceptions import TemplateNotFound
 from apscheduler.schedulers.background import BackgroundScheduler
 from mongodb_database import Database
 from local.controller import Controller
@@ -29,7 +30,12 @@ def index_page():
     """
     Return index.html
     """
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except TemplateNotFound:
+        response = '<script>setTimeout(function() {location.reload();}, 5000);</script>'
+        response += 'Webpage is starting, please wait a few minutes...'
+        return response
 
 
 @app.route('/api/create', methods=['POST'])
@@ -196,12 +202,12 @@ def edit_relmon():
     existing_relmons_with_same_name = database.get_relmons_with_name(relmon.get_name())
     for existing_relmon_with_same_name in existing_relmons_with_same_name:
         if existing_relmon_with_same_name['id'] != relmon.get_id():
-            return output_text({'message': 'RelMon with this name already exists'}, code=422)
+            return output_text({'message': 'RelMon with this name already exists'}, code=409)
 
     relmon_id = relmon.get_id()
     existing_relmon = database.get_relmon(relmon_id)
     if not relmon_id or not existing_relmon:
-        return output_text({'message': 'RelMon does not exist'}, code=422)
+        return output_text({'message': 'RelMon does not exist'}, code=404)
 
     controller.edit_relmon(relmon, database, user_info_dict())
     controller_tick()
@@ -305,7 +311,7 @@ def get_config(mode):
     config = dict(config.items(mode))
     logging.info('Config values:')
     for key, value in config.items():
-        if key == 'ssh_credentials':
+        if key in ('ssh_credentials', 'database_auth'):
             logging.info('  %s: ******', key)
         else:
             logging.info('  %s: %s', key, value)
@@ -342,7 +348,14 @@ def main():
     if not debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         global controller
         controller = Controller(config)
-        scheduler.add_job(tick, 'interval', seconds=600, max_instances=1)
+        scheduler.add_job(tick,
+                          'interval',
+                          seconds=int(config.get('tick_interval')),
+                          max_instances=1)
+
+    database_auth = config.get('database_auth')
+    if database_auth:
+        Database.set_credentials_file(database_auth)
 
     scheduler.start()
     port = args.get('port')
