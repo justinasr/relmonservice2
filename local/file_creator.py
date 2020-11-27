@@ -141,7 +141,7 @@ class FileCreator():
             'request_memory         = %s' % (memory),
             'request_disk           = %s' % (disk),
             '+JobFlavour            = "tomorrow"',
-            '+JobPrio               = 1',
+            '+JobPrio               = 100',
             'requirements           = (OpSysAndVer =?= "CentOS7")',
             # Leave in queue when status is DONE for two hours - 7200 seconds
             'leave_in_queue         = JobStatus == 4 && (CompletionDate =?= UNDEFINED'
